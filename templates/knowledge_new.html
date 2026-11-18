@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="panel narrow"><div class="eyebrow">VERIFIED GUIDE CONTRIBUTION</div><h1>Chia sẻ kinh nghiệm</h1><p class="muted">Nội dung sau khi đăng sẽ được AI chuẩn hóa và đưa vào kho tri thức trung tâm. Dữ liệu nguồn bên ngoài được đánh dấu để kiểm tra.</p>
+<form method="post"><label>Tiêu đề<input name="title" required></label><label>Điểm đến / địa bàn<input name="destination" placeholder="Ví dụ: Đại Nội Huế"></label><label>Loại nội dung<select name="content_type"><option>ARTICLE</option><option>VIDEO</option><option>IMAGE</option><option>TOUR_TIP</option></select></label><label>Nội dung<textarea name="content" rows="10" required></textarea></label><label>Link video / hình ảnh (nếu có)<input name="media_url" placeholder="https://..."></label><label>Nguồn tham khảo (nếu có)<input name="source_url" placeholder="https://..."></label><button class="btn" type="submit">Đăng và nạp vào kho tri thức</button></form></div>
+{% endblock %}
