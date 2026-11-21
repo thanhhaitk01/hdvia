@@ -1,3 +1,46 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}HDVIA — AI Travel Intelligence{% endblock %}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="/static/style.css"></head><body>
-<header class="topbar v15"><div class="brand"><a href="/" class="brand-mark">HDVIA</a><div class="brand-copy"><b>AI TRAVEL INTELLIGENCE</b><span>Trợ lý AI đồng hành cùng Hướng Dẫn Viên Việt Nam</span></div></div><nav><a class="nav-link" href="/journey">Kiểm tra hành trình</a><a class="nav-link" href="/journey">Ăn chơi & Đặc sản</a><a class="nav-link" href="/destinations">Thông tin điểm đến</a><a class="nav-link" href="/journey">Kinh nghiệm HDV</a>{% if user %}<a class="nav-link" href="/profile">Hồ sơ</a>{% if user.role in ['ADMIN','SUPER_ADMIN'] %}<a class="nav-link" href="/admin/guides">Admin</a>{% endif %}<a class="nav-link" href="/logout">Đăng xuất</a>{% else %}<a class="nav-link" href="/register">Đăng ký</a><a class="nav-link" href="/login">Đăng nhập</a>{% endif %}</nav></header>
-<main class="page-v15">{% with msgs=get_flashed_messages() %}{% for m in msgs %}<div class="flash">{{m}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main><footer>HDVIA v{{version}} · Verified Guide · Journey Intelligence · Weather Intelligence · Vietnam Travel Intelligence</footer></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}HDVIA — AI Travel Intelligence{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar v15">
+  <div class="brand">
+    <a href="/" class="brand-mark">HDVIA</a>
+    <div class="brand-copy">
+      <b>AI TRAVEL INTELLIGENCE</b>
+      <span>Trợ lý AI đồng hành cùng Hướng Dẫn Viên Việt Nam</span>
+    </div>
+  </div>
+  <nav>
+    <a class="nav-link" href="/journey">Kiểm tra hành trình</a>
+    <a class="nav-link" href="/journey">Ăn chơi & Đặc sản</a>
+    <a class="nav-link" href="/destinations">Thông tin điểm đến</a>
+    <a class="nav-link" href="/journey">Kinh nghiệm HDV</a>
+    {% if user %}
+      <a class="nav-link" href="/profile">Hồ sơ</a>
+      {% if user['role'] in ['ADMIN','SUPER_ADMIN'] %}
+        <a class="nav-link" href="/admin/guides">Admin</a>
+      {% endif %}
+      <a class="nav-link" href="/logout">Đăng xuất</a>
+    {% else %}
+      <a class="nav-link" href="/login">Đăng nhập</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main class="page-v15">
+  {% with msgs = get_flashed_messages() %}
+    {% if msgs %}
+      {% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer>HDVIA v{{ version }} · Verified Guide · Journey Intelligence · Weather Intelligence · Vietnam Travel Intelligence</footer>
+</body>
+</html>
