@@ -1,13 +1,20 @@
-<div class="hdvia-oauth-buttons" aria-label="Đăng nhập nhanh">
-  <a class="hdvia-oauth-btn hdvia-google"
-     href="{{ url_for('oauth.oauth_login', provider='google') }}">
-    <span class="oauth-icon">G</span>
+<div class="hdvia-oauth-divider" aria-hidden="true">
+  <span>Đăng nhập nhanh</span>
+</div>
+
+<div class="hdvia-oauth-buttons">
+  <a class="hdvia-oauth-btn hdvia-google-btn"
+     href="{{ url_for('oauth.google_login') }}"
+     aria-label="Đăng nhập bằng Google">
+    <span class="hdvia-oauth-icon hdvia-google-icon">G</span>
     <span>Đăng nhập bằng Google</span>
   </a>
 
-  <a class="hdvia-oauth-btn hdvia-facebook"
-     href="{{ url_for('oauth.oauth_login', provider='facebook') }}">
-    <span class="oauth-icon">f</span>
+  <a class="hdvia-oauth-btn hdvia-facebook-btn"
+     href="{{ url_for('oauth.facebook_login') if facebook_oauth_enabled else '#' }}"
+     aria-label="Đăng nhập bằng Facebook"
+     {% if not facebook_oauth_enabled %}aria-disabled="true" onclick="return false;"{% endif %}>
+    <span class="hdvia-oauth-icon">f</span>
     <span>Đăng nhập bằng Facebook</span>
   </a>
 </div>
