@@ -1,3 +1,0 @@
-{% extends "base.html" %}{% block title %}Duyệt HDV{% endblock %}{% block content %}
-<div class="card"><h1>Guide Verification Dashboard</h1><table><tr><th>ID</th><th>Người dùng</th><th>Mã thẻ</th><th>Loại</th><th>Trạng thái</th><th></th></tr>
-{% for g in rows %}<tr><td>{{g.id}}</td><td>{{g.name}}</td><td>{{g.card_number}}</td><td>{{g.card_type}}</td><td>{{g.status}}</td><td><a href="/admin/guides/{{g.id}}">Xem</a></td></tr>{% else %}<tr><td colspan="6">Không có hồ sơ.</td></tr>{% endfor %}</table></div>{% endblock %}

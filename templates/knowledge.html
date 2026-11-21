@@ -1,5 +1,0 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="hero"><div><div class="eyebrow">HDVIA 1.5 BETA</div><h1>Kho tri thức HDV</h1><p>Tri thức thực địa từ HDV Verified, được lưu vào kho dữ liệu trung tâm để tái sử dụng.</p></div><a class="btn" href="{{ url_for('knowledge_new') }}">+ Viết bài / chia sẻ</a></div>
-<div class="grid cards">{% for r in rows %}<article class="card"><div class="eyebrow">{{ r.content_type }} · {{ r.confidence|upper }}</div><h3>{{ r.title }}</h3><div class="muted">{{ r.destination or 'Toàn Việt Nam' }} · {{ r.author_name or 'HDV Verified' }}</div>{% if r.media_url %}<div class="media"><a href="{{ r.media_url }}" target="_blank">Mở media</a></div>{% endif %}<p>{{ r.ai_summary or r.content[:260] }}</p><div class="tag">Nguồn: {{ r.source_type }}</div></article>{% else %}<div class="card"><p>Chưa có nội dung. Hãy tạo đóng góp đầu tiên.</p></div>{% endfor %}</div>
-{% endblock %}

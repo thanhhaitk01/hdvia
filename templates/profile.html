@@ -1,7 +1,0 @@
-{% extends "base.html" %}{% block title %}Hồ sơ{% endblock %}{% block content %}
-<div class="card"><h1>{{u.name}}</h1><div class="stats"><span>Role <b>{{u.role}}</b></span><span>Trust <b>{{u.trust_level}}</b></span><span>Status <b>{{u.status}}</b></span></div>
-<p>{{u.email}} · {{u.phone}}</p><a class="btn" href="/guide/apply">Đăng ký tư cách HDV</a></div>
-<div class="card"><h2>Hồ sơ HDV</h2><table><tr><th>Mã thẻ</th><th>Loại</th><th>Trạng thái</th><th>Ngày gửi</th></tr>
-{% for a in apps %}<tr><td>{{a.card_number}}</td><td>{{a.card_type}}</td><td>{{a.status}}</td><td>{{a.created_at}}</td></tr>{% else %}<tr><td colspan="4">Chưa có hồ sơ.</td></tr>{% endfor %}</table></div>
-<div class="card"><h2>Hành trình gần đây</h2><table><tr><th>Tên</th><th>Ngày</th></tr>{% for j in journeys %}<tr><td>{{j.title}}</td><td>{{j.created_at}}</td></tr>{% else %}<tr><td colspan="2">Chưa có.</td></tr>{% endfor %}</table></div>
-{% endblock %}
