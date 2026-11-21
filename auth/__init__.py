@@ -1,1 +1,0 @@
-"""HDVIA authentication package."""
