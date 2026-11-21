@@ -1,11 +1,13 @@
-<!doctype html>
-<html lang="vi">
-<head><meta charset="utf-8"><title>HDVIA - Đăng nhập</title></head>
-<body>
-  <h2>Đăng nhập HDVIA thành công</h2>
-  <p>Xin chào {{ user.name or "HDV" }}.</p>
-  <p>Tài khoản: {{ user.email or "Không cung cấp email" }}</p>
-  <p>Nhà cung cấp: {{ user.provider }}</p>
-  <a href="/">Về HDVIA</a>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập thành công{% endblock %}
+
+{% block content %}
+<div class="hdvia-login-page">
+  <div class="hdvia-login-card">
+    <h1>Đăng nhập thành công</h1>
+    <p>Chào mừng bạn đến với HDVIA.</p>
+    <a class="hdvia-login-submit" href="{{ url_for('home') }}">Tiếp tục vào HDVIA</a>
+  </div>
+</div>
+{% endblock %}

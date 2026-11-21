@@ -1,4 +1,13 @@
-<div class="hdvia-login">
-  <a href="/auth/login/google" class="hdvia-login-btn google">Đăng nhập nhanh bằng Google</a>
-  <a href="/auth/login/facebook" class="hdvia-login-btn facebook">Đăng nhập nhanh bằng Facebook</a>
+<div class="hdvia-oauth-buttons" aria-label="Đăng nhập nhanh">
+  <a class="hdvia-oauth-btn hdvia-google"
+     href="{{ url_for('oauth_login', provider='google') }}">
+    <span class="oauth-icon">G</span>
+    <span>Đăng nhập bằng Google</span>
+  </a>
+
+  <a class="hdvia-oauth-btn hdvia-facebook"
+     href="{{ url_for('oauth_login', provider='facebook') }}">
+    <span class="oauth-icon">f</span>
+    <span>Đăng nhập bằng Facebook</span>
+  </a>
 </div>

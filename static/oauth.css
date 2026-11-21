@@ -1,4 +1,53 @@
-.hdvia-login{display:flex;gap:12px;flex-wrap:wrap}
-.hdvia-login-btn{display:inline-block;padding:12px 18px;border-radius:8px;text-decoration:none;font-family:Arial,sans-serif}
-.hdvia-login-btn.google{background:#fff;color:#222;border:1px solid #ccc}
-.hdvia-login-btn.facebook{background:#1877f2;color:#fff;border:1px solid #1877f2}
+/* HDVIA OAuth login module */
+.hdvia-oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 14px;
+  color: rgba(255,255,255,.72);
+  font-size: 14px;
+}
+.hdvia-oauth-divider::before,
+.hdvia-oauth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.22);
+}
+.hdvia-oauth-divider span {
+  white-space: nowrap;
+}
+.hdvia-oauth-buttons {
+  display: grid;
+  gap: 10px;
+}
+.hdvia-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity .15s ease, transform .05s ease;
+}
+.hdvia-oauth-btn:hover { opacity: .92; }
+.hdvia-oauth-btn:active { transform: translateY(1px); }
+.hdvia-google {
+  background: #fff;
+  color: #202124;
+}
+.hdvia-facebook {
+  background: #1877f2;
+  color: #fff;
+}
+.oauth-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+}

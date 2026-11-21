@@ -1,96 +1,110 @@
 import os
-from flask import Blueprint, redirect, url_for, session, jsonify, render_template
+from flask import Blueprint, redirect, url_for, session, abort
 from authlib.integrations.flask_client import OAuth
 
-oauth_bp = Blueprint("oauth", __name__, url_prefix="/auth")
 oauth = OAuth()
+oauth_bp = Blueprint("oauth", __name__, url_prefix="/auth")
+
 
 def init_oauth(app):
     oauth.init_app(app)
 
     google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    facebook_client_id = os.getenv("FACEBOOK_CLIENT_ID")
+    facebook_client_secret = os.getenv("FACEBOOK_CLIENT_SECRET")
+
     if google_client_id and google_client_secret:
         oauth.register(
             name="google",
             client_id=google_client_id,
             client_secret=google_client_secret,
-            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            server_metadata_url=(
+                "https://accounts.google.com/.well-known/openid-configuration"
+            ),
             client_kwargs={"scope": "openid email profile"},
         )
 
-    facebook_app_id = os.getenv("FACEBOOK_APP_ID")
-    facebook_app_secret = os.getenv("FACEBOOK_APP_SECRET")
-    if facebook_app_id and facebook_app_secret:
+    if facebook_client_id and facebook_client_secret:
         oauth.register(
             name="facebook",
-            client_id=facebook_app_id,
-            client_secret=facebook_app_secret,
-            authorize_url="https://www.facebook.com/v24.0/dialog/oauth",
-            access_token_url="https://graph.facebook.com/v24.0/oauth/access_token",
-            api_base_url="https://graph.facebook.com/v24.0/",
+            client_id=facebook_client_id,
+            client_secret=facebook_client_secret,
+            authorize_url="https://www.facebook.com/v23.0/dialog/oauth",
+            access_token_url="https://graph.facebook.com/v23.0/oauth/access_token",
+            api_base_url="https://graph.facebook.com/v23.0/",
             client_kwargs={"scope": "email,public_profile"},
         )
 
-def _provider_enabled(name):
-    return name in oauth._clients
+    app.register_blueprint(oauth_bp)
 
-@oauth_bp.get("/login/<provider>")
-def login(provider):
-    if not _provider_enabled(provider):
-        return jsonify({
-            "ok": False,
-            "error": f"{provider} OAuth is not configured yet."
-        }), 503
+
+@oauth_bp.route("/login/<provider>")
+def oauth_login(provider):
+    if provider not in ("google", "facebook"):
+        abort(404)
 
     client = oauth.create_client(provider)
-    redirect_uri = url_for("oauth.callback", provider=provider, _external=True)
+    if client is None:
+        abort(503, description=f"OAuth provider '{provider}' chưa được cấu hình.")
+
+    redirect_uri = url_for(
+        "oauth.oauth_callback", provider=provider, _external=True
+    )
     return client.authorize_redirect(redirect_uri)
 
-@oauth_bp.get("/callback/<provider>")
-def callback(provider):
-    if not _provider_enabled(provider):
-        return jsonify({
-            "ok": False,
-            "error": f"{provider} OAuth is not configured yet."
-        }), 503
+
+@oauth_bp.route("/callback/<provider>")
+def oauth_callback(provider):
+    if provider not in ("google", "facebook"):
+        abort(404)
 
     client = oauth.create_client(provider)
+    if client is None:
+        abort(503, description=f"OAuth provider '{provider}' chưa được cấu hình.")
+
     token = client.authorize_access_token()
 
     if provider == "google":
         userinfo = token.get("userinfo")
         if not userinfo:
-            userinfo = client.get("https://openidconnect.googleapis.com/v1/userinfo").json()
-        user = {
+            userinfo = client.userinfo()
+        profile = {
             "provider": "google",
             "provider_id": userinfo.get("sub"),
-            "name": userinfo.get("name"),
             "email": userinfo.get("email"),
-            "avatar": userinfo.get("picture"),
+            "name": userinfo.get("name"),
+            "picture": userinfo.get("picture"),
         }
     else:
-        profile = client.get("me?fields=id,name,email,picture").json()
-        user = {
+        resp = client.get(
+            "me",
+            params={"fields": "id,name,email,picture.type(large)"}
+        )
+        data = resp.json()
+        picture = (
+            data.get("picture", {})
+                .get("data", {})
+                .get("url")
+        )
+        profile = {
             "provider": "facebook",
-            "provider_id": profile.get("id"),
-            "name": profile.get("name"),
-            "email": profile.get("email"),
-            "avatar": ((profile.get("picture") or {}).get("data") or {}).get("url"),
+            "provider_id": data.get("id"),
+            "email": data.get("email"),
+            "name": data.get("name"),
+            "picture": picture,
         }
 
-    # Temporary session bridge.
-    # Replace/extend this with HDVIA's real user database + verified-user rules.
-    # OPEN BETA: mọi tài khoản OAuth hợp lệ đều được phép vào hệ thống.
-    # Không kiểm tra giấy phép HDV ở giai đoạn này.
-    user["access_mode"] = os.getenv("HDVIA_AUTH_MODE", "open_beta")
-    user["verified_guide_required"] = False
-    session["hdvia_user"] = user
-    return redirect(url_for("oauth.success"))
+    # Open-Beta: cho phép người dùng đăng nhập bằng OAuth
+    # mà không yêu cầu Verified Guide/HDV approval.
+    session["oauth_user"] = profile
+    session["authenticated"] = True
 
-@oauth_bp.get("/success")
-def success():
-    user = session.get("hdvia_user")
-    if not user:
-        return redirect("/")
-    return render_template("oauth_success.html", user=user)
+    return redirect(url_for("oauth_success"))
+
+
+@oauth_bp.route("/success")
+def oauth_success():
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+    return redirect(url_for("home"))
