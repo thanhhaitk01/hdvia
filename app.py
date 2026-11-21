@@ -1,7 +1,7 @@
 import os, sqlite3, uuid, json, re, urllib.parse, urllib.request
 from datetime import datetime
 from functools import wraps
-from flask import Flask, request, redirect, url_for, session, render_template, flash, send_from_directory, jsonify
+from flask import Flask, request, redirect, url_for, session, render_template, render_template_string, flash, send_from_directory, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from oauth import init_oauth, provider_enabled
@@ -265,9 +265,11 @@ def journey():
     try:
         return render_template("journey.html",result=result,journey_error=error)
     except Exception:
-        # Never leave /journey as a blank 500 page because of a malformed/partial
-        # engine result. Keep the analysis form usable and show a safe message.
-        return render_template("journey.html",result=None,journey_error="HDVIA chưa thể hiển thị kết quả phân tích. Vui lòng thử lại với lịch trình ngắn hơn."), 200
+        # Final safety net: never turn a journey analysis failure into a blank
+        # Vercel 500 page. The analysis form remains usable even if a template
+        # receives an unexpected/partial result from the engine.
+        fallback = """<!doctype html><html lang='vi'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>HDVIA — Phân tích hành trình</title><style>body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}textarea,input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px}textarea{min-height:180px}button{padding:12px 18px;border:0;border-radius:8px;background:#1769e0;color:#fff;font-weight:600}.alert{padding:12px;border-radius:8px;background:#fff3cd;margin-bottom:16px}.back{display:inline-block;margin-bottom:20px}</style></head><body><a class='back' href='/'>← Về HDVIA</a><h1>Phân tích hành trình</h1><div class='alert'>HDVIA chưa thể hiển thị đầy đủ kết quả ở lần này. Sếp có thể giữ nguyên lịch trình và bấm phân tích lại.</div><form method='post'><input name='title' value='Hành trình mới' required><textarea name='itinerary' required placeholder='Ngày 1: Huế\nNgày 2: Đà Nẵng\nNgày 3: Hội An'>{{ request.form.get('itinerary','Ngày 1: Huế\nNgày 2: Đà Nẵng\nNgày 3: Hội An') }}</textarea><button type='submit'>Phân tích lại</button></form></body></html>"""
+        return render_template_string(fallback), 200
 
 
 @app.post("/api/v1/journey/analyze")
