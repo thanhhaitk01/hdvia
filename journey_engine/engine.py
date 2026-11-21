@@ -1,6 +1,6 @@
 
 import math, re, json, urllib.parse, urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 PLACE_CACHE = {
     "huế": ("Huế",16.4637,107.5909), "hue": ("Huế",16.4637,107.5909),
@@ -38,7 +38,7 @@ def haversine_km(a,b):
     return round(R*2*math.asin(math.sqrt(x)),1)
 
 class JourneyIntelligenceEngine:
-    VERSION="1.4.0"
+    VERSION="1.5.0"
 
     def __init__(self, weather_provider=None, geocoder=None):
         self.weather_provider=weather_provider or self._open_meteo
@@ -155,6 +155,6 @@ class JourneyIntelligenceEngine:
         rec.append("Ưu tiên các điểm MEDIUM/HIGH và chuẩn bị Plan B." if risks
                    else "Chưa phát hiện tín hiệu rủi ro lớn từ dữ liệu hiện có.")
         return {"engine":"HDVIA Journey Intelligence Engine","version":self.VERSION,
-                "title":title,"generated_at":datetime.utcnow().isoformat()+"Z",
+                "title":title,"generated_at":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
                 "days":route,"places":places,"weather":weather,
                 "risk_map":risk_map,"risks":risks,"recommendations":rec}
