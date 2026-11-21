@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>HDVIA - Đăng nhập</title></head>
+<body>
+  <h2>Đăng nhập HDVIA thành công</h2>
+  <p>Xin chào {{ user.name or "HDV" }}.</p>
+  <p>Tài khoản: {{ user.email or "Không cung cấp email" }}</p>
+  <p>Nhà cung cấp: {{ user.provider }}</p>
+  <a href="/">Về HDVIA</a>
+</body>
+</html>

@@ -1,0 +1,4 @@
+.hdvia-login{display:flex;gap:12px;flex-wrap:wrap}
+.hdvia-login-btn{display:inline-block;padding:12px 18px;border-radius:8px;text-decoration:none;font-family:Arial,sans-serif}
+.hdvia-login-btn.google{background:#fff;color:#222;border:1px solid #ccc}
+.hdvia-login-btn.facebook{background:#1877f2;color:#fff;border:1px solid #1877f2}
