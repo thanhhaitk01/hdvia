@@ -262,7 +262,12 @@ def journey():
                 error = f"Phân tích thành công nhưng chưa lưu được lịch sử: {exc}"
         if error:
             flash("Không thể hoàn tất phân tích hành trình. Sếp kiểm tra lại dữ liệu và thử lại.")
-    return render_template("journey.html",result=result,journey_error=error)
+    try:
+        return render_template("journey.html",result=result,journey_error=error)
+    except Exception:
+        # Never leave /journey as a blank 500 page because of a malformed/partial
+        # engine result. Keep the analysis form usable and show a safe message.
+        return render_template("journey.html",result=None,journey_error="HDVIA chưa thể hiển thị kết quả phân tích. Vui lòng thử lại với lịch trình ngắn hơn."), 200
 
 
 @app.post("/api/v1/journey/analyze")
