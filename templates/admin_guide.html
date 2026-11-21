@@ -1,6 +1,0 @@
-{% extends "base.html" %}{% block title %}Duyệt hồ sơ{% endblock %}{% block content %}
-<div class="card"><h1>Hồ sơ #{{g.id}}</h1><p><b>Họ tên:</b> {{g.name}}<br><b>Email:</b> {{g.email}}<br><b>Điện thoại:</b> {{g.phone}}<br>
-<b>Mã thẻ:</b> {{g.card_number}}<br><b>Loại:</b> {{g.card_type}}<br><b>Trạng thái:</b> {{g.status}}<br><b>Khu vực:</b> {{g.area}}<br><b>Ngôn ngữ:</b> {{g.languages}}</p>
-<img class="cardimg" src="/admin/guides/{{g.id}}/image"><form method="post"><label>Ghi chú</label><textarea name="note"></textarea>
-<button name="action" value="APPROVE" class="btn">APPROVE</button><button name="action" value="NEED_MORE_INFORMATION" class="btn secondary">NEED MORE INFORMATION</button>
-<button name="action" value="REJECT" class="btn danger">REJECT</button></form></div>{% endblock %}
