@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from journey_engine import JourneyIntelligenceEngine
 from knowledge_engine import KnowledgeIngestionEngine
+from auth.oauth import init_oauth
 BASE=os.path.dirname(__file__)
 # Vercel's deployment filesystem is read-only; runtime writes must use /tmp.
 RUNTIME_DIR=os.path.join('/tmp','hdvia')
@@ -16,6 +17,7 @@ app=Flask(__name__)
 app.secret_key=os.environ.get("HDVIA_SECRET_KEY","change-me-in-production")
 app.config.update(MAX_CONTENT_LENGTH=5*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 if os.environ.get("HDVIA_COOKIE_SECURE","0")=="1": app.config["SESSION_COOKIE_SECURE"]=True
+init_oauth(app)
 PERMISSIONS={
 "USER":{"profile.manage","journey.create","journey.read","journey.analyze","weather.read","destination.read","ai.assistant.use"},
 "GUIDE":{"profile.manage","journey.create","journey.read","journey.analyze","weather.read","destination.read","destination.intelligence","itinerary.optimize","ai.assistant.use","ai.copilot.use","knowledge.create","knowledge.read","knowledge.media.publish","knowledge.source.collect"},
@@ -195,7 +197,6 @@ def knowledge_ingest():
     data=request.get_json(silent=True) or {}; title=(data.get("title") or "").strip(); source_url=(data.get("source_url") or "").strip(); destination=(data.get("destination") or "").strip()
     if not title or not source_url: return jsonify({"error":"title and source_url required"}),400
     try: fetched=knowledge_engine.fetch_url(source_url); ai=knowledge_engine.local_ai_extract(title,fetched["text"])
-    # intentionally stores the collected material as a knowledge draft for review
     except Exception as e: return jsonify({"error":str(e)}),400
     c=db(); cur=c.execute("INSERT INTO knowledge_items(author_id,title,content,content_type,destination,media_url,source_url,source_type,ai_summary,ai_facts_json,confidence,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(current_user()["id"],title,fetched["text"],"SOURCE_IMPORT",destination,"",source_url,"EXTERNAL",ai["summary"],json.dumps(ai["facts"],ensure_ascii=False),ai["confidence"],"PENDING_REVIEW",now(),now())); kid=cur.lastrowid
     c.execute("INSERT INTO knowledge_sources(knowledge_id,source_url,source_name,source_type,source_status,raw_content,created_at) VALUES(?,?,?,?,?,?,?)",(kid,source_url,"External source","EXTERNAL","COLLECTED",fetched["text"],now())); c.execute("INSERT INTO knowledge_events(knowledge_id,actor_id,event,detail,created_at) VALUES(?,?,?,?,?)",(kid,current_user()["id"],"SOURCE_COLLECTED","AI extraction fallback; pending review",now())); c.commit(); c.close(); return jsonify({"id":kid,"status":"PENDING_REVIEW","ai":ai})

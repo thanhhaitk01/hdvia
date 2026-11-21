@@ -19,9 +19,7 @@ def init_oauth(app):
             name="google",
             client_id=google_client_id,
             client_secret=google_client_secret,
-            server_metadata_url=(
-                "https://accounts.google.com/.well-known/openid-configuration"
-            ),
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
             client_kwargs={"scope": "openid email profile"},
         )
 
@@ -48,9 +46,7 @@ def oauth_login(provider):
     if client is None:
         abort(503, description=f"OAuth provider '{provider}' chưa được cấu hình.")
 
-    redirect_uri = url_for(
-        "oauth.oauth_callback", provider=provider, _external=True
-    )
+    redirect_uri = url_for("oauth.oauth_callback", provider=provider, _external=True)
     return client.authorize_redirect(redirect_uri)
 
 
@@ -66,9 +62,7 @@ def oauth_callback(provider):
     token = client.authorize_access_token()
 
     if provider == "google":
-        userinfo = token.get("userinfo")
-        if not userinfo:
-            userinfo = client.userinfo()
+        userinfo = token.get("userinfo") or client.userinfo()
         profile = {
             "provider": "google",
             "provider_id": userinfo.get("sub"),
@@ -77,16 +71,9 @@ def oauth_callback(provider):
             "picture": userinfo.get("picture"),
         }
     else:
-        resp = client.get(
-            "me",
-            params={"fields": "id,name,email,picture.type(large)"}
-        )
+        resp = client.get("me", params={"fields": "id,name,email,picture.type(large)"})
         data = resp.json()
-        picture = (
-            data.get("picture", {})
-                .get("data", {})
-                .get("url")
-        )
+        picture = data.get("picture", {}).get("data", {}).get("url")
         profile = {
             "provider": "facebook",
             "provider_id": data.get("id"),
@@ -95,12 +82,11 @@ def oauth_callback(provider):
             "picture": picture,
         }
 
-    # Open-Beta: cho phép người dùng đăng nhập bằng OAuth
-    # mà không yêu cầu Verified Guide/HDV approval.
+    # Open-Beta: cho phép OAuth login mà chưa yêu cầu Verified Guide approval.
+    # Giữ OAuth identity trong session để dùng cho bước đồng bộ tài khoản tiếp theo.
     session["oauth_user"] = profile
     session["authenticated"] = True
-
-    return redirect(url_for("oauth_success"))
+    return redirect(url_for("oauth.oauth_success"))
 
 
 @oauth_bp.route("/success")
