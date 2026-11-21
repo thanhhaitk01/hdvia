@@ -25,6 +25,19 @@ Bản này được tạo từ bộ `HDVIA_BETA_1_6_FRESH_VERIFIED.zip`, giữ n
 - Route/health contract: **PASS**
 - Stress test Journey: **1,000,000/1,000,000 PASS**
 
+
+## Lỗi Vercel Runtime vừa xác định và đã sửa
+- `app.py` gọi `datetime.now(timezone.utc)` trong hàm `now()`, nhưng trước đó chỉ import `datetime` mà **không import `timezone`**.
+- `init_db()` được gọi ngay khi module `app.py` khởi tạo, nên lỗi `NameError: timezone is not defined` có thể làm Vercel Function chết ngay ở startup và tạo `500 FUNCTION_INVOCATION_FAILED`.
+- Đã sửa thành `from datetime import datetime, timezone`.
+- Đã bổ sung regression test riêng cho lỗi startup này.
+
+## Kiểm tra lại sau khi sửa
+- Python compile toàn bộ source: **PASS**
+- Pytest: **12/12 PASS**
+- Regression test cho `timezone` import/startup contract: **PASS**
+- Kiểm tra Vercel production/browser thật: **CHƯA THỂ xác nhận trong môi trường hiện tại** vì môi trường kiểm thử không có Flask/Authlib và không có quyền truy cập deployment Vercel của sếp.
+
 ## Cảnh báo quan trọng
 Môi trường kiểm thử hiện tại không có Flask/Authlib và không có DNS/internet để cài dependencies, nên không thể chạy một Vercel deployment thật trong môi trường này. Vì vậy báo cáo này **không tuyên bố đã xác nhận browser/Vercel production runtime 100%**.
 
