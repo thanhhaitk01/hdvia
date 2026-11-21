@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Đăng ký HDV{% endblock %}{% block content %}
+<div class="card narrow"><h1>Đăng ký tư cách Hướng dẫn viên</h1><p class="muted">AI/OCR chỉ hỗ trợ kiểm tra; Admin là người quyết định cuối cùng.</p>
+<form method="post" enctype="multipart/form-data"><label>Mã số thẻ HDV</label><input name="card_number" required>
+<label>Loại thẻ</label><select name="card_type"><option>Quốc tế</option><option>Nội địa</option><option>Tại điểm</option></select>
+<label>Ảnh thẻ HDV</label><input type="file" name="card_image" accept=".jpg,.jpeg,.png,.webp" required>
+<label>Khu vực hoạt động</label><input name="area"><label>Ngôn ngữ</label><input name="languages">
+<button class="btn">Gửi hồ sơ xét duyệt</button></form></div>{% endblock %}

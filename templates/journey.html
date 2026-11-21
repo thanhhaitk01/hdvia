@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block title %}HDVIA — Live Journey Intelligence{% endblock %}{% block content %}
+<div class="journey-shell"><aside class="side"><a class="side-active" href="/journey">✦ Phân tích hành trình</a><a href="/profile">◫ Lịch sử hành trình</a><a href="/journey">☁ Thời tiết theo điểm</a><a href="/journey">▣ Thông tin điểm đến</a><a href="/journey">◉ Kinh nghiệm HDV</a><a href="/journey">⚠ Cảnh báo & rủi ro</a><a href="/journey">▱ Hành trang & lưu ý</a><a href="/journey">🛒 Đề xuất dịch vụ</a><div class="side-divider"></div><a href="/profile">♙ Hồ sơ cá nhân</a><a href="/guide/apply">✓ Đăng ký xác minh HDV</a></aside>
+<section class="dashboard"><div class="dash-head"><div><div class="live-title"><span class="live-pill">● LIVE</span> Phân tích hành trình chi tiết</div><div class="muted">Nhập hành trình → HDVIA tự nhận diện điểm, lấy thời tiết, đánh giá rủi ro và tạo Plan B.</div></div><div><button class="btn" onclick="analyzeLive()">↻ Phân tích lại</button></div></div>
+{% if journey_error %}<div class="alert danger" style="margin-bottom:16px">{{ journey_error }}</div>{% endif %}
+<form id="journeyForm" method="post" class="input-card"><input name="title" value="{{ result.title if result else 'Huế – Đà Nẵng – Bà Nà Hills – Hội An | 4 ngày 3 đêm' }}" required><textarea name="itinerary" required placeholder="Ngày 1: Huế\nNgày 2: Đà Nẵng\nNgày 3: Bà Nà Hills\nNgày 4: Hội An">{{ request.form.get('itinerary','Ngày 1: Huế\nNgày 2: Đà Nẵng\nNgày 3: Bà Nà Hills\nNgày 4: Hội An') }}</textarea><button class="btn" type="submit">Phân tích hành trình</button></form>
+{% if result %}<div id="liveResult" class="live-grid"><div class="timeline"><div class="section-title">Hành trình</div>{% for d in result.days %}<article class="day"><div class="day-badge">Ngày {{d.day}}<br><small>{{ d.places[0] if d.places else 'Chưa nhận diện' }}</small></div><div class="place-card" data-place="{{ d.places[0] if d.places else '' }}"><div class="place-image" data-image-for="{{ d.places[0] if d.places else '' }}"></div><div class="place-info"><h3>{{ d.places|join(' · ') if d.places else 'Chưa nhận diện điểm đến' }}</h3><p>📍 {{ d.text }}</p><div class="chips">{% for p in d.places %}<span>{{p}}</span>{% endfor %}</div><div class="mini-row"><span>Khoảng cách ngày: <b>{{d.distance_km}} km</b></span>{% for p in d.places[:1] %}<span class="risk-badge {{ (result.risk_map.get(p, {}).get('level', 'UNKNOWN'))|lower }}">Rủi ro: {{ result.risk_map.get(p, {}).get('level', 'UNKNOWN') }}</span>{% endfor %}</div></div></div></article>{% endfor %}</div>
+<aside class="rightcol"><div class="weather-live card"><div class="section-title">Thời tiết 7 ngày theo điểm</div>
+{% for p in result.places %}
+<div class="weather-place-block" style="margin-bottom:18px">
+  <h4 style="margin:0 0 8px">{{ p.name }}</h4>
+  {% set pw = result.weather.get(p.name, []) %}
+  {% if pw %}
+  <div class="weather-7">{% for w in pw %}
+    <div><b>{{ w.date[5:] }}</b><br>{{ w.condition }}<br>{{ w.tmin if w.tmin is not none else '--' }}–{{ w.tmax if w.tmax is not none else '--' }}°C<br>Mưa {{ w.rain if w.rain is not none else '--' }}%<br>Gió {{ w.wind if w.wind is not none else '--' }} km/h</div>
+  {% endfor %}</div>
+  {% else %}<div class="alert warn">Chưa có dữ liệu thời tiết cho điểm này.</div>{% endif %}
+</div>
+{% endfor %}
+{% if not result.places %}<div class="alert warn">Chưa nhận diện được địa điểm để lấy thời tiết.</div>{% endif %}
+</div>
+<div class="card"><div class="section-title">✦ Tour Briefing cho HDV</div>
+{% for b in result.briefing %}
+<div style="margin-bottom:14px"><b>{{ b.title }}</b><ul>{% for x in b.talking_points %}<li>{{ x }}</li>{% endfor %}</ul><small>{{ b.hdv_check }}</small></div>
+{% else %}<div class="alert warn">Chưa đủ địa điểm để tạo briefing.</div>{% endfor %}
+</div>
+<div class="card"><div class="section-title">☂ Plan B theo ngày</div>
+{% for p in result.plan_b %}<div style="margin-bottom:12px"><b>Ngày {{ p.day }}</b> — {{ p.trigger }}<br><small>{{ p.action }}</small></div>{% else %}<div class="alert warn">Chưa có dữ liệu Plan B.</div>{% endfor %}
+</div>
+<div class="card"><div class="section-title">Bản đồ hành trình</div><div class="mapbox" id="routeMap"><div class="map-placeholder">Huế → Đà Nẵng → Bà Nà Hills → Hội An<br><small>Điểm và tuyến sẽ được dựng từ dữ liệu hành trình.</small></div></div><div class="stats"><span>Tổng quãng đường<br><b>{{ result.days|map(attribute='distance_km')|sum|round(1) }} km</b></span><span>Số ngày<br><b>{{ result.days|length }}</b></span><span>Mức rủi ro<br><b>{{ 'MEDIUM' if result.risks else 'LOW' }}</b></span></div></div>
+<div class="card"><div class="section-title">✦ Kết luận & khuyến nghị từ HDVIA AI</div><ul>{% for x in result.recommendations %}<li>{{x}}</li>{% endfor %}</ul><div class="planb"><b>☂ Plan B</b><p>Ưu tiên hoạt động trong nhà hoặc điểm linh hoạt nếu mưa/gió tăng; HDV có thể phân tích lại ngay khi lịch trình thay đổi.</p></div></div>
+<div class="card"><div class="section-title">Đánh giá kết quả phân tích</div>
+<p class="muted">Phản hồi của HDV được lưu để cải thiện chất lượng HDVIA; không tự động đưa dữ liệu vào Knowledge Base.</p>
+<form onsubmit="sendJourneyFeedback(event)"><select id="feedbackScore" required><option value="">Chấm điểm</option><option value="5">5 — Rất hữu ích</option><option value="4">4 — Hữu ích</option><option value="3">3 — Tạm ổn</option><option value="2">2 — Cần cải thiện</option><option value="1">1 — Chưa hữu ích</option></select>
+<input id="feedbackComment" maxlength="2000" placeholder="Góp ý ngắn (không bắt buộc)"><button class="btn" type="submit">Gửi đánh giá</button></form><div id="feedbackMsg" class="muted"></div></div></aside></div>{% endif %}</section></div>
+<script>
+async function loadPlaceImage(name,el){if(!name)return;try{const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(name));const d=await r.json();if(d.image_url)el.innerHTML='<img src="'+d.image_url+'" alt="'+name+'" loading="lazy">';else el.innerHTML='<div class="image-fallback">'+name+'</div>';}catch(e){el.innerHTML='<div class="image-fallback">'+name+'</div>';}}
+function analyzeLive(){document.getElementById('journeyForm').submit()}
+window.addEventListener('load',()=>{document.querySelectorAll('[data-image-for]').forEach(el=>loadPlaceImage(el.dataset.imageFor,el));});
+async function sendJourneyFeedback(ev){ev.preventDefault();const msg=document.getElementById('feedbackMsg');try{const r=await fetch('/api/v1/journey/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({score:Number(document.getElementById('feedbackScore').value),comment:document.getElementById('feedbackComment').value})});const d=await r.json();msg.textContent=d.ok?'Đã ghi nhận đánh giá. Cảm ơn HDV!':(d.error||'Không gửi được đánh giá.');}catch(e){msg.textContent='Không gửi được đánh giá lúc này.';}}</script>{% endblock %}
