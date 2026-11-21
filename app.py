@@ -202,21 +202,82 @@ def guide_apply():
         filename=f"{uuid.uuid4().hex}{ext}"; f.save(os.path.join(UPLOAD,filename)); c=db(); cur=c.execute("INSERT INTO guide_applications(user_id,card_number,card_type,card_image,area,languages,status,created_at) VALUES(?,?,?,?,?,?,?,?)",(u["id"],card,typ,filename,area,langs,"PENDING_REVIEW",now())); appid=cur.lastrowid; c.commit(); c.close(); log(u["id"],"GUIDE_APPLICATION_SUBMITTED","GUIDE_APPLICATION",appid); flash("Đã gửi hồ sơ. Trạng thái: PENDING_REVIEW."); return redirect(url_for("profile"))
     return render_template("guide_apply.html")
 
+def _normalize_journey_input(title, itinerary):
+    title = (title or "Hành trình mới").strip()[:200]
+    itinerary = (itinerary or "").strip()[:20000]
+    if not title:
+        title = "Hành trình mới"
+    if not itinerary:
+        raise ValueError("Vui lòng nhập lịch trình trước khi phân tích.")
+    return title, itinerary
+
+
+def _safe_journey_analyze(title, itinerary):
+    """Run the Journey engine without allowing an upstream provider failure to crash /journey."""
+    title, itinerary = _normalize_journey_input(title, itinerary)
+    try:
+        result = engine.analyze(title, itinerary)
+        if not isinstance(result, dict):
+            raise RuntimeError("Journey engine returned an invalid result")
+        # Keep the response/template contract stable even if a provider returns partial data.
+        result.setdefault("title", title)
+        result.setdefault("days", [])
+        result.setdefault("places", [])
+        result.setdefault("weather", {})
+        result.setdefault("risk_map", {})
+        result.setdefault("risks", [])
+        result.setdefault("recommendations", ["Kiểm tra lại lịch trình và thời tiết trước tour."])
+        return result, None
+    except Exception as exc:
+        # Do not expose internal exception details to the public page.
+        return None, str(exc)
+
+
 @app.route("/journey",methods=["GET","POST"])
 @login_required
 @permission_required("journey.analyze")
 def journey():
     result=None
+    error=None
     if request.method=="POST":
-        title=request.form.get("title","Hành trình mới").strip(); itinerary=request.form.get("itinerary","").strip(); result=engine.analyze(title,itinerary)
-        c=db(); c.execute("INSERT INTO journeys(user_id,title,itinerary,result_json,created_at) VALUES(?,?,?,?,?,?)",(current_user()["id"],title,itinerary,json.dumps(result,ensure_ascii=False),now())); c.commit(); c.close(); log(current_user()["id"],"JOURNEY_ANALYZED","JOURNEY",None,title)
-    return render_template("journey.html",result=result)
+        title=request.form.get("title","Hành trình mới")
+        itinerary=request.form.get("itinerary","")
+        result, error = _safe_journey_analyze(title, itinerary)
+        if result is not None:
+            try:
+                u=current_user()
+                if not u:
+                    return redirect(url_for("login", next=request.path))
+                c=db()
+                c.execute("INSERT INTO journeys(user_id,title,itinerary,result_json,created_at) VALUES(?,?,?,?,?,?)",
+                          (u["id"], result.get("title",title), itinerary, json.dumps(result,ensure_ascii=False), now()))
+                c.commit()
+                c.close()
+                try:
+                    log(u["id"],"JOURNEY_ANALYZED","JOURNEY",None,result.get("title",title))
+                except Exception:
+                    pass
+            except Exception as exc:
+                # Analysis is still useful even when the ephemeral Vercel SQLite store is unavailable.
+                error = f"Phân tích thành công nhưng chưa lưu được lịch sử: {exc}"
+        if error:
+            flash("Không thể hoàn tất phân tích hành trình. Sếp kiểm tra lại dữ liệu và thử lại.")
+    return render_template("journey.html",result=result,journey_error=error)
+
 
 @app.post("/api/v1/journey/analyze")
 @login_required
 @permission_required("journey.analyze")
 def journey_api():
-    data=request.get_json(silent=True) or {}; result=engine.analyze(data.get("title","Hành trình mới"),data.get("itinerary","")); log(current_user()["id"],"JOURNEY_ANALYZED_API","JOURNEY",None,result.get("title","")); return jsonify(result)
+    data=request.get_json(silent=True) or {}
+    result, error = _safe_journey_analyze(data.get("title","Hành trình mới"), data.get("itinerary",""))
+    if error:
+        return jsonify({"error":"Không thể phân tích hành trình.","detail":"Dữ liệu hoặc nguồn phân tích tạm thời không khả dụng."}), 422
+    try:
+        log(current_user()["id"],"JOURNEY_ANALYZED_API","JOURNEY",None,result.get("title",""))
+    except Exception:
+        pass
+    return jsonify(result)
 
 @app.get("/api/v1/weather")
 def weather_api():
