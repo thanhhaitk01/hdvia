@@ -81,7 +81,7 @@ class JourneyIntelligenceEngine:
             q=urllib.parse.urlencode({"q":name+", Vietnam","format":"jsonv2","limit":1})
             req=urllib.request.Request(
                 "https://nominatim.openstreetmap.org/search?"+q,
-                headers={"User-Agent":"HDVIA/1.4 Journey Intelligence"})
+                headers={"User-Agent":"HDVIA/1.5 Journey Intelligence"})
             with urllib.request.urlopen(req,timeout=6) as r:
                 data=json.loads(r.read().decode("utf-8"))
             if data:
@@ -98,7 +98,7 @@ class JourneyIntelligenceEngine:
         })
         try:
             req=urllib.request.Request("https://api.open-meteo.com/v1/forecast?"+params,
-                                       headers={"User-Agent":"HDVIA/1.4"})
+                                       headers={"User-Agent":"HDVIA/1.5"})
             with urllib.request.urlopen(req,timeout=8) as r:
                 d=json.loads(r.read().decode("utf-8"))["daily"]
             return [{

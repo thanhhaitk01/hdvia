@@ -234,7 +234,7 @@ def place_image_api():
     if not name:return jsonify({"error":"missing name"}),400
     try:
         q=urllib.parse.urlencode({"action":"query","format":"json","generator":"search","gsrsearch":name+" Vietnam","gsrnamespace":6,"gsrlimit":1,"prop":"imageinfo","iiprop":"url|extmetadata","iiurlwidth":1000})
-        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":"HDVIA/1.4 Travel Intelligence"})
+        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":"HDVIA/1.5 Travel Intelligence"})
         with urllib.request.urlopen(req,timeout=8) as r: data=json.loads(r.read().decode("utf-8"))
         pages=data.get("query",{}).get("pages",{})
         for page in pages.values():
