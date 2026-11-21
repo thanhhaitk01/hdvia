@@ -10,6 +10,18 @@ PLACE_CACHE = {
     "sơn trà": ("Sơn Trà",16.1060,108.2700), "son tra": ("Sơn Trà",16.1060,108.2700),
     "mỹ sơn": ("Mỹ Sơn",15.7647,108.1194), "my son": ("Mỹ Sơn",15.7647,108.1194),
     "quảng ngãi": ("Quảng Ngãi",15.1214,108.8044), "quang ngai": ("Quảng Ngãi",15.1214,108.8044),
+    "hà nội": ("Hà Nội",21.0285,105.8542), "ha noi": ("Hà Nội",21.0285,105.8542),
+    "hạ long": ("Hạ Long",20.9101,107.1839), "ha long": ("Hạ Long",20.9101,107.1839),
+    "ninh bình": ("Ninh Bình",20.2506,105.9745), "ninh binh": ("Ninh Bình",20.2506,105.9745),
+    "sa pa": ("Sa Pa",22.3364,103.8438), "sapa": ("Sa Pa",22.3364,103.8438),
+    "phong nha": ("Phong Nha – Kẻ Bàng",17.5916,106.2823),
+    "quảng bình": ("Quảng Bình",17.4676,106.6220), "quang binh": ("Quảng Bình",17.4676,106.6220),
+    "nha trang": ("Nha Trang",12.2388,109.1967),
+    "đà lạt": ("Đà Lạt",11.9404,108.4583), "da lat": ("Đà Lạt",11.9404,108.4583),
+    "tp hồ chí minh": ("TP. Hồ Chí Minh",10.8231,106.6297), "ho chi minh": ("TP. Hồ Chí Minh",10.8231,106.6297),
+    "thành phố hồ chí minh": ("TP. Hồ Chí Minh",10.8231,106.6297),
+    "cần thơ": ("Cần Thơ",10.0452,105.7469), "can tho": ("Cần Thơ",10.0452,105.7469),
+    "phú quốc": ("Phú Quốc",10.2899,103.9840), "phu quoc": ("Phú Quốc",10.2899,103.9840),
 }
 WEATHER_CODES = {
 0:"Trời quang",1:"Ít mây",2:"Mây rải rác",3:"Nhiều mây",45:"Sương mù",48:"Sương mù",
