@@ -50,9 +50,11 @@ def init_db():
     CREATE TABLE IF NOT EXISTS journeys(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,itinerary TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS journey_feedback(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,journey_id INTEGER,score INTEGER NOT NULL,comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(journey_id) REFERENCES journeys(id));
     """)
-    if not c.execute("SELECT id FROM users WHERE email=?",("admin@hdvia.local",)).fetchone():
+    admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
+    admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","ChangeMe123!")
+    if not c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone():
         c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                  ("HDVIA Admin","0000000000","admin@hdvia.local",generate_password_hash(os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","ChangeMe123!")),"ADMIN","L4","ACTIVE",now()))
+                  ("HDVIA Admin","0000000000",admin_email,generate_password_hash(admin_password),"ADMIN","L4","ACTIVE",now()))
     c.commit(); c.close()
 
 def log(actor,action,target_type=None,target_id=None,detail=""):
@@ -141,7 +143,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.8.1-beta-commercial","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.8.2-beta-commercial","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -419,11 +421,11 @@ def route_api():
     return jsonify({"points":points,"total_km":round(sum(__import__('journey_engine').haversine_km(points[i],points[i+1]) for i in range(len(points)-1)),1) if len(points)>1 else 0})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.1-beta-commercial","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.2-beta-commercial","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.8.1-beta-commercial","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
+    return jsonify({"service":"HDVIA","version":"1.8.2-beta-commercial","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
 
 
 @app.post("/api/v1/journey/feedback")
