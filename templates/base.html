@@ -4,7 +4,7 @@
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
   <div class="topbar-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam <span>Beta</span></div>
   <nav class="topnav">
-    <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Lập hành trình</span></a><a href="/kinh-nghiem">📚 <span>Kho kinh nghiệm</span></a><a href="/tro-ly-ai">🤖 <span>Trợ lý AI</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
+    <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Lập hành trình</span></a><a href="/kinh-nghiem">📚 <span>Kho kinh nghiệm</span></a><a href="/tro-ly-ai">🧭 <span>Trợ lý hành trình</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}
     {% if user %}<a href="/logout">↪ <span>Đăng xuất</span></a>{% else %}<a href="/login">Đăng nhập</a>{% endif %}
   </nav>
@@ -20,7 +20,7 @@
   </div>
   <div class="side-section"><span>KIẾN THỨC & HỖ TRỢ</span>
     <a class="{% if request.path.startswith('/kinh-nghiem') %}active{% endif %}" href="/kinh-nghiem">📚 <b>Kho kinh nghiệm HDV</b></a>
-    <a class="{% if request.path.startswith('/tro-ly-ai') %}active{% endif %}" href="/tro-ly-ai">🧠 <b>Trợ lý AI HDVIA</b></a>
+    <a class="{% if request.path.startswith('/tro-ly-ai') %}active{% endif %}" href="/tro-ly-ai">🧭 <b>Trợ lý hành trình</b></a>
     <a href="/guide/apply">🪪 <b>Xác minh HDV</b></a>
   </div>
   {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>{% endif %}

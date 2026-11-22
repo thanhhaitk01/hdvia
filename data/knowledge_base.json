@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "scope": "Đà Nẵng – Hội An – Huế",
+  "purpose": "Kho tri thức nền tảng cho truy xuất thông tin trong HDVIA Beta 1.8.4; không phải dữ liệu huấn luyện mô hình.",
+  "entries": [
+    {
+      "id": "dn-overview",
+      "destination": "Đà Nẵng",
+      "category": "Tổng quan",
+      "title": "Đà Nẵng – đô thị biển trung tâm miền Trung",
+      "summary": "Đà Nẵng thuận lợi kết nối Huế và Hội An, phù hợp nghỉ dưỡng, city tour, MICE và các hành trình kết hợp biển – đô thị – thiên nhiên.",
+      "content": "Khi thuyết minh, có thể đặt Đà Nẵng trong vai trò đô thị biển và cửa ngõ kết nối các điểm di sản miền Trung. Các điểm nổi bật gồm bán đảo Sơn Trà, Bà Nà Hills, Mỹ Khê và Ngũ Hành Sơn.",
+      "keywords": ["đà nẵng", "du lịch", "biển", "đô thị", "sơn trà", "bà nà", "ngũ hành sơn"]
+    },
+    {
+      "id": "dn-culture-food",
+      "destination": "Đà Nẵng",
+      "category": "Văn hóa – Ẩm thực",
+      "title": "Văn hóa và ẩm thực Đà Nẵng",
+      "summary": "Không gian văn hóa đô thị biển miền Trung giao thoa với Quảng Nam; ẩm thực nổi bật gồm mì Quảng, bánh tráng cuốn thịt heo và hải sản.",
+      "content": "Nên giới thiệu ẩm thực theo bối cảnh miền Trung và liên hệ với hành trình Đà Nẵng – Hội An – Huế thay vì trình bày như các món rời rạc.",
+      "keywords": ["đà nẵng", "ẩm thực", "mì quảng", "bánh tráng", "hải sản", "văn hóa"]
+    },
+    {
+      "id": "hoian-overview",
+      "destination": "Hội An",
+      "category": "Di sản – Văn hóa",
+      "title": "Hội An – đô thị cổ ven sông",
+      "summary": "Hội An nổi bật với không gian phố cổ, kiến trúc lịch sử, văn hóa giao thương và hệ thống làng nghề – ẩm thực địa phương.",
+      "content": "Khi thuyết minh, có thể giải thích Hội An qua sự giao thoa văn hóa và vai trò thương cảng lịch sử. Nên ưu tiên câu chuyện về không gian đô thị, nhà cổ, hội quán và đời sống cộng đồng.",
+      "keywords": ["hội an", "phố cổ", "di sản", "thương cảng", "nhà cổ", "hội quán"]
+    },
+    {
+      "id": "hoian-food",
+      "destination": "Hội An",
+      "category": "Ẩm thực",
+      "title": "Ẩm thực Hội An",
+      "summary": "Cao lầu, mì Quảng, cơm gà và các món ăn đường phố là những chủ đề dễ kết nối với trải nghiệm phố cổ.",
+      "content": "Khi giới thiệu ẩm thực, nên gắn món ăn với không gian phố cổ và đời sống địa phương; tránh khẳng định nguồn gốc lịch sử tuyệt đối nếu chưa có nguồn kiểm chứng cụ thể.",
+      "keywords": ["hội an", "cao lầu", "cơm gà", "mì quảng", "ẩm thực"]
+    },
+    {
+      "id": "hue-overview",
+      "destination": "Huế",
+      "category": "Lịch sử – Di sản",
+      "title": "Huế – trung tâm di sản và văn hóa cố đô",
+      "summary": "Huế nổi bật với Quần thể di tích Cố đô Huế, không gian văn hóa cung đình, sông Hương và hệ thống lăng tẩm – đền đài.",
+      "content": "Trong thuyết minh, nên liên kết kiến trúc, lịch sử triều Nguyễn, đời sống văn hóa và cảnh quan sông Hương thành một câu chuyện xuyên suốt thay vì chỉ liệt kê điểm tham quan.",
+      "keywords": ["huế", "cố đô", "triều nguyễn", "sông hương", "lăng tẩm", "di sản"]
+    },
+    {
+      "id": "hue-food",
+      "destination": "Huế",
+      "category": "Ẩm thực",
+      "title": "Ẩm thực Huế",
+      "summary": "Ẩm thực Huế nổi tiếng với hệ thống món ăn đa dạng từ cung đình đến dân gian như bún bò Huế, bánh bèo, bánh nậm và bánh lọc.",
+      "content": "Có thể dùng ẩm thực như một cầu nối để kể về đời sống Huế, cách trình bày món ăn và sự phong phú của ẩm thực địa phương.",
+      "keywords": ["huế", "ẩm thực", "bún bò", "bánh bèo", "bánh nậm", "bánh lọc"]
+    },
+    {
+      "id": "central-route",
+      "destination": "Đà Nẵng – Hội An – Huế",
+      "category": "Điều hành hành trình",
+      "title": "Khung điều hành hành trình miền Trung",
+      "summary": "Với hành trình kết hợp Đà Nẵng – Hội An – Huế, HDV nên kiểm tra thứ tự điểm, thời gian di chuyển, thời tiết từng điểm và chuẩn bị phương án thay thế cho hoạt động ngoài trời.",
+      "content": "HDVIA có thể dùng mục này như kiến thức nền khi phân tích hành trình. Đây là hướng dẫn vận hành, không thay thế thông tin giao thông hoặc cảnh báo chính thức tại thời điểm khởi hành.",
+      "keywords": ["đà nẵng", "hội an", "huế", "hành trình", "lộ trình", "thời tiết", "plan b"]
+    }
+  ]
+}

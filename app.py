@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from oauth import init_oauth, provider_enabled
 from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG
+from knowledge_layer import answer_from_knowledge
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -53,6 +54,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS audit_logs(id INTEGER PRIMARY KEY AUTOINCREMENT,actor_id INTEGER,action TEXT NOT NULL,target_type TEXT,target_id INTEGER,detail TEXT,ip TEXT,created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS journeys(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,itinerary TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS journey_feedback(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,journey_id INTEGER,score INTEGER NOT NULL,comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(journey_id) REFERENCES journeys(id));
+    CREATE TABLE IF NOT EXISTS knowledge_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,place TEXT,status TEXT NOT NULL DEFAULT 'PENDING_REVIEW',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
     admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","ChangeMe123!")
@@ -161,7 +163,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.8.3-beta-commercial-ui","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.8.4-beta-knowledge-ui","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -308,7 +310,8 @@ def ai_assistant():
         elif any(x in q for x in ["kinh nghiệm","chia sẻ","viết bài"]):
             answer="Bạn có thể chia sẻ kinh nghiệm thực tế tại Kho kinh nghiệm. Nội dung được dùng để xây dựng nguồn tri thức cộng đồng cho HDVIA."
         else:
-            answer="Trong Beta 1.8.1, HDVIA hỗ trợ 4 nhóm chính: phân tích hành trình, thời tiết và cảnh báo, thuyết minh điểm đến, và phương án dự phòng. Hãy đặt câu hỏi cụ thể hơn để nhận hướng dẫn phù hợp."
+            kb_answer, _ = answer_from_knowledge(question)
+            answer = kb_answer or "HDVIA chưa có mục tri thức phù hợp cho câu hỏi này. Hãy thử thêm tên điểm đến hoặc chủ đề cụ thể để hệ thống tra cứu chính xác hơn."
     return render_template("ai_assistant.html",answer=answer,question=question)
 
 def _normalize_journey_input(title, itinerary):
@@ -439,11 +442,11 @@ def route_api():
     return jsonify({"points":points,"total_km":round(sum(__import__('journey_engine').haversine_km(points[i],points[i+1]) for i in range(len(points)-1)),1) if len(points)>1 else 0})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.3-beta-commercial-ui","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.4-beta-knowledge-ui","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.8.3-beta-commercial-ui","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
+    return jsonify({"service":"HDVIA","version":"1.8.4-beta-knowledge-ui","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
 
 
 @app.post("/api/v1/journey/feedback")
