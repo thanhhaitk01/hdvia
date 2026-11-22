@@ -2,6 +2,7 @@ import os, sqlite3, uuid, json, re, urllib.parse, urllib.request, traceback
 from datetime import datetime, timezone
 from functools import wraps
 from flask import Flask, request, redirect, url_for, session, render_template, render_template_string, flash, send_from_directory, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from oauth import init_oauth, provider_enabled
@@ -15,6 +16,9 @@ DB=os.path.join(RUNTIME_DIR,'data','hdvia.db')
 UPLOAD=os.path.join(RUNTIME_DIR,'private_uploads')
 os.makedirs(os.path.dirname(DB),exist_ok=True); os.makedirs(UPLOAD,exist_ok=True)
 app=Flask(__name__)
+# Vercel terminates HTTPS/proxying before forwarding to Flask. Trust the standard
+# forwarded host/proto headers so OAuth callback URLs use the public domain.
+app.wsgi_app=ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key=os.environ.get("HDVIA_SECRET_KEY","change-me-in-production")
 app.config.update(MAX_CONTENT_LENGTH=5*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 oauth=init_oauth(app)
@@ -97,6 +101,20 @@ def permission_required(permission):
 def safe_next(n): return n if n and n.startswith("/") else url_for("profile")
 
 def public_base_url():
+    """Return the public OAuth origin for the current HDVIA hostname.
+
+    Both apex and www are first-class production hosts. The callback must use
+    the same host that started OAuth so the browser session/state cookie remains
+    on the same origin. A fixed HDVIA_PUBLIC_BASE_URL can still be used for
+    non-production/local deployments.
+    """
+    host=request.host.split(":",1)[0].lower()
+    allowed={h.strip().lower() for h in os.environ.get(
+        "HDVIA_ALLOWED_HOSTS", "hdvia.vn,www.hdvia.vn"
+    ).split(",") if h.strip()}
+    if host in allowed:
+        proto=request.headers.get("X-Forwarded-Proto", request.scheme).split(",",1)[0].strip()
+        return f"{proto}://{host}"
     return os.environ.get("HDVIA_PUBLIC_BASE_URL", request.url_root.rstrip("/"))
 
 def oauth_callback_url(provider):
