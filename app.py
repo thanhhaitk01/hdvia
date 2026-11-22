@@ -143,7 +143,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.8.2-beta-commercial","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.8.3-beta-commercial-ui","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -421,11 +421,11 @@ def route_api():
     return jsonify({"points":points,"total_km":round(sum(__import__('journey_engine').haversine_km(points[i],points[i+1]) for i in range(len(points)-1)),1) if len(points)>1 else 0})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.2-beta-commercial","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.8.3-beta-commercial-ui","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.8.2-beta-commercial","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
+    return jsonify({"service":"HDVIA","version":"1.8.3-beta-commercial-ui","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
 
 
 @app.post("/api/v1/journey/feedback")
