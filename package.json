@@ -1,0 +1,9 @@
+{
+  "name": "hdvia",
+  "version": "1.8.3-beta-commercial-ui",
+  "private": true,
+  "description": "HDVIA AI Travel Intelligence Platform",
+  "scripts": {
+    "start": "python app.py"
+  }
+}
