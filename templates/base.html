@@ -1,8 +1,8 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="HDVIA – Trí tuệ đồng hành, hành trình chủ động."><title>{% block title %}HDVIA – Trí tuệ đồng hành, hành trình chủ động{% endblock %}</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="HDVIA – Bạn Đồng Hành Du Lịch Việt Nam"><title>{% block title %}HDVIA – Bạn Đồng Hành Du Lịch Việt Nam{% endblock %}</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body>
 <div class="app-shell">
 <header class="topbar">
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
-  <div class="topbar-title">HDVIA – Trí tuệ đồng hành cùng HDV Việt Nam <span>Beta</span></div>
+  <div class="topbar-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam <span>Beta</span></div>
   <nav class="topnav">
     <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Lập hành trình</span></a><a href="/kinh-nghiem">📚 <span>Kho kinh nghiệm</span></a><a href="/tro-ly-ai">🤖 <span>Trợ lý AI</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}

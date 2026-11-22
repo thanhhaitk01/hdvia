@@ -1,5 +1,5 @@
 # HDVIA Beta 1.8
-**Trí tuệ đồng hành, hành trình chủ động.**
+**Bạn Đồng Hành Du Lịch Việt Nam**
 
 Nền tảng trợ lý thông minh cho Hướng dẫn viên Việt Nam.
 
