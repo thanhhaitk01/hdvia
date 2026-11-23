@@ -1,24 +1,55 @@
 {% extends 'base.html' %}
-{% block title %}Đăng nhập – HDVIA{% endblock %}
+{% block title %}Đăng nhập / Đăng ký – HDVIA{% endblock %}
+{% block body_class %}auth-body{% endblock %}
 {% block content %}
-<div class="auth-page location-hero">
-  <div class="auth-hero">
-    <span class="eyebrow">HDVIA BETA 1.9</span>
-    <h1>Đăng nhập / <em>Đăng ký</em></h1>
-    <p>Truy cập HDVIA để lập hành trình, tra cứu điểm đến, khai thác kho kinh nghiệm và quản lý tài khoản HDV.</p>
+<section class="login-screen">
+  <div class="login-bg-scene" aria-hidden="true"></div>
+  <div class="login-shell">
+    <div class="login-badge">HDVIA Beta 1.9 - Việt Nam</div>
+    <h1>Đăng nhập / <span>Đăng ký</span></h1>
+    <p class="login-intro">Truy cập HDVIA để lập hành trình, tra cứu điểm đến, khai thác kho kinh nghiệm<br class="desktop-only"> và quản lý tài khoản HDV.</p>
+
+    <div class="login-card">
+      <div class="login-visual">
+        <div class="login-visual-map">✈️</div>
+        <div class="login-visual-logo">HDVIA</div>
+        <h2>Trợ lý thông minh cho<br>Hướng dẫn viên Việt Nam</h2>
+        <div class="login-visual-features">
+          <div><span>▣</span><b>Lập hành trình<br>thông minh</b></div>
+          <div><span>⌖</span><b>Tra cứu<br>điểm đến</b></div>
+          <div><span>▤</span><b>Kho kinh nghiệm<br>HDV</b></div>
+        </div>
+      </div>
+
+      <div class="login-form-panel">
+        <form method="post" class="login-form">
+          <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+          <input type="hidden" name="next" value="{{next or ''}}">
+          <label for="email">Email</label>
+          <div class="login-input"><span>✉</span><input id="email" name="email" type="email" placeholder="Nhập email của bạn" autocomplete="email" required></div>
+          <label for="password">Mật khẩu</label>
+          <div class="login-input"><span>♙</span><input id="password" name="password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required><button type="button" class="password-toggle" aria-label="Hiện mật khẩu">◉</button></div>
+          <div class="login-options"><label class="remember"><input type="checkbox" name="remember"> <span>Ghi nhớ đăng nhập</span></label><a href="#">Quên mật khẩu?</a></div>
+          <button class="login-submit" type="submit">↪ <span>Đăng nhập</span></button>
+        </form>
+
+        <div class="login-divider"><span>Hoặc đăng nhập nhanh với</span></div>
+        <div class="social-login">
+          <a class="social-google" href="{{ url_for('oauth_start', provider='google', next=next or '') }}"><span class="google-g">G</span><b>Tiếp tục với Google</b></a>
+          <a class="social-facebook" href="{{ url_for('oauth_start', provider='facebook', next=next or '') }}"><span class="facebook-f">f</span><b>Tiếp tục với Facebook</b></a>
+        </div>
+
+        <div class="register-divider"><span>Bạn chưa có tài khoản?</span></div>
+        <a class="register-cta" href="/register">♙ <span>Đăng ký tài khoản HDVIA</span></a>
+      </div>
+    </div>
   </div>
-  <div class="auth-card">
-    <div class="auth-title"><span class="auth-lock">🔒</span><div><h2>Đăng nhập</h2><i></i></div></div>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="{{csrf_token}}">
-      <label>✉️ Email</label><input name="email" type="email" placeholder="Nhập email của bạn" autocomplete="email" required>
-      <label>🔒 Mật khẩu</label><div class="password-wrap"><input name="password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required><span>◉</span></div>
-      <a class="forgot" href="#">Quên mật khẩu?</a>
-      <button class="btn auth-primary" type="submit">↪ &nbsp; Đăng nhập</button>
-    </form>
-    <a class="btn auth-register" href="/register">♙ &nbsp; Đăng ký</a>
-    <div class="single-login-note"><span>🔗</span><div><b>Một lần đăng nhập – Dùng cho toàn bộ HDVIA</b><p>Chỉ cần đăng nhập 1 lần, bạn có thể sử dụng xuyên suốt tất cả các module: Hành trình, Điểm đến, Kho kinh nghiệm và Tài khoản.</p></div></div>
-  </div>
-  <div class="auth-modules"><span>🗺️<b>Lập & phân tích<br>hành trình</b></span><span>🏛️<b>Điểm đến &<br>thông tin</b></span><span>📖<b>Kho kinh nghiệm<br>HDV</b></span><span>🛡️<b>Tài khoản &<br>xác minh</b></span></div>
-</div>
+</section>
+<script>
+(function(){
+  const btn=document.querySelector('.password-toggle');
+  const input=document.querySelector('#password');
+  if(btn&&input){btn.addEventListener('click',()=>{input.type=input.type==='password'?'text':'password';btn.textContent=input.type==='password'?'◉':'◌';});}
+})();
+</script>
 {% endblock %}

@@ -185,131 +185,24 @@ body{background:#031722;color:#eef8ff}
   .profile-hero{padding-top:28px}.profile-hero h1{font-size:29px}.profile-card{padding:17px;gap:14px}.profile-avatar{width:88px;height:88px;font-size:32px}.profile-main h2{font-size:22px}.role-pill{font-size:10px}.profile-badges{flex-direction:column;gap:5px}.profile-badges span{font-size:9px;width:max-content}.session-card{padding:14px;gap:10px;flex-wrap:wrap}.session-card h3{font-size:15px}.session-card p{font-size:10px}.session-links a{font-size:9px}.status{margin-left:0;font-size:9px}.account-list>a{padding:13px 12px}.account-list small{font-size:10px}.account-list>a>span{width:38px;height:38px}.account-list em{font-size:8px}
 }
 
-
-/* =========================================================
-   HDVIA BETA 1.9 — PC LAYOUT HOTFIX
-   Purpose: prevent stale/legacy layout rules from collapsing
-   the main content into a narrow left column on desktop.
-   Mobile rules below remain authoritative at <=800px.
-   ========================================================= */
-@media (min-width: 801px){
-  html,body{width:100%;min-width:0;overflow-x:hidden}
-  .app-shell{width:100%;min-width:0}
-  .workspace{display:block!important;width:100%!important;max-width:none!important;margin:0!important}
-  .sidebar{display:none!important}
-  main.page{display:block!important;width:100%!important;max-width:1500px!important;margin:0 auto!important;padding-left:28px!important;padding-right:28px!important}
-  .mobile-home-hero{display:flex!important;width:auto!important;max-width:none!important;margin-left:-28px!important;margin-right:-28px!important}
-  .journey-cta,.home-panel{width:auto!important;max-width:1350px!important;margin-left:auto!important;margin-right:auto!important}
-  .page-hero,.knowledge-hero,.dest-hero{width:auto!important}
-  .knowledge-list,.chips,.searchbar.knowledge-search,.destination-search,.dest-section,.journey-page,.profile-page{width:auto!important}
-  .feature-grid,.dashboard-bottom{width:100%!important}
-}
-
-
-/* =========================================================
-   HDVIA BETA 1.9 — PRIMARY MODULE LAUNCHER
-   Clean 4-module navigation: one row on PC, 2x2 on mobile.
-   ========================================================= */
-.home-route-index{display:none!important}
-.primary-modules{width:min(1350px,100%);margin:0 auto 24px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.primary-module{min-height:104px;padding:16px 15px;display:grid;grid-template-columns:46px minmax(0,1fr) 24px;align-items:center;gap:12px;border:1px solid rgba(42,150,193,.58);border-radius:18px;background:linear-gradient(145deg,rgba(8,42,61,.95),rgba(4,25,39,.97));box-shadow:0 12px 35px rgba(0,0,0,.16);transition:transform .16s ease,border-color .16s ease,background .16s ease}
-.primary-module:hover{transform:translateY(-2px);border-color:#2ed8f3;background:linear-gradient(145deg,rgba(10,55,78,.98),rgba(5,29,45,.98))}
-.module-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:linear-gradient(145deg,#0d5a7b,#083b57);border:1px solid #2389af}
-.module-text{min-width:0}.module-text b{display:block;font-size:14px;line-height:1.25;color:#f1fbff}.module-text small{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#8fb2c4}.module-arrow{justify-self:end;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#55def7;border:1px solid #2e91b5;font-size:14px}
-.mobile-home-hero{position:relative;z-index:1}
-@media (min-width:1101px){
-  .topbar{padding-left:34px;padding-right:34px}
-  .primary-modules{margin-top:22px}
-}
-@media (max-width:1100px) and (min-width:801px){
-  .topbar{height:auto;min-height:72px}
-  .desktop-brand-title{display:none}
-  .topnav{display:none}
-  .primary-modules{grid-template-columns:repeat(2,minmax(0,1fr));max-width:1000px;margin:18px auto 22px}
-  .primary-module{min-height:96px}
-  .mobile-home-hero{min-height:430px}
-}
-@media (max-width:800px){
-  .primary-modules{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0 17px}
-  .primary-module{min-height:116px;padding:13px 11px;display:flex;align-items:flex-start;gap:9px;position:relative;border-radius:17px}
-  .module-icon{width:38px;height:38px;flex:0 0 38px;border-radius:11px;font-size:19px}
-  .module-text b{font-size:11px;line-height:1.25;padding-right:2px}
-  .module-text small{font-size:8.5px;line-height:1.35;margin-top:4px}
-  .module-arrow{position:absolute;right:9px;bottom:9px;width:20px;height:20px;font-size:11px}
-  .mobile-home-hero{margin-bottom:0}
-}
-
-/* =========================================================
-   BETA 1.9 — APPROVED DESKTOP HOME REFERENCE
-   Exact structure: top header -> left rail -> hero -> 4 modules
-   -> weather / alerts. Mobile keeps compact 2x2 modules.
-   ========================================================= */
-@media (min-width:1101px){
-  .topbar{height:72px;padding:8px 28px;background:rgba(2,13,24,.97);gap:18px}
-  .brand{min-width:165px;width:165px}.brand img{width:128px;height:52px}
-  .desktop-brand-title{display:none}
-  .topbar .topnav{display:none}
-  .topbar:after{content:"";display:block;flex:1;order:2}
-  .topbar .search-box{order:2;display:flex!important}
-  .topbar .top-login{order:4}
-  .topbar .mobile-menu{display:none}
-  .workspace{display:grid!important;grid-template-columns:185px minmax(0,1fr)!important;max-width:none!important;margin:0!important}
-  .sidebar{display:flex!important;min-height:calc(100vh - 72px);padding:18px 10px;border-right:1px solid rgba(72,144,184,.18);background:linear-gradient(180deg,rgba(4,26,43,.96),rgba(2,17,29,.94));gap:10px}
-  .sidebar .user-card{display:none}
-  .sidebar .side-section{display:grid;gap:3px}
-  .sidebar .side-section>span{display:none}
-  .sidebar .side-section a{display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:12px;color:#a9c2d3;font-size:12px;border:1px solid transparent}
-  .sidebar .side-section a:hover,.sidebar .side-section a.active{background:#0d3047;border-color:#255b79;color:#fff}
-  .sidebar .side-section a b{font-size:12px;font-weight:700}
-  .sidebar .side-footer{margin-top:auto;font-size:9px;text-align:center}
-  main.page{max-width:none!important;width:100%!important;padding:0 0 36px!important;margin:0!important}
-  .hdvia-hero{width:100%;min-height:312px;display:grid;grid-template-columns:1.05fr .95fr;position:relative;overflow:hidden;border-bottom:1px solid #1e6d91;background:linear-gradient(90deg,#061a2a 0%,#08243a 48%,#0b2b42 100%)}
-  .hdvia-hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(2,17,29,.98) 0%,rgba(4,25,41,.9) 42%,rgba(4,25,41,.25) 72%),url('/static/backgrounds/vietnam-travel.svg');background-size:cover;background-position:center;opacity:.95}
-  .hdvia-hero-copy{position:relative;z-index:2;padding:26px 34px 28px 38px;display:flex;flex-direction:column;justify-content:center}
-  .beta-pill{display:inline-flex;width:max-content;padding:7px 14px;border:2px solid #28d8f2;border-radius:999px;color:#2de0f7;font-size:11px;font-weight:900;background:rgba(2,27,43,.55)}
-  .hdvia-hero h1{font-size:43px;line-height:1.03;letter-spacing:-.035em;margin:16px 0 10px;max-width:700px}
-  .hdvia-hero h1 em{font-style:normal;color:#24d9f2}
-  .hdvia-hero p{max-width:690px;font-size:13px;line-height:1.55;margin:0;color:#d5e6ef}
-  .hero-actions{display:flex;gap:12px;margin-top:18px;align-items:center}
-  .hero-primary,.hero-secondary{display:inline-flex;align-items:center;gap:10px;height:46px;padding:0 18px;border-radius:24px;font-weight:900;font-size:13px}
-  .hero-primary{background:linear-gradient(100deg,#10bce9,#19d9ee);color:#032033;box-shadow:0 8px 28px rgba(14,205,240,.28)}
-  .hero-primary span{font-size:19px}.hero-secondary{border:1px solid #24cde8;background:rgba(5,34,51,.76);color:#e8fbff}
-  .hdvia-hero-visual{position:relative;min-height:312px;overflow:hidden;background:linear-gradient(120deg,#08283e,#0b3652 55%,#062139)}
-  .hoi-an-scene{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,76,112,.1),rgba(3,20,34,.75)),radial-gradient(circle at 50% 35%,#d88b46 0 8%,transparent 9%),linear-gradient(180deg,#0d5d87 0 34%,#173f52 35% 65%,#063047 66%);}
-  .hoi-an-scene:before{content:"";position:absolute;left:8%;right:12%;bottom:33%;height:35%;background:linear-gradient(90deg,#b56a3c 0 14%,#7d4d34 14% 28%,#c78445 28% 43%,#9b5a37 43% 57%,#d08a48 57% 71%,#87533a 71% 85%,#bd7741 85%);filter:drop-shadow(0 0 18px rgba(255,183,87,.25));}
-  .hoi-an-scene:after{content:"";position:absolute;left:0;right:0;bottom:0;height:35%;background:linear-gradient(180deg,rgba(8,55,72,.15),rgba(2,26,43,.92));border-top:1px solid rgba(78,209,236,.25)}
-  .lanterns{position:absolute;top:15%;left:15%;right:20%;color:#ffd47d;letter-spacing:18px;font-size:24px;text-shadow:0 0 18px #ffb52e}
-  .old-town{position:absolute;left:42%;bottom:42%;font-size:27px;font-weight:900;letter-spacing:.18em;color:#ffd58a;text-shadow:0 0 16px rgba(255,184,67,.55)}
-  .river{position:absolute;left:0;right:0;bottom:11%;height:15%;background:linear-gradient(180deg,rgba(35,155,183,.2),rgba(5,74,103,.75));border-top:1px solid rgba(84,213,236,.35)}
-  .vn-glow{position:absolute;right:8%;top:10%;font-size:120px;line-height:1;color:#56e9ff;text-shadow:0 0 22px rgba(47,220,250,.75);transform:rotate(-18deg);opacity:.9}
-  .ai-bubble{position:absolute;right:5%;top:24%;padding:13px 16px;border:1px solid #28d8f2;border-radius:14px;background:rgba(3,28,45,.75);color:#fff;font-size:13px;line-height:1.35;box-shadow:0 0 24px rgba(20,205,241,.14)}
-  .module-section{max-width:1330px;margin:0 auto;padding:13px 20px 0}
-  .module-section-title{display:flex;align-items:center;gap:12px;margin-bottom:9px}.module-section-title span{font-size:25px;color:#22d9f3}.module-section-title h2{font-size:19px;margin:0}
-  .primary-modules{width:100%;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-  .primary-module{min-height:138px;padding:16px 17px;display:grid;grid-template-columns:58px minmax(0,1fr) 30px;align-items:start;gap:12px;border:1px solid #176c90;border-radius:18px;background:linear-gradient(145deg,rgba(7,42,62,.97),rgba(4,25,39,.98));box-shadow:0 12px 28px rgba(0,0,0,.14)}
-  .primary-module:hover{transform:translateY(-2px);border-color:#2ed8f3}.module-icon{width:48px;height:48px;border:0;background:transparent;font-size:34px}.module-text b{font-size:15px;line-height:1.22}.module-text small{font-size:11px;line-height:1.45;color:#c0d3dd;margin-top:8px}.module-arrow{width:28px;height:28px;font-size:17px;color:#58e7f8;border-color:#2bc5e3;background:#06364d}
-  .home-dashboard-row{max-width:1330px;margin:18px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .home-dashboard-row .home-panel{max-width:none;margin:0;padding:18px 20px;border-radius:18px;min-height:235px;background:linear-gradient(145deg,rgba(7,38,57,.96),rgba(4,24,38,.98));border:1px solid #176386}
-  .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-head h2{font-size:19px;margin:0}.section-head a{font-size:12px;color:#27d8f3;font-weight:900}
-  .weather-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.weather-card{padding:16px 13px;min-height:145px;border:1px solid #1b6b8e;border-radius:16px;background:rgba(3,28,45,.78)}.weather-card b{font-size:12px}.weather-card strong{font-size:32px;display:block;margin:12px 0 6px}.weather-card span{font-size:11px;color:#a9c9d9}
-  .warning-home .warning-row{display:grid;grid-template-columns:54px 1fr 14px;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(39,103,131,.42)}.warning-home .warning-row:last-child{border-bottom:0}.warning-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#153f52;font-size:25px}.warning-icon.green{background:#124637}.warning-row b{font-size:13px}.warning-row p{font-size:11px;margin:4px 0 0;line-height:1.45}.warning-row>span:last-child{color:#50dff6;font-size:21px}
-}
-
-@media (max-width:1100px) and (min-width:801px){
-  .workspace{display:block!important}.sidebar{display:none!important}
-  .hdvia-hero{grid-template-columns:1fr;min-height:420px}.hdvia-hero-visual{display:none}.hdvia-hero-copy{padding:38px 30px}.hdvia-hero h1{font-size:42px}.primary-modules{grid-template-columns:repeat(2,1fr)}.home-dashboard-row{grid-template-columns:1fr}
-}
-
-@media (max-width:800px){
-  .hdvia-hero{min-height:420px;margin:0 -14px;display:block;position:relative;overflow:hidden;background:linear-gradient(180deg,#061c2b,#061d2d)}
-  .hdvia-hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(180deg,rgba(2,20,32,.25),rgba(2,20,32,.92)),url('/static/backgrounds/vietnam-travel.svg');background-size:cover;background-position:center;opacity:.95}
-  .hdvia-hero-copy{position:relative;z-index:2;padding:38px 26px 30px}.hdvia-hero h1{font-size:33px;line-height:1.12;margin:18px 0 14px}.hdvia-hero p{font-size:13px;line-height:1.65}.hero-actions{margin-top:17px;display:flex;flex-direction:column;align-items:stretch}.hero-primary,.hero-secondary{height:46px;justify-content:center}
-  .hdvia-hero-visual{display:none}.module-section{padding:14px 0 0}.module-section-title{margin:0 0 10px}.module-section-title h2{font-size:18px}.primary-modules{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.primary-module{min-height:130px;padding:13px 11px;display:flex;align-items:flex-start;gap:9px;position:relative;border-radius:17px}.module-icon{width:38px;height:38px;flex:0 0 38px;font-size:25px}.module-text b{font-size:11px;line-height:1.25}.module-text small{font-size:8.5px;line-height:1.35;margin-top:5px}.module-arrow{position:absolute;right:9px;bottom:9px;width:20px;height:20px;font-size:11px}.home-dashboard-row{display:block;padding:0;margin-top:14px}.home-dashboard-row .home-panel{margin:0 0 17px;padding:16px 14px;border-radius:22px}.section-head h2{font-size:18px}.section-head a{font-size:11px}.weather-cards{grid-template-columns:repeat(3,1fr);gap:8px}.weather-card{min-height:112px;padding:13px 10px;border-radius:18px}.weather-card b{font-size:11px}.weather-card strong{font-size:25px}.weather-card span{font-size:10px}.warning-home .warning-row{grid-template-columns:42px 1fr 10px;padding:13px 2px;gap:9px}.warning-icon{width:38px;height:38px;border-radius:11px;font-size:20px}.warning-row p{font-size:11px}.warning-row b{font-size:12px}
-}
-
-@media (min-width:1101px){
-  .search-box{display:flex;align-items:center;width:min(430px,34vw);height:38px;margin-left:12px;padding:0 13px;border:1px solid #2d7397;border-radius:12px;background:rgba(10,43,64,.78);order:2;box-shadow:inset 0 0 18px rgba(23,157,210,.08)}
-  .search-box span{font-size:22px;color:#6fdfff;margin-right:8px}.search-box input{border:0;outline:0;background:transparent;color:#eaf7ff;width:100%;padding:0;font-size:12px}.search-box input::placeholder{color:#a0bdcc}
-  .top-user{order:3;display:flex;align-items:center;gap:8px;color:#dff3fa;min-width:130px}.top-user-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#17b9ed,#2bd5d4);font-weight:900}.top-user b{display:block;font-size:11px;line-height:1.1}.top-user small{display:block;color:#8caebb;font-size:9px;margin-top:2px}
-  .top-login{border:1px solid #357e9e;border-radius:12px!important;background:rgba(7,35,53,.65);font-size:11px!important;padding:9px 12px!important;white-space:nowrap}
-}
+/* HDVIA Beta 1.9 — Login baseline */
+body.auth-body .workspace{display:block;min-height:0}
+body.auth-body .sidebar{display:none}
+body.auth-body .page{padding:0;max-width:none}
+body.auth-body .site-footer{display:none}
+.login-screen{position:relative;min-height:calc(100vh - 72px);overflow:hidden;padding:30px 24px 48px;background:linear-gradient(180deg,#052746 0%,#041a2b 68%,#031522 100%)}
+.login-bg-scene{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(3,21,35,.18),rgba(3,21,35,.04) 50%,rgba(3,21,35,.35)),url('/static/backgrounds/vietnam-travel.svg');background-size:cover;background-position:center;opacity:.9}
+.login-bg-scene:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 48%,rgba(0,220,255,.10),transparent 42%),linear-gradient(180deg,rgba(1,17,28,.12),rgba(1,17,28,.38))}
+.login-shell{position:relative;z-index:1;width:min(1010px,100%);margin:0 auto;text-align:center}
+.login-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 18px;border:2px solid #16d8ef;border-radius:999px;color:#26e0f5;font-size:13px;font-weight:900;letter-spacing:.02em;background:rgba(3,35,55,.5);box-shadow:0 0 18px rgba(15,214,241,.12)}
+.login-shell>h1{font-size:43px;line-height:1.12;margin:14px 0 8px;font-weight:900;letter-spacing:-.035em}.login-shell>h1 span{color:#19e2f4}.login-intro{margin:0 auto 24px;color:#e2edf2;font-size:15px;line-height:1.55}
+.login-card{display:grid;grid-template-columns:1fr 1.12fr;min-height:520px;border:2px solid #1bd6ed;border-radius:25px;overflow:hidden;background:linear-gradient(120deg,rgba(4,42,66,.91),rgba(3,29,46,.94));box-shadow:0 25px 80px rgba(0,0,0,.35),0 0 45px rgba(0,206,255,.08);backdrop-filter:blur(12px)}
+.login-visual{position:relative;padding:28px 26px 20px;display:flex;flex-direction:column;justify-content:center;align-items:center;border-right:1px solid rgba(45,174,210,.38);background:linear-gradient(160deg,rgba(7,55,82,.68),rgba(3,27,44,.52))}
+.login-visual-map{width:220px;height:170px;margin-bottom:2px;display:grid;place-items:center;color:#24e4ff;font-size:72px;text-shadow:0 0 25px #0bd9ff;filter:drop-shadow(0 0 14px rgba(15,218,255,.3))}
+.login-visual-logo{font-size:49px;line-height:1;font-weight:1000;color:#1ad9f3;letter-spacing:-.06em;text-shadow:0 0 18px rgba(0,214,255,.35)}
+.login-visual h2{margin:9px 0 20px;color:#f0fbff;font-size:20px;line-height:1.25;font-weight:800}
+.login-visual-features{display:grid;grid-template-columns:repeat(3,1fr);width:100%;border-top:1px solid rgba(44,157,193,.35)}.login-visual-features>div{min-height:90px;padding:12px 6px 5px;border-right:1px solid rgba(44,157,193,.35);display:flex;flex-direction:column;align-items:center;justify-content:center}.login-visual-features>div:last-child{border-right:0}.login-visual-features span{font-size:30px;color:#22dff5;line-height:1;margin-bottom:6px}.login-visual-features b{font-size:10px;line-height:1.35;color:#eff8fb}
+.login-form-panel{padding:38px 40px 30px;display:flex;flex-direction:column;justify-content:center;text-align:left}.login-form label{display:block;color:#e8f5fa;font-size:14px;font-weight:800;margin:0 0 6px}.login-input{position:relative;display:flex;align-items:center;height:50px;border:1px solid #2a94ba;border-radius:13px;background:rgba(3,27,44,.72);margin-bottom:14px;box-shadow:inset 0 0 0 1px rgba(0,213,255,.04)}.login-input>span{width:42px;text-align:center;color:#9dd5e5;font-size:19px}.login-input input{flex:1;height:100%;border:0;outline:0;background:transparent;color:#fff;font-size:14px;padding:0 8px}.login-input input::placeholder{color:#7ea4b6}.password-toggle{border:0;background:transparent;color:#9bc0d0;padding:0 14px;font-size:17px;cursor:pointer}.login-options{display:flex;align-items:center;justify-content:space-between;margin:2px 0 15px;font-size:12px}.remember{display:flex!important;align-items:center!important;gap:5px!important;margin:0!important;font-size:12px!important;color:#a8c3cf!important}.remember input{accent-color:#19dff4}.login-options>a{color:#1ce0f5;font-weight:800}.login-submit{width:100%;height:51px;border:0;border-radius:14px;background:linear-gradient(100deg,#0dcdf1,#20dff4);color:#042033;font-size:16px;font-weight:950;cursor:pointer;box-shadow:0 8px 28px rgba(10,205,244,.25)}
+.login-divider,.register-divider{display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:#dcebf0;font-size:12px;white-space:nowrap}.login-divider:before,.login-divider:after,.register-divider:before,.register-divider:after{content:"";height:1px;background:rgba(120,190,211,.55);flex:1}.social-login{display:grid;gap:9px}.social-login a{height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;transition:.15s ease}.social-login a:hover{transform:translateY(-1px)}.social-google{background:#fff;color:#18242c;border:1px solid #d7e1e7}.social-facebook{background:#1877f2;color:#fff;border:1px solid #338af7}.google-g{font-size:22px;font-weight:900;color:#4285f4}.facebook-f{width:23px;height:23px;border-radius:50%;background:#fff;color:#1877f2;display:grid;place-items:center;font-size:19px;font-family:Arial;font-weight:900}.register-divider{margin-top:18px;margin-bottom:10px}.register-cta{height:46px;border:2px solid #21d8f0;border-radius:14px;color:#1ee0f5;display:flex;align-items:center;justify-content:center;gap:9px;font-weight:900;font-size:14px;background:rgba(5,42,59,.38)}.register-cta:hover{background:rgba(15,83,104,.5)}
+@media(max-width:850px){.login-screen{padding:24px 15px 35px}.login-shell>h1{font-size:34px}.login-intro{font-size:13px}.desktop-only{display:none}.login-card{grid-template-columns:1fr;max-width:610px;margin:auto}.login-visual{border-right:0;border-bottom:1px solid rgba(45,174,210,.38);padding:22px 18px 18px}.login-visual-map{height:105px;width:170px;font-size:52px}.login-visual-logo{font-size:38px}.login-visual h2{font-size:17px;margin-bottom:14px}.login-visual-features>div{min-height:75px}.login-form-panel{padding:25px 22px 24px}}
+@media(max-width:520px){.login-screen{padding:18px 10px 28px}.login-badge{font-size:11px;padding:6px 13px}.login-shell>h1{font-size:28px;margin-top:11px}.login-intro{font-size:12px;margin-bottom:17px}.login-card{border-radius:19px}.login-visual{padding:18px 12px 13px}.login-visual-map{height:75px;font-size:40px}.login-visual-logo{font-size:31px}.login-visual h2{font-size:15px;margin:6px 0 11px}.login-visual-features span{font-size:23px}.login-visual-features b{font-size:8px}.login-form-panel{padding:20px 16px}.login-input{height:47px}.login-options{font-size:11px}.social-login a,.register-cta{height:44px;font-size:13px}.login-divider,.register-divider{font-size:10px}}
