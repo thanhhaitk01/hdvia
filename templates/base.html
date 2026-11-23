@@ -1,8 +1,18 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="HDVIA – Bạn Đồng Hành Du Lịch Việt Nam"><title>{% block title %}HDVIA – Bạn Đồng Hành Du Lịch Việt Nam{% endblock %}</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body data-hdvia-location-background="enabled">
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="HDVIA – Trợ lý thông minh cho Hướng dẫn viên Việt Nam">
+<title>{% block title %}HDVIA – Trợ lý thông minh cho Hướng dẫn viên Việt Nam{% endblock %}</title>
+<link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
+</head>
+<body data-hdvia-location-background="enabled">
 <div class="app-shell">
 <header class="topbar">
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
-  <div class="topbar-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam <span>Beta</span></div>
+  <div class="desktop-brand-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam · Trợ lý thông minh <span>Beta</span></div>
+  <a class="mobile-home" href="/" aria-label="Trang chủ">⌂ <span>Trang chủ</span></a>
   <nav class="topnav" aria-label="Điều hướng chính">
     <a class="{% if request.path == '/' %}active{% endif %}" href="/">⌂ <span>Trang chủ</span></a>
     <a class="{% if request.path.startswith('/journey') %}active{% endif %}" href="/journey">🗺️ <span>Lập & phân tích hành trình</span></a>
@@ -10,44 +20,67 @@
     <a class="{% if request.path.startswith('/kinh-nghiem') %}active{% endif %}" href="/kinh-nghiem">📚 <span>Kho kinh nghiệm HDV</span></a>
     <a class="{% if request.path.startswith('/profile') or request.path.startswith('/guide/apply') or request.path.startswith('/account') %}active{% endif %}" href="/profile">👤 <span>Tài khoản & xác minh</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a class="admin-link" href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}
-    {% if user %}<a class="logout-link" href="/logout">↪ <span>Đăng xuất</span></a>{% else %}<a class="login-link" href="/login">🔐 <span>Đăng nhập</span></a>{% endif %}
   </nav>
+  {% if user %}
+    <a class="top-login top-login-user" href="/profile">👤 <span>Xin chào, {{user['name']}}</span></a>
+    <a class="mobile-login" href="/logout">Đăng xuất</a>
+  {% else %}
+    <a class="top-login" href="/login">👤 <span>Đăng nhập</span></a>
+  {% endif %}
+  <details class="mobile-menu">
+    <summary aria-label="Mở menu">☰</summary>
+    <div class="mobile-menu-panel">
+      <a href="/">⌂ Trang chủ</a>
+      <a href="/journey">🗺️ Lập & phân tích hành trình</a>
+      <a href="/destinations">📍 Điểm đến & thông tin</a>
+      <a href="/kinh-nghiem">📚 Kho kinh nghiệm HDV</a>
+      <a href="/profile">👤 Tài khoản & xác minh</a>
+      {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin/guides">🛡️ Quản trị</a>{% endif %}
+      {% if user %}<a href="/logout">↪ Đăng xuất</a>{% else %}<a href="/login">🔐 Đăng nhập</a>{% endif %}
+    </div>
+  </details>
 </header>
+{% if request.path.startswith('/kinh-nghiem') %}
+<nav class="mobile-module-nav" aria-label="Điều hướng module">
+  <a href="/">⌂ <span>Trang chủ</span></a>
+  <a href="/journey">📍 <span>Hành trình</span></a>
+  <a href="/destinations">🏛️ <span>Điểm đến</span></a>
+  <a class="active" href="/kinh-nghiem">📖 <span>Kho kinh nghiệm</span></a>
+  <a href="/profile">👤 <span>Tài khoản</span></a>
+</nav>
+{% endif %}
 <div class="workspace">
 <aside class="sidebar">
-  {% if user %}<div class="user-card"><div class="avatar">{{ (user['name'] or 'H')[:1]|upper }}</div><div><b>Xin chào, {{user['name']}}</b><small>{{ 'Quản trị viên' if user['role'] in ['ADMIN','SUPER_ADMIN'] else 'HDV Việt Nam' }}</small></div></div>{% else %}<div class="user-card guest"><div class="avatar">H</div><div><b>Chào mừng đến HDVIA</b><small>Đăng nhập để dùng đầy đủ chức năng</small></div></div>{% endif %}
-  <div class="side-section side-context"><span>TRẠNG THÁI</span>
-    <div class="context-note"><b>Điều hướng tập trung</b><small>Trang chủ và 4 module chính luôn nằm trên thanh đầu trang.</small></div>
-  </div>
+  {% if user %}
+  <div class="user-card"><div class="avatar">{{ (user['name'] or 'H')[:1]|upper }}</div><div><b>Xin chào, {{user['name']}}</b><small>{{ 'Quản trị viên' if user['role'] in ['ADMIN','SUPER_ADMIN'] else 'HDV Việt Nam' }}</small></div></div>
+  {% else %}
+  <div class="user-card guest"><div class="avatar">H</div><div><b>Chào mừng đến HDVIA</b><small>Đăng nhập để dùng đầy đủ chức năng</small></div></div>
+  {% endif %}
   <div class="side-section side-context"><span>HỒ SƠ</span>
     <a class="{% if request.path.startswith('/profile') %}active{% endif %}" href="/profile">👤 <b>Tài khoản</b></a>
     <a class="{% if request.path.startswith('/guide/apply') %}active{% endif %}" href="/guide/apply">🪪 <b>Xác minh HDV</b></a>
   </div>
-  {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>{% endif %}
+  {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}
+  <div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>
+  {% endif %}
   <div class="side-footer">HDVIA © 2026<br><small>Bản thử nghiệm {{version}}</small></div>
 </aside>
-<main class="page">{% with messages=get_flashed_messages() %}{% if messages %}<div class="flash">{% for m in messages %}<div>{{m}}</div>{% endfor %}</div>{% endif %}{% endwith %}{% block content %}{% endblock %}</main>
-</div></div>
-<footer>HDVIA © 2026 · Bản thử nghiệm {{version}} · <a href="/dieu-khoan">Điều khoản</a> · <a href="/chinh-sach">Chính sách</a></footer>
+<main class="page">
+{% with messages=get_flashed_messages() %}{% if messages %}<div class="flash">{% for m in messages %}<div>{{m}}</div>{% endfor %}</div>{% endif %}{% endwith %}
+{% block content %}{% endblock %}
+</main>
+</div>
+</div>
+<footer class="site-footer">HDVIA © 2026 · Bản thử nghiệm {{version}} · <a href="/dieu-khoan">Điều khoản</a> · <a href="/chinh-sach">Chính sách</a> · <a href="#">Hỗ trợ</a></footer>
 <script>
 (function(){
-  const body=document.body;
-  if(!body || body.dataset.hdviaLocationBackground!=='enabled') return;
-  const apply=(d)=>{
-    if(!d || !d.ok) return;
-    body.dataset.destinationSlug=d.slug||'';
-    body.dataset.destinationName=d.destination||'';
-    body.classList.add('location-background-ready');
-    const label=document.querySelector('[data-location-label]');
-    if(label) label.textContent=d.destination||'Điểm đến gần bạn';
-  };
-  if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    try{
-      const r=await fetch(`/api/v1/location-context?lat=${encodeURIComponent(pos.coords.latitude)}&lon=${encodeURIComponent(pos.coords.longitude)}`,{headers:{'Accept':'application/json'}});
-      if(r.ok) apply(await r.json());
-    }catch(_e){}
-  },()=>{}, {enableHighAccuracy:false, maximumAge:3600000, timeout:5000});
+ const body=document.body;
+ if(!body || body.dataset.hdviaLocationBackground!=='enabled') return;
+ const apply=(d)=>{ if(!d || !d.ok) return; body.dataset.destinationSlug=d.slug||''; body.classList.add('location-background-ready'); const label=document.querySelector('[data-location-label]'); if(label) label.textContent=d.destination||'Điểm đến gần bạn'; };
+ if(!navigator.geolocation) return;
+ navigator.geolocation.getCurrentPosition(async pos=>{
+   try{const r=await fetch(`/api/v1/location-context?lat=${encodeURIComponent(pos.coords.latitude)}&lon=${encodeURIComponent(pos.coords.longitude)}`,{headers:{'Accept':'application/json'}});if(r.ok)apply(await r.json());}catch(_e){}
+ },()=>{}, {enableHighAccuracy:false,maximumAge:3600000,timeout:5000});
 })();
 </script>
 </body></html>

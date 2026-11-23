@@ -1,1 +1,24 @@
-{% extends 'base.html' %}{% block title %}Đăng nhập – HDVIA{% endblock %}{% block content %}<div class="auth"><div class="card"><h1>Đăng nhập HDVIA</h1><p>Đăng nhập để sử dụng đầy đủ chức năng của bản beta.</p><div class="social-login"><a class="btn primary {% if 'google' not in providers %}disabled{% endif %}" {% if 'google' in providers %}href="{{url_for('oauth_start',provider='google',next=next)}}"{% else %}aria-disabled="true" title="Google chưa được cấu hình trên hệ thống"{% endif %}>🔵 Đăng nhập bằng Google</a><a class="btn {% if 'facebook' not in providers %}disabled{% endif %}" {% if 'facebook' in providers %}href="{{url_for('oauth_start',provider='facebook',next=next)}}"{% else %}aria-disabled="true" title="Facebook chưa được cấu hình trên hệ thống"{% endif %}>🔵 Đăng nhập bằng Facebook</a><a class="btn {% if 'zalo' not in providers %}disabled{% endif %}" {% if 'zalo' in providers %}href="{{url_for('oauth_start',provider='zalo',next=next)}}"{% else %}aria-disabled="true" title="Zalo chưa được cấu hình trên hệ thống"{% endif %}>🟢 Đăng nhập bằng Zalo</a></div><hr><p class="muted">Tài khoản quản trị hiện hữu có thể đăng nhập bằng email và mật khẩu.</p><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><label>Email</label><input name="email" type="email" required><label>Mật khẩu</label><input name="password" type="password" required><button class="btn primary" type="submit">Đăng nhập</button></form></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Đăng nhập – HDVIA{% endblock %}
+{% block content %}
+<div class="auth-page location-hero">
+  <div class="auth-hero">
+    <span class="eyebrow">HDVIA BETA 1.9</span>
+    <h1>Đăng nhập / <em>Đăng ký</em></h1>
+    <p>Truy cập HDVIA để lập hành trình, tra cứu điểm đến, khai thác kho kinh nghiệm và quản lý tài khoản HDV.</p>
+  </div>
+  <div class="auth-card">
+    <div class="auth-title"><span class="auth-lock">🔒</span><div><h2>Đăng nhập</h2><i></i></div></div>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+      <label>✉️ Email</label><input name="email" type="email" placeholder="Nhập email của bạn" autocomplete="email" required>
+      <label>🔒 Mật khẩu</label><div class="password-wrap"><input name="password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required><span>◉</span></div>
+      <a class="forgot" href="#">Quên mật khẩu?</a>
+      <button class="btn auth-primary" type="submit">↪ &nbsp; Đăng nhập</button>
+    </form>
+    <a class="btn auth-register" href="/register">♙ &nbsp; Đăng ký</a>
+    <div class="single-login-note"><span>🔗</span><div><b>Một lần đăng nhập – Dùng cho toàn bộ HDVIA</b><p>Chỉ cần đăng nhập 1 lần, bạn có thể sử dụng xuyên suốt tất cả các module: Hành trình, Điểm đến, Kho kinh nghiệm và Tài khoản.</p></div></div>
+  </div>
+  <div class="auth-modules"><span>🗺️<b>Lập & phân tích<br>hành trình</b></span><span>🏛️<b>Điểm đến &<br>thông tin</b></span><span>📖<b>Kho kinh nghiệm<br>HDV</b></span><span>🛡️<b>Tài khoản &<br>xác minh</b></span></div>
+</div>
+{% endblock %}

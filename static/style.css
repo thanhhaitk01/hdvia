@@ -20,7 +20,7 @@ body{background:radial-gradient(circle at 45% -10%,rgba(21,99,155,.38),transpare
 .context-note small{display:block;margin-top:4px;color:#6f94a9;font-size:9px;line-height:1.45}
 .page-head{max-width:1280px;margin-left:auto;margin-right:auto}
 .page>.card,.page>.grid2,.page>.dest-toolbar,.page>.dest-grid,.page>.searchbar,.page>.post-list,.page>.narrow,.page>.auth,.page>.journey-layout{max-width:1280px;margin-left:auto;margin-right:auto}
-.page>.journey-layout{margin-top:10px}
+.page>.journey-layout{margin-top:10px;display:block}
 .dashboard-hero{max-width:1500px;margin:0 auto}
 .dashboard-bottom{max-width:1500px;margin-left:auto;margin-right:auto}
 /* The four primary modules are now global navigation, not duplicated cards on Home. */
@@ -39,3 +39,148 @@ body{background:radial-gradient(circle at 45% -10%,rgba(21,99,155,.38),transpare
 }
 
 .home-route-index{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* =========================================================
+   HDVIA BETA 1.9 — PC + MOBILE VISUAL FREEZE
+   Reference: approved mobile screenshots
+   ========================================================= */
+:root{
+  --navy:#031722;--navy2:#06283c;--cyan:#22d7f4;--cyan2:#13b9ef;
+  --text2:#d7e8f1;--line2:rgba(63,184,229,.42);--glass:rgba(4,31,48,.82);
+}
+html,body{min-height:100%;scroll-behavior:smooth}
+body{background:#031722;color:#eef8ff}
+.app-shell{min-height:calc(100vh - 58px)}
+.topbar{
+  min-height:74px;padding:10px 38px;gap:24px;background:rgba(2,17,28,.96);
+  border-bottom:1px solid rgba(72,191,232,.26);position:sticky;top:0;z-index:50;
+}
+.brand{min-width:180px}.brand img{width:150px;height:54px}
+.desktop-brand-title{color:#bcd4df;font-size:13px;white-space:nowrap;flex:1}
+.desktop-brand-title span{color:#31d6f5;font-weight:800;margin-left:6px}
+.topnav{flex:1;justify-content:center;gap:6px;overflow-x:auto}
+.topnav a{font-size:12px!important;padding:10px 13px!important;border:1px solid transparent;border-radius:12px;color:#d8eaf3}
+.topnav a.active{color:#fff;border-color:#1e83aa;background:rgba(14,58,82,.75);box-shadow:0 0 20px rgba(18,198,242,.08)}
+.top-login{
+  flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 23px;border:2px solid #19c8ed;
+  border-radius:999px;background:rgba(5,34,52,.9);font-weight:800;color:#f2fbff;white-space:nowrap;
+}
+.top-login-user{border-color:#2b90b3}
+.mobile-home,.mobile-login,.mobile-menu{display:none}
+.workspace{display:block}.sidebar{display:none}
+.page{width:100%;max-width:1500px;margin:0 auto;padding:0 28px 34px;min-height:calc(100vh - 140px)}
+.site-footer{
+  margin-top:0;padding:22px 18px 34px;text-align:center;color:#c8dbe4;font-size:12px;
+  border-top:1px solid rgba(54,143,181,.28);background:#031722
+}
+.site-footer a{color:#d7e8f1}
+.card,.home-panel,.journey-input,.auth-card,.profile-card{background:linear-gradient(150deg,rgba(8,43,65,.92),rgba(4,28,45,.92));border:1px solid var(--line2);box-shadow:0 18px 50px rgba(0,0,0,.14)}
+.page-hero{max-width:1200px;margin:0 auto;padding:46px 12px 20px}
+.page-hero h1{font-size:44px;margin:8px 0 8px}.page-hero p{font-size:16px;max-width:760px}
+.eyebrow{color:#23d8f4;font-weight:900;letter-spacing:.18em;font-size:13px}
+.btn.primary{background:linear-gradient(90deg,#148ff0,#18d8ed);border:0;color:#fff;font-weight:900}
+.btn{border-radius:14px}
+.full{width:100%}
+
+/* HOME */
+.mobile-home-hero{
+  min-height:425px;max-width:none;margin:0 -28px;background-size:cover;background-position:center;
+  background-image:linear-gradient(90deg,rgba(2,20,31,.9),rgba(2,20,31,.45) 62%,rgba(2,20,31,.18)),url('/static/backgrounds/vietnam-travel.svg');
+  display:flex;align-items:center;padding:54px 7vw;position:relative;overflow:hidden
+}
+.mobile-hero-inner{max-width:760px;position:relative;z-index:2}
+.beta-pill{display:inline-flex;padding:8px 16px;border:2px solid #1ed9f5;border-radius:999px;color:#45e0f9;font-weight:900}
+.mobile-home-hero h1{font-size:48px;line-height:1.1;margin:20px 0 14px;letter-spacing:-.03em}
+.mobile-home-hero h1 em{font-style:normal;color:#29dcf4}.mobile-home-hero p{font-size:17px;color:#d4e4ec;max-width:780px}
+.journey-cta{max-width:1350px;margin:0 auto;padding:22px 28px;display:flex;align-items:center;gap:22px;border-radius:28px;background:linear-gradient(110deg,#0c83bc,#08729f);border:2px solid #12d8f5;box-shadow:0 0 30px rgba(16,203,242,.16);transform:translateY(-22px)}
+.journey-icon{width:78px;height:78px;border-radius:22px;background:rgba(10,193,242,.18);display:grid;place-items:center;font-size:40px}
+.journey-copy{flex:1}.journey-copy h2{font-size:30px;margin:0}.journey-copy p{margin:2px 0;color:#e4f3fa;font-size:15px}
+.round-arrow{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#f4fbff;color:#12658c;font-size:40px;font-weight:300}
+.home-panel{max-width:1350px;margin:0 auto 24px;padding:20px 28px;border-radius:24px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-head h2{margin:0;font-size:23px}.section-head a{color:#35d9f4;font-weight:800}
+.weather-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.weather-card{padding:18px;border:1px solid #24769b;border-radius:20px;background:rgba(3,30,46,.72);min-height:120px}.weather-card b{display:block;font-size:15px}.weather-card strong{display:block;font-size:34px;margin:10px 0 2px}.weather-card span{color:#c1d6e0}
+.warning-row{display:flex;align-items:center;gap:14px;padding:15px 8px;border-bottom:1px solid rgba(66,137,167,.32)}.warning-row:last-child{border-bottom:0}.warning-row>div{flex:1}.warning-row p{margin:2px 0}.warning-row>span:last-child{font-size:30px;color:#7bdaf2}.warning-icon{width:48px;height:48px;border-radius:15px;background:#0b5578;display:grid;place-items:center;font-size:24px}.warning-icon.green{background:#0d5a43}
+.home-route-index{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* LOGIN */
+.auth-page{min-height:calc(100vh - 74px);margin:0 -28px;padding:52px 18px 34px;background-image:linear-gradient(180deg,rgba(2,17,27,.58),rgba(2,17,27,.92)),url('/static/backgrounds/vietnam-travel.svg');background-size:cover;background-position:center;display:flex;align-items:center;flex-direction:column}
+.auth-hero{text-align:center;max-width:820px}.auth-hero h1{font-size:46px;margin:8px 0}.auth-hero h1 em{font-style:normal;color:#2ddcf4}.auth-hero p{font-size:16px;color:#d3e4ec;margin:0 0 24px}
+.auth-card{width:min(760px,100%);border-radius:28px;padding:30px 38px}.auth-title{display:flex;gap:20px;align-items:flex-start}.auth-lock{font-size:32px;background:#0d5374;border-radius:20px;padding:14px}.auth-title h2{font-size:32px;margin:7px 0}.auth-title i{display:block;width:65px;height:8px;background:#20d9f4;margin-top:4px}
+.auth-card form label{display:block;font-weight:800;font-size:15px;margin:17px 0 6px}.auth-card input{width:100%;height:58px;border:1px solid #4388aa;background:rgba(3,30,47,.85);color:#fff;border-radius:15px;padding:0 18px;font-size:15px}.password-wrap{position:relative}.password-wrap span{position:absolute;right:18px;top:15px;color:#93b4c5}.forgot{display:block;text-align:right;color:#24d8f4;font-weight:800;margin:12px 0}.auth-primary{width:100%;height:58px;border-radius:16px;font-size:17px}.auth-register{width:100%;height:56px;margin-top:14px;display:grid;place-items:center;border:2px solid #39c7ef;color:#eafaff;font-weight:900}.single-login-note{display:flex;gap:14px;margin-top:22px;padding:16px;border:1px solid #1bd5ec;border-radius:20px;background:rgba(7,52,70,.56)}.single-login-note>span{font-size:28px}.single-login-note b{font-size:15px}.single-login-note p{margin:3px 0;font-size:12px}.auth-modules{width:min(820px,100%);display:grid;grid-template-columns:repeat(4,1fr);margin-top:26px}.auth-modules span{text-align:center;color:#2bdaf2;font-size:25px;border-right:1px solid #356b84;padding:0 10px}.auth-modules span:last-child{border:0}.auth-modules b{display:block;color:#e8f2f6;font-size:12px;margin-top:4px}
+
+/* KNOWLEDGE */
+.knowledge-hero,.dest-hero{max-width:1350px;margin:0 auto;padding:54px 20px 30px;min-height:240px;background-image:linear-gradient(90deg,rgba(2,20,32,.92),rgba(2,20,32,.5)),url('/static/backgrounds/vietnam-travel.svg');background-size:cover;background-position:center;border-radius:0 0 24px 24px}
+.knowledge-hero h1,.dest-hero h1{font-size:42px;margin:8px 0}.knowledge-hero p,.dest-hero p{font-size:16px;max-width:700px}
+.searchbar.knowledge-search{max-width:1260px;margin:0 auto;padding:14px 20px;display:flex;gap:10px;border:1px solid #4e85a0;border-radius:20px;background:rgba(3,27,43,.8);transform:translateY(-10px)}.knowledge-search span{font-size:34px}.knowledge-search input{flex:1;border:0;background:transparent;color:#fff;outline:0;font-size:15px}.chips{max-width:1260px;margin:0 auto 18px;display:flex;gap:10px;overflow:auto}.chips a{white-space:nowrap;padding:10px 16px;border:1px solid #315f78;border-radius:999px;background:#08273b;color:#e4f2f7}.chips a.active{background:#12cce9;color:#042031;border-color:#12cce9;font-weight:900}
+.knowledge-list{max-width:1260px;margin:0 auto}.knowledge-post{display:flex;align-items:center;gap:18px;padding:16px;margin-bottom:12px;border:1px solid #1f5874;border-radius:18px;background:rgba(5,32,48,.84)}.post-thumb{width:190px;height:105px;border-radius:14px;background:linear-gradient(135deg,#145274,#0a2a3d);display:grid;place-items:center;font-size:34px;flex:none}.post-main{flex:1}.post-main h2{font-size:17px;margin:5px 0}.post-main p{font-size:12px;margin:4px 0}.tag{float:right;background:#096c69;border-radius:999px;padding:5px 10px;font-size:10px;color:#c9fff8}.post-stats{color:#a9c1cd}.share-experience{display:block;width:min(600px,90%);margin:25px auto;padding:15px;text-align:center;border-radius:999px;background:linear-gradient(90deg,#168eea,#1cd8eb);font-weight:900;font-size:18px}
+
+/* DESTINATIONS */
+.dest-hero{min-height:250px}.dest-hero h1 em{font-style:normal;color:#2ddcf4}.destination-search{max-width:1250px;margin:0 auto;padding:4px;border:2px solid #35d9f4;border-radius:999px;display:flex;background:rgba(4,31,47,.85)}.destination-search span{font-size:34px;padding:7px 15px}.destination-search input{flex:1;border:0;outline:0;background:transparent;color:#fff;font-size:15px}.destination-search button{border:0;border-radius:999px;padding:0 28px;background:#17cde8;font-weight:900;color:#04202c}.dest-section{max-width:1300px;margin:34px auto}.dest-section>h2{color:#26d8f2;font-size:20px;letter-spacing:.08em}.featured-dest{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.dest-tile{border:1px solid #1d688a;border-radius:18px;overflow:hidden;background:#08283c}.dest-photo{height:180px;background:linear-gradient(135deg,#0e5672,#0a2c40);display:grid;place-items:center;font-size:24px;font-weight:900}.dest-tile>div:last-child{padding:11px 14px}.dest-tile b{font-size:18px}.dest-tile small{display:block;color:#c5d6df;margin-top:4px}.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.info-card{min-height:180px;padding:24px;border:1px solid #1f6584;border-radius:20px;background:linear-gradient(120deg,rgba(6,47,66,.9),rgba(4,27,43,.9));position:relative}.info-card span{font-size:28px}.info-card h3{font-size:22px;margin:8px 0}.info-card p{max-width:550px}.info-card{color:#fff}
+
+/* JOURNEY */
+.journey-page{max-width:1150px;margin:0 auto}.journey-input{max-width:900px;margin:0 auto;border-radius:22px;padding:25px}.journey-input .cyan{font-size:15px}.journey-input label{display:block;font-weight:800;margin:15px 0 6px}.journey-input input,.journey-input textarea{width:100%;background:#061e30;border:1px solid #327b9e;color:#fff;border-radius:14px;padding:13px 16px;font-size:14px}.journey-input textarea{resize:vertical}.analysis-result{margin-top:30px}.analysis-tabs{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #235b78;border-radius:18px;overflow:hidden}.analysis-tabs span{padding:14px;text-align:center;background:#08273a;border-right:1px solid #23516b}.analysis-tabs span.active{background:#12cce9;color:#04202c;font-weight:900}.result-card{margin-top:14px;border:1px solid #235d79;border-radius:20px;padding:20px;background:#06263a}.summary-grid{font-size:12px;color:#b8d0dc}
+
+/* PROFILE */
+.profile-page{max-width:1000px;margin:0 auto}.profile-hero{padding-left:0}.profile-card{display:flex;gap:22px;align-items:center;border-radius:22px;padding:24px}.profile-avatar{width:120px;height:120px;border-radius:50%;border:3px solid #25d7f4;background:#0a4c6b;display:grid;place-items:center;font-size:45px}.profile-main h2{font-size:28px;margin:0 0 6px}.role-pill{display:inline-block;padding:7px 13px;background:#0e6a91;border-radius:999px}.profile-badges{display:flex;gap:10px;margin-top:10px}.profile-badges span{padding:7px 12px;border-radius:999px;background:#0a553f;color:#caffed;font-size:11px}.session-card{display:flex;gap:18px;align-items:flex-start;margin:18px 0;padding:18px;border:1px solid #16d6e7;border-radius:20px;background:linear-gradient(100deg,#063d54,#052c3e);position:relative}.session-icon{font-size:38px;color:#29d8f1}.session-card h3{margin:0}.session-card p{margin:2px 0}.session-links{display:flex;gap:8px;flex-wrap:wrap}.session-links a{padding:7px 11px;border:1px solid #2d7c9f;border-radius:999px;font-size:11px}.status{margin-left:auto;color:#63f0a7;background:#0b4b38;border-radius:999px;padding:7px 12px;font-size:11px}.account-list>a{display:flex;align-items:center;gap:14px;padding:17px 20px;margin:9px 0;border:1px solid #1d5874;border-radius:18px;background:#07283c}.account-list>a>span{width:42px;height:42px;border-radius:13px;background:#0c5577;display:grid;place-items:center;font-size:21px}.account-list>a div{flex:1}.account-list small{display:block;color:#a9c2cf}.account-list em{font-style:normal;color:#58e89e;font-size:11px}.logout-big{display:block;text-align:center;margin-top:22px;padding:14px;border:2px solid #ee5360;border-radius:14px;color:#ff6870;font-weight:900}
+
+/* TABLET / COMPACT DESKTOP — matches the approved 1024px reference shell */
+@media(max-width:1100px) and (min-width:801px){
+  .topbar{padding:8px 28px;gap:16px}
+  .brand{min-width:160px;width:160px}.brand img{width:145px;height:52px}
+  .desktop-brand-title,.topnav{display:none}
+  .mobile-home{display:flex;align-items:center;gap:8px;color:#eaf7fb;font-weight:900;font-size:16px;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+  .mobile-menu{display:block;margin-left:4px;position:relative}
+  .mobile-menu summary{list-style:none;font-size:30px;line-height:1;color:#7ee9fa;cursor:pointer;padding:5px}
+  .mobile-menu summary::-webkit-details-marker{display:none}
+  .mobile-menu-panel{position:absolute;right:0;top:50px;width:280px;padding:10px;border:1px solid #2c7b9c;border-radius:16px;background:#031d2d;box-shadow:0 20px 50px rgba(0,0,0,.45);z-index:100}
+  .mobile-menu-panel a{display:block;padding:12px;border-radius:10px;color:#eaf7fb}.mobile-menu-panel a:hover{background:#0a3850}
+  .top-login{display:flex}
+  .workspace{display:block}.sidebar{display:none}
+  .page{padding-left:28px;padding-right:28px}
+}
+
+/* MOBILE — intentionally follows the approved reference proportions */
+@media(max-width:800px){
+  body{font-size:14px}
+  .topbar{height:76px;min-height:76px;padding:7px 14px;gap:8px;background:#031722}
+  .brand{min-width:120px;width:120px}.brand img{width:118px;height:50px}
+  .desktop-brand-title,.topnav,.sidebar{display:none}
+  .mobile-home{display:flex;align-items:center;gap:8px;color:#eaf7fb;font-weight:900;font-size:15px;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+  .mobile-home:first-letter{color:#27d8f2}
+  .top-login{display:flex;margin-left:auto;padding:9px 16px;font-size:13px;border-width:2px}
+  .top-login span{display:inline}
+  .top-login-user span{max-width:125px;overflow:hidden;text-overflow:ellipsis}
+  .mobile-menu{display:block;margin-left:4px;position:relative}
+  .mobile-menu summary{list-style:none;font-size:30px;line-height:1;color:#7ee9fa;cursor:pointer;padding:5px}
+  .mobile-menu summary::-webkit-details-marker{display:none}
+  .mobile-menu-panel{position:absolute;right:0;top:50px;width:260px;padding:10px;border:1px solid #2c7b9c;border-radius:16px;background:#031d2d;box-shadow:0 20px 50px rgba(0,0,0,.45);z-index:100}
+  .mobile-menu-panel a{display:block;padding:12px;border-radius:10px;color:#eaf7fb}.mobile-menu-panel a:hover{background:#0a3850}
+  .mobile-login{display:none}
+  .mobile-module-nav{display:flex;height:64px;overflow:auto;background:#041c2c;border-bottom:1px solid #1f6687;white-space:nowrap}
+  .mobile-module-nav a{display:flex;align-items:center;gap:7px;padding:0 16px;color:#e5f0f4;font-size:12px;border-right:1px solid rgba(53,117,145,.35)}
+  .mobile-module-nav a.active{background:#0f9fdb;border-radius:999px;margin:8px 5px;padding:0 16px;font-weight:900}
+  .page{padding:0 14px 25px;max-width:none}
+  .site-footer{font-size:10px;padding:18px 12px 28px}
+  .page-hero{padding:27px 10px 18px}.page-hero h1{font-size:32px}.page-hero p{font-size:13px}
+  .mobile-home-hero{min-height:300px;margin:0 -14px;padding:38px 26px 28px;align-items:flex-start;background-position:center}
+  .mobile-home-hero h1{font-size:33px;line-height:1.12;margin:18px 0 14px}
+  .mobile-home-hero p{font-size:13px;line-height:1.65}
+  .beta-pill{font-size:12px;padding:7px 14px}
+  .journey-cta{margin:-2px 0 18px;padding:15px 14px;border-radius:26px;gap:12px;transform:none}
+  .journey-icon{width:62px;height:62px;border-radius:18px;font-size:30px}.journey-copy h2{font-size:24px}.journey-copy p{font-size:12px;line-height:1.5}.round-arrow{width:52px;height:52px;font-size:34px}
+  .home-panel{padding:16px 14px;border-radius:22px;margin-bottom:17px}
+  .section-head h2{font-size:18px}.section-head a{font-size:11px}
+  .weather-cards{grid-template-columns:repeat(3,1fr);gap:8px}.weather-card{min-height:112px;padding:13px 10px;border-radius:18px}.weather-card b{font-size:11px}.weather-card strong{font-size:25px}.weather-card span{font-size:10px}
+  .warning-row{padding:13px 2px}.warning-row p{font-size:11px}.warning-row b{font-size:12px}
+  .auth-page{margin:0 -14px;min-height:calc(100vh - 76px);padding:32px 16px 22px;background-position:center}
+  .auth-hero h1{font-size:35px}.auth-hero p{font-size:13px;line-height:1.55}.auth-card{padding:22px 20px;border-radius:24px}.auth-title h2{font-size:28px}.auth-card input{height:54px}.auth-modules{grid-template-columns:repeat(4,1fr);gap:0}.auth-modules span{font-size:20px}.auth-modules b{font-size:9px}
+  .knowledge-hero,.dest-hero{margin:0 -14px;border-radius:0;padding:34px 26px 24px;min-height:230px}.knowledge-hero h1,.dest-hero h1{font-size:31px}.knowledge-hero p,.dest-hero p{font-size:13px}
+  .knowledge-search{margin:0!important;transform:none!important;border-radius:17px!important;padding:8px 12px!important}.knowledge-search .btn{display:none}.knowledge-search input{font-size:13px}.knowledge-search span{font-size:28px}
+  .chips{padding:0 2px;margin-top:12px}.chips a{font-size:11px;padding:8px 13px}
+  .knowledge-post{padding:11px;gap:10px;border-radius:16px}.post-thumb{width:104px;height:82px;border-radius:11px;font-size:20px}.post-main h2{font-size:13px}.post-main p{font-size:10px;line-height:1.35;max-height:34px;overflow:hidden}.post-main small{font-size:9px}.tag{font-size:8px}.post-stats{display:none}
+  .share-experience{font-size:16px;padding:13px}
+  .destination-search{margin:0;border-radius:18px;padding:5px}.destination-search span{font-size:27px;padding:5px 9px}.destination-search input{font-size:12px}.destination-search button{padding:0 14px;font-size:12px}
+  .dest-section{margin:24px 0}.dest-section>h2{font-size:16px}.featured-dest{grid-template-columns:repeat(2,1fr);gap:9px}.dest-photo{height:125px;font-size:18px}.dest-tile b{font-size:14px}.dest-tile small{font-size:9px}.info-grid{grid-template-columns:1fr;gap:10px}.info-card{min-height:135px;padding:17px}.info-card h3{font-size:18px}.info-card p{font-size:11px}
+  .journey-page{width:100%}.journey-input{padding:18px;border-radius:20px}.journey-input label{font-size:12px}.journey-input input,.journey-input textarea{font-size:12px}.analysis-tabs{grid-template-columns:repeat(5,1fr);overflow-x:auto}.analysis-tabs span{font-size:9px;padding:10px 4px;white-space:nowrap}
+  .profile-hero{padding-top:28px}.profile-hero h1{font-size:29px}.profile-card{padding:17px;gap:14px}.profile-avatar{width:88px;height:88px;font-size:32px}.profile-main h2{font-size:22px}.role-pill{font-size:10px}.profile-badges{flex-direction:column;gap:5px}.profile-badges span{font-size:9px;width:max-content}.session-card{padding:14px;gap:10px;flex-wrap:wrap}.session-card h3{font-size:15px}.session-card p{font-size:10px}.session-links a{font-size:9px}.status{margin-left:0;font-size:9px}.account-list>a{padding:13px 12px}.account-list small{font-size:10px}.account-list>a>span{width:38px;height:38px}.account-list em{font-size:8px}
+}

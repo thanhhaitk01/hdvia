@@ -1,1 +1,16 @@
-{% extends 'base.html' %}{% block title %}Tài khoản – HDVIA{% endblock %}{% block content %}<div class="page-head"><div><span class="eyebrow">TÀI KHOẢN</span><h1>{{u.name}}</h1><p>{{u.email}} · Quyền: {{u.role}}</p></div><a class="btn" href="/guide/apply">✓ Đăng ký xác minh HDV</a></div><div class="grid2"><div class="card"><h2>Hành trình gần đây</h2>{% if journeys %}<ul>{% for j in journeys %}<li>{{j.title}} · {{j.created_at}}</li>{% endfor %}</ul>{% else %}<p>Chưa có hành trình.</p>{% endif %}</div><div class="card"><h2>Hồ sơ xác minh HDV</h2>{% if apps %}{% for a in apps %}<p><b>{{a.status}}</b> · {{a.card_type}} · {{a.area}}</p>{% endfor %}{% else %}<p>Chưa gửi hồ sơ xác minh.</p>{% endif %}</div></div><div class="card" style="margin-top:18px"><h2>Kết nối nền tảng</h2><p>Quản lý Google, Facebook và các nhà cung cấp đã liên kết với tài khoản HDVIA.</p><a class="btn" href="/account/connections">Quản lý kết nối</a></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Tài khoản & xác minh – HDVIA{% endblock %}
+{% block content %}
+<section class="profile-page">
+<div class="page-hero profile-hero"><span class="eyebrow">TÀI KHOẢN & XÁC MINH</span><h1>Quản lý tài khoản HDVIA</h1><p>Hồ sơ, xác minh HDV, quyền truy cập và kết nối tài khoản.<br>Duy trì một phiên đăng nhập duy nhất cho toàn bộ HDVIA.</p></div>
+<div class="profile-card card"><div class="profile-avatar">{{(u.name or 'H')[:1]|upper}}</div><div class="profile-main"><h2>{{u.name}}</h2><span class="role-pill">🎫 Hướng dẫn viên du lịch (HDV)</span><div class="profile-badges"><span>✓ Đã xác minh</span><span>🏅 Cấp: HDV chính thức</span></div></div></div>
+<div class="session-card"><div class="session-icon">∞</div><div><h3>Phiên đăng nhập thống nhất HDVIA</h3><p>Đăng nhập 1 lần – sử dụng tất cả các module.</p><div class="session-links"><a href="/">⌂ Trang chủ</a><a href="/journey">📍 Hành trình</a><a href="/destinations">🏛 Điểm đến</a><a href="/kinh-nghiem">📖 Kinh nghiệm</a></div></div><span class="status">● Đang hoạt động</span></div>
+<div class="account-list">
+<a href="#"><span>👤</span><div><b>Hồ sơ cá nhân</b><small>Thông tin cá nhân, liên hệ, thẻ HDV, kinh nghiệm.</small></div>›</a>
+<a href="/guide/apply"><span class="green-icon">✓</span><div><b>Xác minh HDV</b><small>Quản lý hồ sơ xác minh, trạng thái và cấp độ HDV.</small></div><em>Đã xác minh</em>›</a>
+<a href="#"><span>▱</span><div><b>Quyền truy cập</b><small>Vai trò, phạm vi sử dụng và các chức năng được phép.</small></div>›</a>
+<a href="/account/connections"><span>🔗</span><div><b>Kết nối tài khoản</b><small>Liên kết Google, Zalo, Email để đăng nhập thuận tiện.</small></div>›</a>
+</div>
+<a class="logout-big" href="/logout">↪ &nbsp; Đăng xuất</a>
+</section>
+{% endblock %}

@@ -1,1 +1,15 @@
-{% extends 'base.html' %}{% block title %}Điểm đến – HDVIA{% endblock %}{% block content %}<div class="page-head"><div><span class="eyebrow">ĐIỂM ĐẾN</span><h1>Thông tin điểm đến</h1><p>Kho dữ liệu giúp HDV chuẩn bị trước khi đến mỗi địa phương.</p></div></div><div class="dest-toolbar"><input id="q" placeholder="Tìm điểm đến..." oninput="filterDest()"><select id="region" onchange="filterDest()"><option value="">Tất cả khu vực</option>{% for r in regions %}<option>{{r}}</option>{% endfor %}</select></div><div class="dest-grid">{% for d in destinations %}<article class="dest-card" data-name="{{d.name|lower}}" data-region="{{d.region}}"><div class="dest-img">{{d.name}}</div><div class="dest-body"><span class="eyebrow small">{{d.region}}</span><h2>{{d.name}}</h2><p>{{d.overview}}</p><a class="text-link" href="{{url_for('destination_detail',slug=d.slug)}}">Xem thông tin →</a></div></article>{% endfor %}</div><script>function filterDest(){const q=document.getElementById('q').value.toLowerCase(),r=document.getElementById('region').value;document.querySelectorAll('.dest-card').forEach(x=>x.style.display=((!q||x.dataset.name.includes(q))&&(!r||x.dataset.region===r))?'block':'none')}</script>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Điểm đến & thông tin – HDVIA{% endblock %}
+{% block content %}
+<section class="dest-hero location-hero"><div><span class="eyebrow">📍 ĐIỂM ĐẾN & THÔNG TIN</span><h1>Khám phá điểm đến <em>Việt Nam</em></h1><p>Tra cứu thông tin văn hóa, lịch sử, kinh tế và nội dung thuyết minh chuẩn cho HDV.</p></div></section>
+<div class="destination-search"><span>⌕</span><input id="q" placeholder="Tìm điểm đến, di tích, danh thắng... (VD: Hội An, Huế, Hạ Long)" oninput="filterDest()"><button onclick="filterDest()">⌕ Tra cứu</button></div>
+<section class="dest-section"><div class="section-head"><h2>★ ĐIỂM ĐẾN NỔI BẬT</h2><a href="/destinations">Xem tất cả →</a></div>
+<div class="featured-dest">{% for d in destinations[:4] %}<a class="dest-tile" data-name="{{d.name|lower}}" href="{{url_for('destination_detail',slug=d.slug)}}"><div class="dest-photo">{{d.name}}</div><div><b>{{d.name}}</b><small>📍 {{d.region}}</small></div></a>{% endfor %}</div></section>
+<section class="dest-section"><h2>▦ THÔNG TIN ĐIỂM ĐẾN</h2><div class="info-grid">
+<div class="info-card"><span>🏛️</span><h3>Văn hóa</h3><p>Phong tục, lễ hội, ẩm thực, đời sống và bản sắc địa phương.</p>›</div>
+<div class="info-card"><span>📜</span><h3>Lịch sử</h3><p>Dấu mốc, nhân vật, sự kiện và giá trị di sản.</p>›</div>
+<div class="info-card"><span>📊</span><h3>Kinh tế</h3><p>Tiềm năng, ngành nghề, du lịch, đầu tư và phát triển địa phương.</p>›</div>
+<div class="info-card"><span>🎙️</span><h3>Thông tin thuyết minh</h3><p>Nội dung thuyết minh chuẩn, ngắn gọn, dễ truyền đạt cho HDV.</p>›</div>
+</div></section>
+<script>function filterDest(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('.dest-tile').forEach(x=>x.style.display=(!q||x.dataset.name.includes(q))?'block':'none')}</script>
+{% endblock %}
