@@ -32,3 +32,10 @@ Bản release phải đạt toàn bộ regression suite trước khi đưa lên 
 - `knowledge_layer.py` thực hiện truy xuất theo từ khóa có trọng số.
 - Đây là lớp truy xuất tri thức có kiểm duyệt, không phải quá trình huấn luyện lại mô hình AI.
 - Trợ lý hành trình dùng kho tri thức này làm nguồn tham chiếu khi câu hỏi phù hợp.
+
+## Meta / Facebook public URLs
+- Chính sách quyền riêng tư: `/chinh-sach`
+- Hướng dẫn xoá dữ liệu: `/xoa-du-lieu`
+- Điều khoản sử dụng: `/dieu-khoan`
+
+Khi cấu hình Meta, ghép các đường dẫn trên với domain public của HDVIA (ví dụ `https://hdvia.vn`). Không dùng URL giả hoặc URL localhost.

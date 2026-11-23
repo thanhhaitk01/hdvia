@@ -544,6 +544,9 @@ def terms(): return render_template("terms.html")
 @app.get("/chinh-sach")
 def privacy(): return render_template("privacy.html")
 
+@app.get("/xoa-du-lieu")
+def data_deletion(): return render_template("data_deletion.html")
+
 @app.get("/admin/audit")
 @role_required("ADMIN","SUPER_ADMIN")
 def audit():
