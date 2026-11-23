@@ -1,0 +1,9 @@
+{
+  "version": "1.0-ui-foundation",
+  "purpose": "Danh mục media nền cho giao diện HDVIA. Ảnh minh họa cục bộ được dùng cho prototype; có thể thay bằng ảnh được cấp phép sau này mà không đổi template.",
+  "destinations": {
+    "da-nang": {"image":"/static/destinations/da-nang.svg","role":"hero","caption":"Đà Nẵng · Biển · Đô thị · Trải nghiệm"},
+    "hoi-an": {"image":"/static/destinations/hoi-an.svg","role":"hero","caption":"Hội An · Phố cổ · Di sản · Văn hóa"},
+    "hue": {"image":"/static/destinations/hue.svg","role":"hero","caption":"Huế · Di sản · Cố đô · Ẩm thực"}
+  }
+}
