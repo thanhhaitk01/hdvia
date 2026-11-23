@@ -11,5 +11,6 @@
 <div class="info-card"><span>📊</span><h3>Kinh tế</h3><p>Tiềm năng, ngành nghề, du lịch, đầu tư và phát triển địa phương.</p>›</div>
 <div class="info-card"><span>🎙️</span><h3>Thông tin thuyết minh</h3><p>Nội dung thuyết minh chuẩn, ngắn gọn, dễ truyền đạt cho HDV.</p>›</div>
 </div></section>
+<section class="dest-section province-section"><div class="section-head"><div><h2>🇻🇳 34 TỈNH, THÀNH PHỐ TỪ 01/07/2025</h2><p class="section-sub">Danh mục hành chính chuẩn để HDVIA liên kết điểm đến, hành trình, thời tiết và kho tri thức.</p></div></div><div class="province-grid">{% for p in provinces %}<a class="province-card" href="{{ url_for('destinations') }}#{{ p.slug }}" id="{{ p.slug }}"><span class="province-code">{{ p.code }}</span><div><strong>{{ p.name }}</strong><small>{{ p.region }} · {{ p.type }}</small><small>Điểm du lịch: {{ p.tourism_hubs[:3]|join(' · ') }}</small></div></a>{% endfor %}</div></section>
 <script>function filterDest(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('.dest-tile').forEach(x=>x.style.display=(!q||x.dataset.name.includes(q))?'block':'none')}</script>
 {% endblock %}

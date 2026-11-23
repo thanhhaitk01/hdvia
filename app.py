@@ -9,6 +9,7 @@ from oauth import init_oauth, provider_enabled
 from connect import init_connect_blueprint
 from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG
+from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
 
 BASE=os.path.dirname(__file__)
@@ -262,7 +263,7 @@ def home(): return render_template("home.html")
 @app.get("/destinations")
 def destinations():
     regions=sorted({d["region"] for d in DESTINATIONS})
-    return render_template("destinations.html", destinations=DESTINATIONS, regions=regions)
+    return render_template("destinations.html", destinations=DESTINATIONS, regions=regions, provinces=PROVINCES_2025)
 
 @app.get("/destinations/<slug>")
 def destination_detail(slug):
@@ -276,6 +277,24 @@ def destinations_api():
     region=request.args.get("region","").strip()
     data=[d for d in DESTINATIONS if (not q or q in d["name"].lower() or q in d["overview"].lower()) and (not region or d["region"]==region)]
     return jsonify({"scope":"VIETNAM","count":len(data),"destinations":data})
+
+@app.get("/api/v1/provinces")
+def provinces_api():
+    """Official 34-province administrative data effective from 2025-07-01."""
+    return jsonify({
+        "scope":"VIETNAM_ADMIN_2025",
+        "effective_date":"2025-07-01",
+        "source":"Nghị quyết 202/2025/QH15; Quyết định 19/2025/QĐ-TTg",
+        "count":len(PROVINCES_2025),
+        "provinces":PROVINCES_2025,
+    })
+
+@app.get("/api/v1/provinces/<slug>")
+def province_detail_api(slug):
+    p=resolve_province(slug)
+    if not p:
+        return jsonify({"ok":False,"error":"Không tìm thấy tỉnh/thành."}),404
+    return jsonify(p)
 
 @app.get("/api/v1/destination/<slug>")
 def destination_detail_api(slug):

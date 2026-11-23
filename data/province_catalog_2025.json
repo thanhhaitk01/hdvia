@@ -1,0 +1,757 @@
+{
+  "version": "2025.1",
+  "effective_date": "2025-07-01",
+  "source": "Nghị quyết 202/2025/QH15; Quyết định 19/2025/QĐ-TTg",
+  "scope": "34 đơn vị hành chính cấp tỉnh của Việt Nam từ 01/07/2025",
+  "count": 34,
+  "provinces": [
+    {
+      "code": "01",
+      "slug": "ha-noi",
+      "name": "Thành phố Hà Nội",
+      "type": "thành phố",
+      "region": "Miền Bắc",
+      "aliases": [
+        "Hà Nội"
+      ],
+      "formed_from": [
+        "Hà Nội"
+      ],
+      "tourism_hubs": [
+        "Hoàn Kiếm",
+        "Ba Đình",
+        "Tây Hồ",
+        "Sơn Tây"
+      ],
+      "hero_asset": "ha-noi"
+    },
+    {
+      "code": "04",
+      "slug": "cao-bang",
+      "name": "Tỉnh Cao Bằng",
+      "type": "tỉnh",
+      "region": "Đông Bắc",
+      "aliases": [
+        "Cao Bằng"
+      ],
+      "formed_from": [
+        "Cao Bằng"
+      ],
+      "tourism_hubs": [
+        "Trùng Khánh",
+        "Bản Giốc",
+        "Pác Bó"
+      ],
+      "hero_asset": "cao-bang"
+    },
+    {
+      "code": "08",
+      "slug": "tuyen-quang",
+      "name": "Tỉnh Tuyên Quang",
+      "type": "tỉnh",
+      "region": "Đông Bắc",
+      "aliases": [
+        "Tuyên Quang",
+        "Hà Giang"
+      ],
+      "formed_from": [
+        "Tuyên Quang",
+        "Hà Giang"
+      ],
+      "tourism_hubs": [
+        "Hà Giang",
+        "Đồng Văn",
+        "Mèo Vạc",
+        "Na Hang"
+      ],
+      "hero_asset": "tuyen-quang"
+    },
+    {
+      "code": "11",
+      "slug": "dien-bien",
+      "name": "Tỉnh Điện Biên",
+      "type": "tỉnh",
+      "region": "Tây Bắc",
+      "aliases": [
+        "Điện Biên"
+      ],
+      "formed_from": [
+        "Điện Biên"
+      ],
+      "tourism_hubs": [
+        "Điện Biên Phủ",
+        "Mường Phăng"
+      ],
+      "hero_asset": "dien-bien"
+    },
+    {
+      "code": "12",
+      "slug": "lai-chau",
+      "name": "Tỉnh Lai Châu",
+      "type": "tỉnh",
+      "region": "Tây Bắc",
+      "aliases": [
+        "Lai Châu"
+      ],
+      "formed_from": [
+        "Lai Châu"
+      ],
+      "tourism_hubs": [
+        "Tam Đường",
+        "Sìn Hồ",
+        "Pu Ta Leng"
+      ],
+      "hero_asset": "lai-chau"
+    },
+    {
+      "code": "14",
+      "slug": "son-la",
+      "name": "Tỉnh Sơn La",
+      "type": "tỉnh",
+      "region": "Tây Bắc",
+      "aliases": [
+        "Sơn La"
+      ],
+      "formed_from": [
+        "Sơn La"
+      ],
+      "tourism_hubs": [
+        "Mộc Châu",
+        "Sơn La",
+        "Tà Xùa"
+      ],
+      "hero_asset": "son-la"
+    },
+    {
+      "code": "15",
+      "slug": "lao-cai",
+      "name": "Tỉnh Lào Cai",
+      "type": "tỉnh",
+      "region": "Tây Bắc",
+      "aliases": [
+        "Lào Cai",
+        "Yên Bái",
+        "Sa Pa"
+      ],
+      "formed_from": [
+        "Lào Cai",
+        "Yên Bái"
+      ],
+      "tourism_hubs": [
+        "Sa Pa",
+        "Bắc Hà",
+        "Y Tý",
+        "Mù Cang Chải"
+      ],
+      "hero_asset": "lao-cai"
+    },
+    {
+      "code": "19",
+      "slug": "thai-nguyen",
+      "name": "Tỉnh Thái Nguyên",
+      "type": "tỉnh",
+      "region": "Đông Bắc",
+      "aliases": [
+        "Thái Nguyên",
+        "Bắc Kạn"
+      ],
+      "formed_from": [
+        "Thái Nguyên",
+        "Bắc Kạn"
+      ],
+      "tourism_hubs": [
+        "Hồ Ba Bể",
+        "ATK Định Hóa",
+        "Thái Nguyên"
+      ],
+      "hero_asset": "thai-nguyen"
+    },
+    {
+      "code": "20",
+      "slug": "lang-son",
+      "name": "Tỉnh Lạng Sơn",
+      "type": "tỉnh",
+      "region": "Đông Bắc",
+      "aliases": [
+        "Lạng Sơn"
+      ],
+      "formed_from": [
+        "Lạng Sơn"
+      ],
+      "tourism_hubs": [
+        "Mẫu Sơn",
+        "Đồng Đăng",
+        "Tam Thanh"
+      ],
+      "hero_asset": "lang-son"
+    },
+    {
+      "code": "22",
+      "slug": "quang-ninh",
+      "name": "Tỉnh Quảng Ninh",
+      "type": "tỉnh",
+      "region": "Đông Bắc",
+      "aliases": [
+        "Quảng Ninh",
+        "Hạ Long"
+      ],
+      "formed_from": [
+        "Quảng Ninh"
+      ],
+      "tourism_hubs": [
+        "Hạ Long",
+        "Yên Tử",
+        "Cô Tô"
+      ],
+      "hero_asset": "quang-ninh"
+    },
+    {
+      "code": "24",
+      "slug": "bac-ninh",
+      "name": "Tỉnh Bắc Ninh",
+      "type": "tỉnh",
+      "region": "Đồng bằng Bắc Bộ",
+      "aliases": [
+        "Bắc Ninh",
+        "Bắc Giang"
+      ],
+      "formed_from": [
+        "Bắc Ninh",
+        "Bắc Giang"
+      ],
+      "tourism_hubs": [
+        "Yên Tử",
+        "Tây Yên Tử",
+        "Đông Hồ",
+        "Bổ Đà"
+      ],
+      "hero_asset": "bac-ninh"
+    },
+    {
+      "code": "25",
+      "slug": "phu-tho",
+      "name": "Tỉnh Phú Thọ",
+      "type": "tỉnh",
+      "region": "Trung du Bắc Bộ",
+      "aliases": [
+        "Phú Thọ",
+        "Vĩnh Phúc",
+        "Hòa Bình"
+      ],
+      "formed_from": [
+        "Phú Thọ",
+        "Vĩnh Phúc",
+        "Hòa Bình"
+      ],
+      "tourism_hubs": [
+        "Đền Hùng",
+        "Tam Đảo",
+        "Mai Châu",
+        "Hòa Bình"
+      ],
+      "hero_asset": "phu-tho"
+    },
+    {
+      "code": "31",
+      "slug": "hai-phong",
+      "name": "Thành phố Hải Phòng",
+      "type": "thành phố",
+      "region": "Đồng bằng Bắc Bộ",
+      "aliases": [
+        "Hải Phòng",
+        "Hải Dương"
+      ],
+      "formed_from": [
+        "Hải Phòng",
+        "Hải Dương"
+      ],
+      "tourism_hubs": [
+        "Cát Bà",
+        "Đồ Sơn",
+        "Côn Sơn - Kiếp Bạc"
+      ],
+      "hero_asset": "hai-phong"
+    },
+    {
+      "code": "33",
+      "slug": "hung-yen",
+      "name": "Tỉnh Hưng Yên",
+      "type": "tỉnh",
+      "region": "Đồng bằng Bắc Bộ",
+      "aliases": [
+        "Hưng Yên",
+        "Thái Bình"
+      ],
+      "formed_from": [
+        "Hưng Yên",
+        "Thái Bình"
+      ],
+      "tourism_hubs": [
+        "Phố Hiến",
+        "Đồng Châu",
+        "chùa Keo"
+      ],
+      "hero_asset": "hung-yen"
+    },
+    {
+      "code": "37",
+      "slug": "ninh-binh",
+      "name": "Tỉnh Ninh Bình",
+      "type": "tỉnh",
+      "region": "Đồng bằng Bắc Bộ",
+      "aliases": [
+        "Ninh Bình",
+        "Hà Nam",
+        "Nam Định"
+      ],
+      "formed_from": [
+        "Ninh Bình",
+        "Hà Nam",
+        "Nam Định"
+      ],
+      "tourism_hubs": [
+        "Tràng An",
+        "Tam Cốc",
+        "Hoa Lư",
+        "Phủ Giầy"
+      ],
+      "hero_asset": "ninh-binh"
+    },
+    {
+      "code": "38",
+      "slug": "thanh-hoa",
+      "name": "Tỉnh Thanh Hóa",
+      "type": "tỉnh",
+      "region": "Bắc Trung Bộ",
+      "aliases": [
+        "Thanh Hóa"
+      ],
+      "formed_from": [
+        "Thanh Hóa"
+      ],
+      "tourism_hubs": [
+        "Sầm Sơn",
+        "Pù Luông",
+        "Lam Kinh"
+      ],
+      "hero_asset": "thanh-hoa"
+    },
+    {
+      "code": "40",
+      "slug": "nghe-an",
+      "name": "Tỉnh Nghệ An",
+      "type": "tỉnh",
+      "region": "Bắc Trung Bộ",
+      "aliases": [
+        "Nghệ An"
+      ],
+      "formed_from": [
+        "Nghệ An"
+      ],
+      "tourism_hubs": [
+        "Kim Liên",
+        "Cửa Lò",
+        "Pù Mát"
+      ],
+      "hero_asset": "nghe-an"
+    },
+    {
+      "code": "42",
+      "slug": "ha-tinh",
+      "name": "Tỉnh Hà Tĩnh",
+      "type": "tỉnh",
+      "region": "Bắc Trung Bộ",
+      "aliases": [
+        "Hà Tĩnh"
+      ],
+      "formed_from": [
+        "Hà Tĩnh"
+      ],
+      "tourism_hubs": [
+        "Thiên Cầm",
+        "Ngã ba Đồng Lộc",
+        "Hương Sơn"
+      ],
+      "hero_asset": "ha-tinh"
+    },
+    {
+      "code": "44",
+      "slug": "quang-tri",
+      "name": "Tỉnh Quảng Trị",
+      "type": "tỉnh",
+      "region": "Bắc Trung Bộ",
+      "aliases": [
+        "Quảng Trị",
+        "Quảng Bình",
+        "Đồng Hới",
+        "Phong Nha"
+      ],
+      "formed_from": [
+        "Quảng Trị",
+        "Quảng Bình"
+      ],
+      "tourism_hubs": [
+        "Đồng Hới",
+        "Phong Nha",
+        "Thành cổ Quảng Trị",
+        "Vĩnh Linh"
+      ],
+      "hero_asset": "quang-tri"
+    },
+    {
+      "code": "46",
+      "slug": "hue",
+      "name": "Thành phố Huế",
+      "type": "thành phố",
+      "region": "Bắc Trung Bộ",
+      "aliases": [
+        "Huế",
+        "Thừa Thiên Huế"
+      ],
+      "formed_from": [
+        "Huế"
+      ],
+      "tourism_hubs": [
+        "Đại Nội",
+        "Lăng tẩm",
+        "Sông Hương",
+        "Phong Nha"
+      ],
+      "hero_asset": "hue"
+    },
+    {
+      "code": "48",
+      "slug": "da-nang",
+      "name": "Thành phố Đà Nẵng",
+      "type": "thành phố",
+      "region": "Miền Trung",
+      "aliases": [
+        "Đà Nẵng",
+        "Quảng Nam",
+        "Hội An",
+        "Mỹ Sơn"
+      ],
+      "formed_from": [
+        "Đà Nẵng",
+        "Quảng Nam"
+      ],
+      "tourism_hubs": [
+        "Hội An",
+        "Mỹ Sơn",
+        "Sơn Trà",
+        "Bà Nà Hills",
+        "Ngũ Hành Sơn"
+      ],
+      "hero_asset": "da-nang"
+    },
+    {
+      "code": "51",
+      "slug": "quang-ngai",
+      "name": "Tỉnh Quảng Ngãi",
+      "type": "tỉnh",
+      "region": "Nam Trung Bộ",
+      "aliases": [
+        "Quảng Ngãi",
+        "Kon Tum",
+        "Măng Đen"
+      ],
+      "formed_from": [
+        "Quảng Ngãi",
+        "Kon Tum"
+      ],
+      "tourism_hubs": [
+        "Lý Sơn",
+        "Mỹ Sơn",
+        "Măng Đen",
+        "Kon Tum"
+      ],
+      "hero_asset": "quang-ngai"
+    },
+    {
+      "code": "52",
+      "slug": "gia-lai",
+      "name": "Tỉnh Gia Lai",
+      "type": "tỉnh",
+      "region": "Tây Nguyên - Nam Trung Bộ",
+      "aliases": [
+        "Gia Lai",
+        "Bình Định",
+        "Quy Nhơn"
+      ],
+      "formed_from": [
+        "Gia Lai",
+        "Bình Định"
+      ],
+      "tourism_hubs": [
+        "Quy Nhơn",
+        "Kỳ Co",
+        "Eo Gió",
+        "Pleiku",
+        "Biển Hồ"
+      ],
+      "hero_asset": "gia-lai"
+    },
+    {
+      "code": "56",
+      "slug": "khanh-hoa",
+      "name": "Tỉnh Khánh Hòa",
+      "type": "tỉnh",
+      "region": "Nam Trung Bộ",
+      "aliases": [
+        "Khánh Hòa",
+        "Ninh Thuận",
+        "Nha Trang",
+        "Phan Rang"
+      ],
+      "formed_from": [
+        "Khánh Hòa",
+        "Ninh Thuận"
+      ],
+      "tourism_hubs": [
+        "Nha Trang",
+        "Cam Ranh",
+        "Ninh Chữ",
+        "Vĩnh Hy"
+      ],
+      "hero_asset": "khanh-hoa"
+    },
+    {
+      "code": "66",
+      "slug": "dak-lak",
+      "name": "Tỉnh Đắk Lắk",
+      "type": "tỉnh",
+      "region": "Tây Nguyên - Nam Trung Bộ",
+      "aliases": [
+        "Đắk Lắk",
+        "Phú Yên",
+        "Buôn Ma Thuột",
+        "Tuy Hòa"
+      ],
+      "formed_from": [
+        "Đắk Lắk",
+        "Phú Yên"
+      ],
+      "tourism_hubs": [
+        "Buôn Ma Thuột",
+        "Tuy Hòa",
+        "Gành Đá Đĩa",
+        "Yok Đôn"
+      ],
+      "hero_asset": "dak-lak"
+    },
+    {
+      "code": "68",
+      "slug": "lam-dong",
+      "name": "Tỉnh Lâm Đồng",
+      "type": "tỉnh",
+      "region": "Tây Nguyên - Nam Trung Bộ",
+      "aliases": [
+        "Lâm Đồng",
+        "Đắk Nông",
+        "Bình Thuận",
+        "Đà Lạt",
+        "Mũi Né"
+      ],
+      "formed_from": [
+        "Lâm Đồng",
+        "Đắk Nông",
+        "Bình Thuận"
+      ],
+      "tourism_hubs": [
+        "Đà Lạt",
+        "Mũi Né",
+        "Bảo Lộc",
+        "Tà Đùng"
+      ],
+      "hero_asset": "lam-dong"
+    },
+    {
+      "code": "75",
+      "slug": "dong-nai",
+      "name": "Tỉnh Đồng Nai",
+      "type": "tỉnh",
+      "region": "Đông Nam Bộ",
+      "aliases": [
+        "Đồng Nai",
+        "Bình Phước"
+      ],
+      "formed_from": [
+        "Đồng Nai",
+        "Bình Phước"
+      ],
+      "tourism_hubs": [
+        "Biên Hòa",
+        "Bù Gia Mập",
+        "Trị An",
+        "Núi Bà Rá"
+      ],
+      "hero_asset": "dong-nai"
+    },
+    {
+      "code": "79",
+      "slug": "ho-chi-minh-city",
+      "name": "Thành phố Hồ Chí Minh",
+      "type": "thành phố",
+      "region": "Đông Nam Bộ",
+      "aliases": [
+        "TP. Hồ Chí Minh",
+        "Thành phố Hồ Chí Minh",
+        "Bà Rịa - Vũng Tàu",
+        "Bình Dương",
+        "Vũng Tàu"
+      ],
+      "formed_from": [
+        "Thành phố Hồ Chí Minh",
+        "Bà Rịa - Vũng Tàu",
+        "Bình Dương"
+      ],
+      "tourism_hubs": [
+        "Quận 1",
+        "Cần Giờ",
+        "Vũng Tàu",
+        "Thủ Dầu Một"
+      ],
+      "hero_asset": "ho-chi-minh-city"
+    },
+    {
+      "code": "80",
+      "slug": "tay-ninh",
+      "name": "Tỉnh Tây Ninh",
+      "type": "tỉnh",
+      "region": "Đông Nam Bộ",
+      "aliases": [
+        "Tây Ninh",
+        "Long An",
+        "Tân An"
+      ],
+      "formed_from": [
+        "Tây Ninh",
+        "Long An"
+      ],
+      "tourism_hubs": [
+        "Núi Bà Đen",
+        "Tòa Thánh Tây Ninh",
+        "Tân An",
+        "Đồng Tháp Mười"
+      ],
+      "hero_asset": "tay-ninh"
+    },
+    {
+      "code": "82",
+      "slug": "dong-thap",
+      "name": "Tỉnh Đồng Tháp",
+      "type": "tỉnh",
+      "region": "Đồng bằng sông Cửu Long",
+      "aliases": [
+        "Đồng Tháp",
+        "Tiền Giang",
+        "Mỹ Tho"
+      ],
+      "formed_from": [
+        "Đồng Tháp",
+        "Tiền Giang"
+      ],
+      "tourism_hubs": [
+        "Sa Đéc",
+        "Gáo Giồng",
+        "Mỹ Tho",
+        "Cái Bè"
+      ],
+      "hero_asset": "dong-thap"
+    },
+    {
+      "code": "86",
+      "slug": "vinh-long",
+      "name": "Tỉnh Vĩnh Long",
+      "type": "tỉnh",
+      "region": "Đồng bằng sông Cửu Long",
+      "aliases": [
+        "Vĩnh Long",
+        "Bến Tre",
+        "Trà Vinh"
+      ],
+      "formed_from": [
+        "Vĩnh Long",
+        "Bến Tre",
+        "Trà Vinh"
+      ],
+      "tourism_hubs": [
+        "Cồn Phụng",
+        "Chợ Lách",
+        "Trà Vinh",
+        "Vĩnh Long"
+      ],
+      "hero_asset": "vinh-long"
+    },
+    {
+      "code": "91",
+      "slug": "an-giang",
+      "name": "Tỉnh An Giang",
+      "type": "tỉnh",
+      "region": "Đồng bằng sông Cửu Long",
+      "aliases": [
+        "An Giang",
+        "Kiên Giang",
+        "Phú Quốc",
+        "Châu Đốc"
+      ],
+      "formed_from": [
+        "An Giang",
+        "Kiên Giang"
+      ],
+      "tourism_hubs": [
+        "Phú Quốc",
+        "Châu Đốc",
+        "Hà Tiên",
+        "Rừng tràm Trà Sư"
+      ],
+      "hero_asset": "an-giang"
+    },
+    {
+      "code": "92",
+      "slug": "can-tho",
+      "name": "Thành phố Cần Thơ",
+      "type": "thành phố",
+      "region": "Đồng bằng sông Cửu Long",
+      "aliases": [
+        "Cần Thơ",
+        "Sóc Trăng",
+        "Hậu Giang"
+      ],
+      "formed_from": [
+        "Cần Thơ",
+        "Sóc Trăng",
+        "Hậu Giang"
+      ],
+      "tourism_hubs": [
+        "Cái Răng",
+        "Ninh Kiều",
+        "Sóc Trăng",
+        "Hậu Giang"
+      ],
+      "hero_asset": "can-tho"
+    },
+    {
+      "code": "96",
+      "slug": "ca-mau",
+      "name": "Tỉnh Cà Mau",
+      "type": "tỉnh",
+      "region": "Đồng bằng sông Cửu Long",
+      "aliases": [
+        "Cà Mau",
+        "Bạc Liêu"
+      ],
+      "formed_from": [
+        "Cà Mau",
+        "Bạc Liêu"
+      ],
+      "tourism_hubs": [
+        "Mũi Cà Mau",
+        "U Minh Hạ",
+        "Bạc Liêu",
+        "Nhà Công tử Bạc Liêu"
+      ],
+      "hero_asset": "ca-mau"
+    }
+  ]
+}
