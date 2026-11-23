@@ -12,6 +12,7 @@
 <header class="topbar">
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
   <div class="desktop-brand-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam · Trợ lý thông minh <span>Beta</span></div>
+  <div class="search-box" role="search"><span>⌕</span><input aria-label="Tìm kiếm trên HDVIA" placeholder="Tìm kiếm trên HDVIA..."></div>
   <a class="mobile-home" href="/" aria-label="Trang chủ">⌂ <span>Trang chủ</span></a>
   <nav class="topnav" aria-label="Điều hướng chính">
     <a class="{% if request.path == '/' %}active{% endif %}" href="/">⌂ <span>Trang chủ</span></a>
@@ -22,7 +23,8 @@
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a class="admin-link" href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}
   </nav>
   {% if user %}
-    <a class="top-login top-login-user" href="/profile">👤 <span>Xin chào, {{user['name']}}</span></a>
+    <div class="top-user"><span class="top-user-avatar">{{ (user['name'] or 'H')[:1]|upper }}</span><span><b>{{user['name']}}</b><small>{{ 'HDV' if user['role'] not in ['ADMIN','SUPER_ADMIN'] else 'ADMIN' }}</small></span></div>
+    <a class="top-login top-login-user" href="/logout">↪ <span>Đăng xuất</span></a>
     <a class="mobile-login" href="/logout">Đăng xuất</a>
   {% else %}
     <a class="top-login" href="/login">👤 <span>Đăng nhập</span></a>
