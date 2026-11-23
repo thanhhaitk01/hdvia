@@ -11,6 +11,7 @@ from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
+from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -95,12 +96,25 @@ def init_db():
     CREATE TABLE IF NOT EXISTS journeys(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,itinerary TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS journey_feedback(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,journey_id INTEGER,score INTEGER NOT NULL,comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(journey_id) REFERENCES journeys(id));
     CREATE TABLE IF NOT EXISTS knowledge_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,place TEXT,status TEXT NOT NULL DEFAULT 'PENDING_REVIEW',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
+    CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
     admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","ChangeMe123!")
     if not c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone():
         c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                   ("HDVIA Admin","0000000000",admin_email,generate_password_hash(admin_password),"ADMIN","L4","ACTIVE",now()))
+    # Bootstrap the first curated warehouse seed once on a fresh runtime database.
+    # Existing records are never overwritten. This keeps the demo data available
+    # after deployment while preserving any data already entered by an admin.
+    if c.execute("SELECT COUNT(*) FROM warehouse_records").fetchone()[0] == 0:
+        seed = warehouse_seed()
+        admin_id = c.execute("SELECT id FROM users WHERE email=?", (admin_email,)).fetchone()[0]
+        for kind in COLLECTIONS:
+            for payload in seed.get(kind, []):
+                c.execute(
+                    "INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)",
+                    (kind, json.dumps(payload, ensure_ascii=False), payload.get("status", "DRAFT") or "DRAFT", admin_id, now(), payload.get("updated_at", now()))
+                )
     c.commit(); c.close()
 
 def log(actor,action,target_type=None,target_id=None,detail=""):
@@ -255,7 +269,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.9.2-beta-journey-ui-fix","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.9.3-beta-data-warehouse","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -612,6 +626,45 @@ def journey_feedback_api():
     c.commit(); fid=cur.lastrowid; c.close()
     log(current_user()["id"],"JOURNEY_FEEDBACK","JOURNEY",journey_id,f"score={score}")
     return jsonify({"ok":True,"feedback_id":fid})
+
+@app.get("/admin/kho-du-lieu")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_data_warehouse():
+    schema = warehouse_schema().get("collections", {})
+    c = db()
+    counts = {kind: c.execute("SELECT COUNT(*) FROM warehouse_records WHERE kind=?", (kind,)).fetchone()[0] for kind in COLLECTIONS}
+    c.close()
+    return render_template("admin_data_warehouse.html", schema=schema, counts=counts)
+
+@app.post("/admin/kho-du-lieu/add")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_data_warehouse_add():
+    if not require_csrf(): return "Yêu cầu không hợp lệ", 400
+    kind = request.form.get("kind", "").strip()
+    try:
+        payload = normalize_record(kind, request.form.to_dict(flat=True))
+    except ValueError as exc:
+        flash(str(exc)); return redirect(url_for("admin_data_warehouse"))
+    c = db(); cur = c.execute("INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)", (kind, json.dumps(payload, ensure_ascii=False), payload.get("status", "DRAFT") or "DRAFT", current_user()["id"], now(), now())); rid = cur.lastrowid; c.commit(); c.close()
+    log(current_user()["id"], "WAREHOUSE_RECORD_CREATED", "WAREHOUSE", rid, kind)
+    flash("Đã nạp dữ liệu vào Kho dữ liệu HDVIA.")
+    return redirect(url_for("admin_data_warehouse"))
+
+@app.get("/admin/kho-du-lieu/export/<kind>")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_data_warehouse_export(kind):
+    if kind not in COLLECTIONS: return "Loại dữ liệu không hợp lệ", 400
+    c = db(); rows = c.execute("SELECT payload_json FROM warehouse_records WHERE kind=? ORDER BY id", (kind,)).fetchall(); c.close()
+    records = [json.loads(r["payload_json"]) for r in rows]
+    response = jsonify({"version":"1.0","kind":kind,"count":len(records),"records":records})
+    response.headers["Content-Disposition"] = f'attachment; filename="hdvia_{kind}.json"'
+    return response
+
+@app.get("/api/v1/data-warehouse/<kind>")
+def data_warehouse_api(kind):
+    if kind not in COLLECTIONS: return jsonify({"ok":False,"error":"Loại dữ liệu không hợp lệ."}),400
+    c=db(); rows=c.execute("SELECT payload_json FROM warehouse_records WHERE kind=? AND status IN ('PUBLISHED','ACTIVE') ORDER BY id",(kind,)).fetchall(); c.close()
+    return jsonify({"ok":True,"version":"1.0","kind":kind,"count":len(rows),"records":[json.loads(r["payload_json"]) for r in rows]})
 
 @app.get("/admin/guides")
 @role_required("ADMIN","SUPER_ADMIN")

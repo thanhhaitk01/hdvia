@@ -61,7 +61,7 @@
     <a class="{% if request.path.startswith('/guide/apply') %}active{% endif %}" href="/guide/apply">🪪 <b>Xác minh HDV</b></a>
   </div>
   {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}
-  <div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>
+  <div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kho-du-lieu">🗄️ <b>Kho dữ liệu HDVIA</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>
   {% endif %}
   <div class="side-footer">HDVIA © 2026<br><small>Bản thử nghiệm {{version}}</small></div>
 </aside>

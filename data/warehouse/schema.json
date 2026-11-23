@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "collections": {
+    "destinations": {
+      "label": "Điểm đến",
+      "required": ["slug", "name", "province", "type", "overview"],
+      "fields": ["slug", "name", "province", "type", "overview", "history", "culture", "food", "guide_notes", "lat", "lon", "source", "status"]
+    },
+    "knowledge": {
+      "label": "Kiến thức",
+      "required": ["title", "place", "content"],
+      "fields": ["title", "place", "topic", "content", "source", "status"]
+    },
+    "guide_scripts": {
+      "label": "Kịch bản thuyết minh",
+      "required": ["title", "place", "content"],
+      "fields": ["title", "place", "duration", "audience", "content", "source", "status"]
+    },
+    "experiences": {
+      "label": "Kinh nghiệm HDV",
+      "required": ["title", "place", "content"],
+      "fields": ["title", "place", "season", "risk_level", "content", "source", "status"]
+    },
+    "media": {
+      "label": "Hình ảnh / media",
+      "required": ["title", "place", "url"],
+      "fields": ["title", "place", "url", "caption", "source", "license", "status"]
+    }
+  }
+}

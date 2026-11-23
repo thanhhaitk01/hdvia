@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Kho dữ liệu HDVIA – Quản trị{% endblock %}
+{% block content %}
+<div class="page-head"><div><span class="eyebrow">DATA WAREHOUSE</span><h1>Kho dữ liệu HDVIA</h1><p>Nạp, kiểm soát và chuẩn hóa dữ liệu để các module HDVIA có thể sử dụng chung.</p></div></div>
+<div class="warehouse-grid">
+  <div class="card warehouse-stats">
+    <div><b>{{ counts.destinations }}</b><span>Điểm đến</span></div>
+    <div><b>{{ counts.knowledge }}</b><span>Kiến thức</span></div>
+    <div><b>{{ counts.guide_scripts }}</b><span>Kịch bản</span></div>
+    <div><b>{{ counts.experiences }}</b><span>Kinh nghiệm</span></div>
+    <div><b>{{ counts.media }}</b><span>Media</span></div>
+  </div>
+  <div class="card">
+    <span class="eyebrow">NẠP DỮ LIỆU</span>
+    <h2>Thêm dữ liệu mới</h2>
+    <form method="post" action="/admin/kho-du-lieu/add" class="warehouse-form">
+      <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+      <label>Loại dữ liệu</label>
+      <select name="kind" id="warehouse-kind" onchange="warehouseFields()">
+        {% for key, meta in schema.items() %}<option value="{{key}}">{{meta.label}}</option>{% endfor %}
+      </select>
+      <div id="warehouse-fields"></div>
+      <button class="btn primary" type="submit">Lưu vào Kho dữ liệu</button>
+    </form>
+  </div>
+  <div class="card">
+    <span class="eyebrow">DỮ LIỆU CHUẨN</span>
+    <h2>Xuất dữ liệu</h2>
+    <p>Xuất dữ liệu hiện có thành JSON để kiểm tra, lưu trữ hoặc đưa vào GitHub làm nguồn dữ liệu chuẩn.</p>
+    <div class="warehouse-export">
+      {% for key, meta in schema.items() %}<a class="btn" href="/admin/kho-du-lieu/export/{{key}}">Xuất {{meta.label}}</a>{% endfor %}
+    </div>
+  </div>
+</div>
+<script>
+const fields={{ schema|tojson }};
+function warehouseFields(){
+ const kind=document.getElementById('warehouse-kind').value, box=document.getElementById('warehouse-fields'); box.innerHTML='';
+ (fields[kind].fields||[]).forEach(name=>{
+   const label=name.replaceAll('_',' '); const wrap=document.createElement('div'); wrap.className='warehouse-field';
+   const l=document.createElement('label'); l.textContent=label; wrap.appendChild(l);
+   const el=(name==='content'||name==='overview'||name==='history'||name==='culture'||name==='food'||name==='guide_notes')?document.createElement('textarea'):document.createElement('input');
+   el.name=name; el.required=(fields[kind].required||[]).includes(name); el.placeholder=label; if(el.tagName==='TEXTAREA') el.rows=5; wrap.appendChild(el); box.appendChild(wrap);
+ });
+}
+warehouseFields();
+</script>
+{% endblock %}

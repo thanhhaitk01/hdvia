@@ -1,0 +1,134 @@
+{
+  "destinations": [
+    {
+      "slug": "son-tra",
+      "name": "Bán đảo Sơn Trà",
+      "province": "Đà Nẵng",
+      "type": "Thiên nhiên",
+      "overview": "Bán đảo Sơn Trà là điểm đến nổi bật của Đà Nẵng, kết hợp cảnh quan biển, rừng và không gian quan sát thành phố.",
+      "history": "Khu vực gắn với lịch sử phát triển và phòng thủ ven biển của Đà Nẵng; ngày nay là điểm tham quan thiên nhiên quan trọng của thành phố.",
+      "culture": "Không gian Sơn Trà gắn với đời sống biển Đà Nẵng, tín ngưỡng và các điểm tham quan tâm linh trên bán đảo.",
+      "food": "Có thể kết hợp trải nghiệm ẩm thực hải sản Đà Nẵng trong hành trình ven biển.",
+      "guide_notes": "Nên giới thiệu Sơn Trà theo mạch: vị trí → cảnh quan → hệ sinh thái → đời sống biển → lưu ý bảo vệ môi trường.",
+      "lat": 16.106,
+      "lon": 108.263,
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "slug": "hoi-an",
+      "name": "Phố cổ Hội An",
+      "province": "Đà Nẵng",
+      "type": "Di sản văn hóa",
+      "overview": "Phố cổ Hội An là đô thị thương cảng lịch sử với hệ thống nhà cổ, hội quán, đường phố và không gian văn hóa đặc trưng.",
+      "history": "Hội An từng là thương cảng quốc tế quan trọng ở khu vực miền Trung, giao thương với nhiều cộng đồng trong và ngoài châu Á.",
+      "culture": "Nổi bật với kiến trúc phố cổ, lễ hội, nghề thủ công, tín ngưỡng và văn hóa giao thoa của cộng đồng cư dân thương cảng.",
+      "food": "Cao lầu, mì Quảng, hoành thánh và các món ăn địa phương là những nội dung thường được du khách quan tâm.",
+      "guide_notes": "Khi thuyết minh nên làm rõ khái niệm đô thị thương cảng và sự giao thoa văn hóa thay vì chỉ liệt kê kiến trúc.",
+      "lat": 15.8801,
+      "lon": 108.338,
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "slug": "dai-noi-hue",
+      "name": "Đại Nội Huế",
+      "province": "Huế",
+      "type": "Di sản văn hóa",
+      "overview": "Đại Nội Huế là quần thể kiến trúc trung tâm của Kinh thành Huế, gắn với triều Nguyễn và lịch sử cố đô.",
+      "history": "Đại Nội là khu vực cung đình trung tâm của Kinh đô Huế dưới triều Nguyễn.",
+      "culture": "Không gian phản ánh nghi lễ cung đình, quy hoạch đô thành, kiến trúc và văn hóa cung đình Việt Nam.",
+      "food": "Có thể kết nối câu chuyện Đại Nội với văn hóa ẩm thực cung đình và ẩm thực Huế.",
+      "guide_notes": "Nên thuyết minh theo tuyến không gian để khách hình dung quan hệ giữa Kinh thành, Hoàng thành và Tử Cấm Thành.",
+      "lat": 16.4698,
+      "lon": 107.579,
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    }
+  ],
+  "knowledge": [
+    {
+      "title": "Câu chuyện thương cảng Hội An",
+      "place": "Phố cổ Hội An",
+      "topic": "Lịch sử",
+      "content": "Khi giới thiệu Hội An, trọng tâm nên đặt vào vai trò thương cảng và sự giao thoa giữa các cộng đồng thương nhân, từ đó giải thích vì sao kiến trúc và văn hóa địa phương có nhiều lớp ảnh hưởng.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Mạch thuyết minh Sơn Trà",
+      "place": "Bán đảo Sơn Trà",
+      "topic": "Thiên nhiên",
+      "content": "Có thể dẫn khách từ vị trí địa lý và tầm nhìn biển vào hệ sinh thái, sau đó nối với lịch sử, đời sống biển và ý thức bảo tồn.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Cấu trúc giới thiệu Đại Nội",
+      "place": "Đại Nội Huế",
+      "topic": "Lịch sử - văn hóa",
+      "content": "Giới thiệu theo ba lớp: vị trí trong cố đô, vai trò trong triều Nguyễn, sau đó đi vào quy hoạch và kiến trúc cung đình để khách dễ hình dung.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    }
+  ],
+  "guide_scripts": [
+    {
+      "title": "Thuyết minh nhanh Sơn Trà",
+      "place": "Bán đảo Sơn Trà",
+      "duration": "5-7 phút",
+      "audience": "Khách quốc tế và nội địa",
+      "content": "Mở đầu bằng vị trí của Sơn Trà trong không gian Đà Nẵng; tiếp theo giới thiệu cảnh quan biển-rừng, vai trò của bán đảo đối với thành phố và các nguyên tắc tham quan có trách nhiệm.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Thuyết minh thương cảng Hội An",
+      "place": "Phố cổ Hội An",
+      "duration": "7-10 phút",
+      "audience": "Khách quốc tế và nội địa",
+      "content": "Bắt đầu từ Hội An như một đô thị thương cảng, giải thích sự giao thương và giao thoa văn hóa, rồi liên hệ các dấu tích còn thấy trong nhà cổ, hội quán và đời sống phố cổ.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Thuyết minh Đại Nội Huế",
+      "place": "Đại Nội Huế",
+      "duration": "7-10 phút",
+      "audience": "Khách quốc tế và nội địa",
+      "content": "Giới thiệu Đại Nội như trung tâm của cố đô, sau đó giải thích quy hoạch và vai trò của các lớp không gian cung đình để khách hiểu tổng thể trước khi đi vào từng công trình.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    }
+  ],
+  "experiences": [
+    {
+      "title": "Điều phối khách tại Sơn Trà",
+      "place": "Bán đảo Sơn Trà",
+      "season": "Quanh năm",
+      "risk_level": "LOW",
+      "content": "Theo dõi thời tiết, gió và tình trạng đường trước khi khởi hành; bố trí thời gian linh hoạt vì các điểm ngoài trời phụ thuộc điều kiện thực tế.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Điều phối đoàn tại Hội An",
+      "place": "Phố cổ Hội An",
+      "season": "Quanh năm",
+      "risk_level": "MEDIUM",
+      "content": "Nên thống nhất điểm tập kết và giờ quay lại trước khi vào phố cổ; ưu tiên đi bộ theo nhóm nhỏ và dự phòng thời gian khi khu vực đông khách.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    },
+    {
+      "title": "Điều phối đoàn tại Đại Nội",
+      "place": "Đại Nội Huế",
+      "season": "Quanh năm",
+      "risk_level": "MEDIUM",
+      "content": "Nên kiểm tra thời tiết và sức khỏe đoàn trước khi tham quan; chia mốc thuyết minh theo từng khu vực để tránh kéo dài thời gian đứng ngoài trời.",
+      "source": "HDVIA – bộ dữ liệu thử nghiệm nội bộ",
+      "status": "PUBLISHED"
+    }
+  ],
+  "media": []
+}
