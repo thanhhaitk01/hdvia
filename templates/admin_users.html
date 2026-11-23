@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Quản lý thành viên – HDVIA{% endblock %}
+{% block content %}
+<div class="page-head"><div><span class="eyebrow">QUẢN TRỊ · THÀNH VIÊN</span><h1>Quản lý tài khoản</h1><p>Phân quyền, kích hoạt hoặc tạm khóa thành viên.</p></div><a class="btn" href="/admin">← Quản trị</a></div>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Thành viên</th><th>Email</th><th>Quyền</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody>
+{% for u in rows %}<tr><td>{{u.id}}</td><td>{{u.name}}</td><td>{{u.email}}</td><td>{{u.role}}</td><td>{{u.status}}</td><td><form method="post" action="/admin/users/{{u.id}}/update" class="actions"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><select name="role"><option {% if u.role=='USER' %}selected{% endif %}>USER</option><option {% if u.role=='GUIDE' %}selected{% endif %}>GUIDE</option><option {% if u.role=='PARTNER' %}selected{% endif %}>PARTNER</option><option {% if u.role=='ADMIN' %}selected{% endif %}>ADMIN</option><option {% if u.role=='SUPER_ADMIN' %}selected{% endif %}>SUPER_ADMIN</option></select><select name="status"><option {% if u.status=='ACTIVE' %}selected{% endif %}>ACTIVE</option><option {% if u.status=='PENDING' %}selected{% endif %}>PENDING</option><option {% if u.status=='SUSPENDED' %}selected{% endif %}>SUSPENDED</option></select><button class="btn" type="submit">Lưu</button></form></td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

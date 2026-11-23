@@ -53,7 +53,7 @@ PERMISSIONS={
 "USER":{"profile.manage","journey.create","journey.read","journey.analyze","weather.read","destination.read","ai.assistant.use","ai.copilot.use","itinerary.optimize","knowledge.read","knowledge.write"},
 "GUIDE":{"profile.manage","journey.create","journey.read","journey.analyze","weather.read","destination.read","destination.intelligence","itinerary.optimize","ai.assistant.use","ai.copilot.use"},
 "PARTNER":{"profile.manage","journey.read","destination.read"},
-"ADMIN":{"profile.manage","journey.read","journey.analyze","weather.read","destination.read","destination.intelligence","user.manage","guide.approve","permission.manage","security.manage","audit.read"},
+"ADMIN":{"*"},
 "SUPER_ADMIN":{"*"}}
 
 def now(): return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z")
@@ -99,10 +99,10 @@ def init_db():
     CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
-    admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","ChangeMe123!")
+    admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","Nhatkhang@123")
     if not c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone():
         c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                  ("HDVIA Admin","0000000000",admin_email,generate_password_hash(admin_password),"ADMIN","L4","ACTIVE",now()))
+                  ("HDVIA Super Admin","0000000000",admin_email,generate_password_hash(admin_password),"SUPER_ADMIN","L4","ACTIVE",now()))
     # Bootstrap the first curated warehouse seed once on a fresh runtime database.
     # Existing records are never overwritten. This keeps the demo data available
     # after deployment while preserving any data already entered by an admin.
@@ -601,11 +601,11 @@ def route_api():
     return jsonify({"points":points,"total_km":round(sum(__import__('journey_engine').haversine_km(points[i],points[i+1]) for i in range(len(points)-1)),1) if len(points)>1 else 0})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.9.2-beta-journey-ui-fix","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.9.3-beta-data-warehouse-admin","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.9.2-beta-journey-ui-fix","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
+    return jsonify({"service":"HDVIA","version":"1.9.3-beta-data-warehouse-admin","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -626,6 +626,41 @@ def journey_feedback_api():
     c.commit(); fid=cur.lastrowid; c.close()
     log(current_user()["id"],"JOURNEY_FEEDBACK","JOURNEY",journey_id,f"score={score}")
     return jsonify({"ok":True,"feedback_id":fid})
+
+@app.get("/admin")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_dashboard():
+    c=db()
+    stats={
+        "users": c.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+        "pending_guides": c.execute("SELECT COUNT(*) FROM guide_applications WHERE status='PENDING_REVIEW'").fetchone()[0],
+        "pending_knowledge": c.execute("SELECT COUNT(*) FROM knowledge_posts WHERE status='PENDING_REVIEW'").fetchone()[0],
+        "warehouse": c.execute("SELECT COUNT(*) FROM warehouse_records").fetchone()[0],
+        "published_knowledge": c.execute("SELECT COUNT(*) FROM knowledge_posts WHERE status='PUBLISHED'").fetchone()[0],
+    }
+    c.close()
+    return render_template("admin_dashboard.html",stats=stats)
+
+@app.get("/admin/users")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_users():
+    c=db(); rows=c.execute("SELECT id,name,email,role,trust_level,status,created_at FROM users ORDER BY id DESC LIMIT 500").fetchall(); c.close()
+    return render_template("admin_users.html",rows=rows)
+
+@app.post("/admin/users/<int:user_id>/update")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_user_update(user_id):
+    if not require_csrf(): return "Yêu cầu không hợp lệ", 400
+    role=request.form.get("role","USER").strip().upper()
+    status=request.form.get("status","ACTIVE").strip().upper()
+    if role not in ("USER","GUIDE","PARTNER","ADMIN","SUPER_ADMIN") or status not in ("ACTIVE","SUSPENDED","PENDING"):
+        return "Dữ liệu quyền không hợp lệ",400
+    if user_id==current_user()["id"] and role != "SUPER_ADMIN":
+        return "Không thể tự hạ quyền tài khoản quản trị hiện tại.",400
+    c=db(); c.execute("UPDATE users SET role=?,status=? WHERE id=?",(role,status,user_id)); c.commit(); c.close()
+    log(current_user()["id"],"USER_ADMIN_UPDATE","USER",user_id,f"role={role};status={status}")
+    flash("Đã cập nhật quyền và trạng thái thành viên.")
+    return redirect(url_for("admin_users"))
 
 @app.get("/admin/kho-du-lieu")
 @role_required("ADMIN","SUPER_ADMIN")

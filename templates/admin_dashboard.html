@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Quản trị hệ thống – HDVIA{% endblock %}
+{% block content %}
+<div class="page-head"><div><span class="eyebrow">SUPER ADMIN</span><h1>Quản trị hệ thống</h1><p>Điều hành thành viên, kiểm duyệt HDV, nội dung và Kho dữ liệu HDVIA.</p></div></div>
+<div class="warehouse-grid">
+  <div class="card"><span class="eyebrow">THÀNH VIÊN</span><h2>{{stats.users}}</h2><p>Tài khoản trong hệ thống</p><a class="btn primary" href="/admin/users">Quản lý thành viên</a></div>
+  <div class="card"><span class="eyebrow">HDV CHỜ DUYỆT</span><h2>{{stats.pending_guides}}</h2><p>Hồ sơ cần kiểm tra</p><a class="btn" href="/admin/guides">Duyệt HDV</a></div>
+  <div class="card"><span class="eyebrow">NỘI DUNG</span><h2>{{stats.pending_knowledge}}</h2><p>Bài viết chờ duyệt</p><a class="btn" href="/admin/kinh-nghiem">Duyệt nội dung</a></div>
+  <div class="card"><span class="eyebrow">KHO DỮ LIỆU</span><h2>{{stats.warehouse}}</h2><p>Bản ghi dữ liệu</p><a class="btn" href="/admin/kho-du-lieu">Mở Kho dữ liệu</a></div>
+  <div class="card"><span class="eyebrow">ĐÃ CÔNG BỐ</span><h2>{{stats.published_knowledge}}</h2><p>Nội dung đã được duyệt</p><a class="btn" href="/admin/kinh-nghiem">Xem nội dung</a></div>
+  <div class="card"><span class="eyebrow">KIỂM SOÁT</span><h2>Audit</h2><p>Theo dõi mọi thao tác quản trị.</p><a class="btn" href="/admin/audit">Mở nhật ký</a></div>
+</div>
+{% endblock %}
