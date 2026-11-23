@@ -204,3 +204,37 @@ body{background:#031722;color:#eef8ff}
   .knowledge-list,.chips,.searchbar.knowledge-search,.destination-search,.dest-section,.journey-page,.profile-page{width:auto!important}
   .feature-grid,.dashboard-bottom{width:100%!important}
 }
+
+
+/* =========================================================
+   HDVIA BETA 1.9 — PRIMARY MODULE LAUNCHER
+   Clean 4-module navigation: one row on PC, 2x2 on mobile.
+   ========================================================= */
+.home-route-index{display:none!important}
+.primary-modules{width:min(1350px,100%);margin:0 auto 24px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.primary-module{min-height:104px;padding:16px 15px;display:grid;grid-template-columns:46px minmax(0,1fr) 24px;align-items:center;gap:12px;border:1px solid rgba(42,150,193,.58);border-radius:18px;background:linear-gradient(145deg,rgba(8,42,61,.95),rgba(4,25,39,.97));box-shadow:0 12px 35px rgba(0,0,0,.16);transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.primary-module:hover{transform:translateY(-2px);border-color:#2ed8f3;background:linear-gradient(145deg,rgba(10,55,78,.98),rgba(5,29,45,.98))}
+.module-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:linear-gradient(145deg,#0d5a7b,#083b57);border:1px solid #2389af}
+.module-text{min-width:0}.module-text b{display:block;font-size:14px;line-height:1.25;color:#f1fbff}.module-text small{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#8fb2c4}.module-arrow{justify-self:end;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#55def7;border:1px solid #2e91b5;font-size:14px}
+.mobile-home-hero{position:relative;z-index:1}
+@media (min-width:1101px){
+  .topbar{padding-left:34px;padding-right:34px}
+  .primary-modules{margin-top:22px}
+}
+@media (max-width:1100px) and (min-width:801px){
+  .topbar{height:auto;min-height:72px}
+  .desktop-brand-title{display:none}
+  .topnav{display:none}
+  .primary-modules{grid-template-columns:repeat(2,minmax(0,1fr));max-width:1000px;margin:18px auto 22px}
+  .primary-module{min-height:96px}
+  .mobile-home-hero{min-height:430px}
+}
+@media (max-width:800px){
+  .primary-modules{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0 17px}
+  .primary-module{min-height:116px;padding:13px 11px;display:flex;align-items:flex-start;gap:9px;position:relative;border-radius:17px}
+  .module-icon{width:38px;height:38px;flex:0 0 38px;border-radius:11px;font-size:19px}
+  .module-text b{font-size:11px;line-height:1.25;padding-right:2px}
+  .module-text small{font-size:8.5px;line-height:1.35;margin-top:4px}
+  .module-arrow{position:absolute;right:9px;bottom:9px;width:20px;height:20px;font-size:11px}
+  .mobile-home-hero{margin-bottom:0}
+}
