@@ -46,6 +46,34 @@ PERMISSIONS={
 def now(): return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z")
 def db(): c=sqlite3.connect(DB); c.row_factory=sqlite3.Row; return c
 
+def nearest_destination(lat, lon):
+    """Return the nearest catalog destination using a lightweight haversine distance."""
+    from math import radians, sin, cos, sqrt, atan2
+    best=None; best_d=None
+    for d in DESTINATIONS:
+        dlat=radians(float(d["lat"])-float(lat)); dlon=radians(float(d["lon"])-float(lon))
+        a=sin(dlat/2)**2+cos(radians(float(lat)))*cos(radians(float(d["lat"])))*sin(dlon/2)**2
+        km=6371.0*2*atan2(sqrt(a),sqrt(max(0,1-a)))
+        if best_d is None or km<best_d: best,best_d=d,km
+    return best, best_d
+
+@app.get("/api/v1/location-context")
+def location_context():
+    """Resolve browser-provided coordinates to the closest HDVIA destination.
+
+    The browser decides whether location access is allowed. No coordinates are
+    persisted by this endpoint. The response is intentionally small so the UI
+    can use it to select a destination-themed background in a later release.
+    """
+    try:
+        lat=float(request.args.get("lat")); lon=float(request.args.get("lon"))
+        if not (-90<=lat<=90 and -180<=lon<=180): raise ValueError
+    except Exception:
+        return jsonify({"ok":False,"error":"Tọa độ không hợp lệ."}),400
+    d,km=nearest_destination(lat,lon)
+    if not d: return jsonify({"ok":False}),404
+    return jsonify({"ok":True,"destination":d["name"],"slug":d["slug"],"region":d["region"],"distance_km":round(km,1)})
+
 def init_db():
     c=db(); c.executescript("""
     CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT NOT NULL DEFAULT '',email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL DEFAULT '',role TEXT NOT NULL DEFAULT 'USER',trust_level TEXT NOT NULL DEFAULT 'L1',status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL);

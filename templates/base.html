@@ -1,10 +1,10 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="HDVIA – Bạn Đồng Hành Du Lịch Việt Nam"><title>{% block title %}HDVIA – Bạn Đồng Hành Du Lịch Việt Nam{% endblock %}</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="HDVIA – Bạn Đồng Hành Du Lịch Việt Nam"><title>{% block title %}HDVIA – Bạn Đồng Hành Du Lịch Việt Nam{% endblock %}</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body data-hdvia-location-background="enabled">
 <div class="app-shell">
 <header class="topbar">
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
   <div class="topbar-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam <span>Beta</span></div>
   <nav class="topnav">
-    <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Lập hành trình</span></a><a href="/kinh-nghiem">📚 <span>Kho kinh nghiệm</span></a><a href="/tro-ly-ai">🧭 <span>Trợ lý hành trình</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
+    <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Hành trình</span></a><a href="/destinations">📍 <span>Điểm đến</span></a><a href="/kinh-nghiem">📚 <span>Kinh nghiệm</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}
     {% if user %}<a href="/logout">↪ <span>Đăng xuất</span></a>{% else %}<a href="/login">Đăng nhập</a>{% endif %}
   </nav>
@@ -15,12 +15,10 @@
   <div class="side-section"><span>TRUNG TÂM CÔNG VIỆC</span>
     <a class="{% if request.path=='/' %}active{% endif %}" href="/">⌂ <b>Trang chủ</b></a>
     <a class="{% if request.path.startswith('/journey') %}active{% endif %}" href="/journey">🗺️ <b>Lập & Phân tích hành trình</b></a>
-    <a href="/journey#thoi-tiet">🌤️ <b>Thời tiết & Cảnh báo</b></a>
-    <a class="{% if request.path.startswith('/destinations') %}active{% endif %}" href="/destinations">📍 <b>Thông tin điểm đến</b></a>
+    <a class="{% if request.path.startswith('/destinations') %}active{% endif %}" href="/destinations">📍 <b>Điểm đến & thông tin</b></a>
   </div>
   <div class="side-section"><span>KIẾN THỨC & HỖ TRỢ</span>
     <a class="{% if request.path.startswith('/kinh-nghiem') %}active{% endif %}" href="/kinh-nghiem">📚 <b>Kho kinh nghiệm HDV</b></a>
-    <a class="{% if request.path.startswith('/tro-ly-ai') %}active{% endif %}" href="/tro-ly-ai">🧭 <b>Trợ lý hành trình</b></a>
     <a href="/guide/apply">🪪 <b>Xác minh HDV</b></a>
   </div>
   {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<div class="side-section admin-side"><span>QUẢN TRỊ</span><a href="/admin/guides">🛡️ <b>Quản trị hệ thống</b></a><a href="/admin/kinh-nghiem">📝 <b>Duyệt kinh nghiệm</b></a><a href="/admin/audit">📋 <b>Nhật ký hệ thống</b></a></div>{% endif %}
@@ -28,4 +26,26 @@
 </aside>
 <main class="page">{% with messages=get_flashed_messages() %}{% if messages %}<div class="flash">{% for m in messages %}<div>{{m}}</div>{% endfor %}</div>{% endif %}{% endwith %}{% block content %}{% endblock %}</main>
 </div></div>
-<footer>HDVIA © 2026 · Bản thử nghiệm {{version}} · <a href="/dieu-khoan">Điều khoản</a> · <a href="/chinh-sach">Chính sách</a></footer></body></html>
+<footer>HDVIA © 2026 · Bản thử nghiệm {{version}} · <a href="/dieu-khoan">Điều khoản</a> · <a href="/chinh-sach">Chính sách</a></footer>
+<script>
+(function(){
+  const body=document.body;
+  if(!body || body.dataset.hdviaLocationBackground!=='enabled') return;
+  const apply=(d)=>{
+    if(!d || !d.ok) return;
+    body.dataset.destinationSlug=d.slug||'';
+    body.dataset.destinationName=d.destination||'';
+    body.classList.add('location-background-ready');
+    const label=document.querySelector('[data-location-label]');
+    if(label) label.textContent=d.destination||'Điểm đến gần bạn';
+  };
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const r=await fetch(`/api/v1/location-context?lat=${encodeURIComponent(pos.coords.latitude)}&lon=${encodeURIComponent(pos.coords.longitude)}`,{headers:{'Accept':'application/json'}});
+      if(r.ok) apply(await r.json());
+    }catch(_e){}
+  },()=>{}, {enableHighAccuracy:false, maximumAge:3600000, timeout:5000});
+})();
+</script>
+</body></html>

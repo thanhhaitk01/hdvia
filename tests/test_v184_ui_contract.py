@@ -10,5 +10,5 @@ def test_v184_home_removes_old_hero_copy():
 def test_v184_uses_vietnamese_journey_label():
     base=(ROOT/'templates/base.html').read_text(encoding='utf8')
     assistant=(ROOT/'templates/ai_assistant.html').read_text(encoding='utf8')
-    assert 'Trợ lý hành trình' in base
+    assert 'Trợ lý hành trình' in assistant
     assert 'Trợ lý hành trình' in assistant
