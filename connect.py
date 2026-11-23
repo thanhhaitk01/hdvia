@@ -1,5 +1,5 @@
 """HDVIA Connect HTTP helpers for external-platform integration."""
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, render_template
 from connect_core import build_registry
 
 CONNECT_VERSION = "1.9.0-beta-connect-foundation"
@@ -25,6 +25,29 @@ def connect_status():
         "version": CONNECT_VERSION,
         "connectors": registry.public_status(),
     })
+
+
+@connect_bp.get("/health")
+def connect_health():
+    """Compact health view for the Connect foundation."""
+    from flask import current_app
+    registry = current_app.extensions["hdvia_connect_registry"]
+    items = registry.public_status()
+    return jsonify({
+        "ok": True,
+        "version": CONNECT_VERSION,
+        "enabled": [x["name"] for x in items if x["enabled"]],
+        "disabled": [x["name"] for x in items if not x["enabled"]],
+        "connectors": items,
+    })
+
+
+@connect_bp.get("/dashboard")
+def connect_dashboard():
+    """Human-readable Connect status dashboard; no secrets or tokens are shown."""
+    from flask import current_app
+    registry = current_app.extensions["hdvia_connect_registry"]
+    return render_template("connect_dashboard.html", connectors=registry.public_status(), version=CONNECT_VERSION)
 
 
 @connect_bp.get("/<provider>/status")

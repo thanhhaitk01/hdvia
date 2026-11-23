@@ -162,6 +162,38 @@ def provider_profile(provider, token):
         r=client.get("me", params={"fields":"id,name,picture"}, token=token); r.raise_for_status(); return r.json()
     raise ValueError("Unsupported provider")
 
+def _social_identity_exists(c, provider, pid):
+    return c.execute("SELECT * FROM social_accounts WHERE provider=? AND provider_user_id=?", (provider, pid)).fetchone()
+
+def link_social_account(user_id, provider, profile):
+    """Attach an OAuth identity to an already authenticated HDVIA account."""
+    pid=str(profile.get("id") or "").strip()
+    if not pid:
+        raise ValueError("Provider did not return a user id")
+    email=(profile.get("email") or "").strip().lower()
+    c=db(); existing=_social_identity_exists(c, provider, pid)
+    if existing and int(existing["user_id"]) != int(user_id):
+        c.close(); raise ValueError("Identity này đã được liên kết với tài khoản HDVIA khác.")
+    if existing:
+        c.execute("UPDATE social_accounts SET provider_email=?,last_login_at=? WHERE id=?", (email, now(), existing["id"]))
+    else:
+        c.execute("INSERT INTO social_accounts(user_id,provider,provider_user_id,provider_email,created_at,last_login_at) VALUES(?,?,?,?,?,?)", (user_id,provider,pid,email,now(),now()))
+    c.commit(); c.close()
+    log(user_id, "CONNECT_IDENTITY_LINKED", "SOCIAL_ACCOUNT", None, provider)
+    return True
+
+def unlink_social_account(user_id, provider):
+    c=db(); row=c.execute("SELECT id FROM social_accounts WHERE user_id=? AND provider=?", (user_id, provider)).fetchone()
+    if not row:
+        c.close(); raise ValueError("Nhà cung cấp chưa được liên kết.")
+    count=int(c.execute("SELECT COUNT(*) AS n FROM social_accounts WHERE user_id=?", (user_id,)).fetchone()["n"])
+    pw=c.execute("SELECT password_hash FROM users WHERE id=?", (user_id,)).fetchone()["password_hash"]
+    if count <= 1 and not pw:
+        c.close(); raise ValueError("Không thể ngắt liên kết tài khoản đăng nhập cuối cùng.")
+    c.execute("DELETE FROM social_accounts WHERE id=?", (row["id"],)); c.commit(); c.close()
+    log(user_id, "CONNECT_IDENTITY_UNLINKED", "SOCIAL_ACCOUNT", None, provider)
+    return True
+
 def social_login(provider, profile):
     pid=str(profile.get("id") or "").strip();
     if not pid: raise ValueError("Provider did not return a user id")
@@ -233,7 +265,12 @@ def oauth_start(provider):
         flash(f"Đăng nhập bằng {provider.title()} chưa được cấu hình.")
         return redirect(url_for("login"))
     client=oauth.create_client(provider)
+    if request.args.get("link") == "1":
+        if not current_user():
+            return redirect(url_for("login", next=url_for("profile")))
+        session["oauth_link_user"] = int(current_user()["id"])
     session["oauth_next"]=request.args.get("next","")
+    log(session.get("uid"), "CONNECT_OAUTH_STARTED", "PROVIDER", None, provider) if session.get("uid") else None
     return client.authorize_redirect(oauth_callback_url(provider))
 
 @app.get("/auth/<provider>/callback")
@@ -241,7 +278,11 @@ def oauth_callback(provider):
     if provider not in ("google","facebook","zalo") or not provider_enabled(provider):
         flash("Nhà cung cấp đăng nhập chưa được cấu hình."); return redirect(url_for("login"))
     try:
-        client=oauth.create_client(provider); token=client.authorize_access_token(); profile=provider_profile(provider,token); uid=social_login(provider,profile); session["uid"]=uid; log(uid,"LOGIN_SOCIAL", "USER",uid,provider); return redirect(safe_next(session.pop("oauth_next","")))
+        client=oauth.create_client(provider); token=client.authorize_access_token(); profile=provider_profile(provider,token)
+        link_uid=session.pop("oauth_link_user", None)
+        if link_uid:
+            link_social_account(link_uid, provider, profile); return redirect(url_for("profile"))
+        uid=social_login(provider,profile); session["uid"]=uid; log(uid,"LOGIN_SOCIAL", "USER",uid,provider); return redirect(safe_next(session.pop("oauth_next","")))
     except Exception:
         flash("Không thể hoàn tất đăng nhập. Vui lòng thử lại."); return redirect(url_for("login"))
 
@@ -266,6 +307,24 @@ def logout(): uid=session.get("uid"); session.clear(); log(uid,"LOGOUT") if uid 
 def profile():
     u=current_user(); c=db(); apps=c.execute("SELECT * FROM guide_applications WHERE user_id=? ORDER BY id DESC",(u["id"],)).fetchall(); journeys=c.execute("SELECT id,title,created_at FROM journeys WHERE user_id=? ORDER BY id DESC LIMIT 10",(u["id"],)).fetchall(); c.close()
     return render_template("profile.html",u=u,apps=apps,journeys=journeys)
+
+@app.get("/account/connections")
+@login_required
+def account_connections():
+    u=current_user(); c=db(); rows=c.execute("SELECT provider,provider_email,created_at,last_login_at FROM social_accounts WHERE user_id=? ORDER BY provider", (u["id"],)).fetchall(); c.close()
+    return render_template("account_connections.html", u=u, connections=rows, providers=[p for p in ("google","facebook","zalo") if provider_enabled(p)])
+
+@app.post("/account/connections/<provider>/disconnect")
+@login_required
+def account_connection_disconnect(provider):
+    if not require_csrf(): return "Yêu cầu không hợp lệ", 400
+    if provider not in ("google","facebook","zalo"): return "Nhà cung cấp không hợp lệ",400
+    try:
+        unlink_social_account(current_user()["id"], provider)
+        flash(f"Đã ngắt liên kết {provider.title()}.")
+    except ValueError as exc:
+        flash(str(exc))
+    return redirect(url_for("account_connections"))
 
 @app.route("/guide/apply",methods=["GET","POST"])
 @login_required
