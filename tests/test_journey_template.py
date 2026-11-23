@@ -10,3 +10,18 @@ def test_journey_template_avoids_old_technical_labels():
     html=(ROOT/'templates/journey.html').read_text(encoding='utf-8')
     assert 'Tour Briefing cho HDV' not in html
     assert 'Plan B theo ngày' not in html
+
+def test_journey_analysis_tabs_are_clickable_and_target_sections():
+    html=(ROOT/'templates/journey.html').read_text(encoding='utf-8')
+    for href in ['#tong-quan','#thoi-tiet','#canh-bao','#lo-trinh','#du-phong']:
+        assert f'href="{href}"' in html
+    for section_id in ['id="tong-quan"','id="thoi-tiet"','id="canh-bao"','id="lo-trinh"','id="du-phong"']:
+        assert section_id in html
+    assert '<span class="active">🗺 Tổng quan</span>' not in html
+
+def test_journey_template_does_not_render_raw_result_json():
+    html=(ROOT/'templates/journey.html').read_text(encoding='utf-8')
+    assert 'tojson' not in html
+    assert '{{result.weather}}' not in html
+    assert '{{result.risk_map}}' not in html
+    assert '{{result.risks}}' not in html

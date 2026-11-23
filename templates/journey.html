@@ -6,21 +6,133 @@
 <section class="journey-input card"><div class="eyebrow cyan">✎ NHẬP HÀNH TRÌNH</div><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><label>Tên hành trình</label><input name="title" value="{{request.form.get('title','Hành trình Đà Nẵng – Hội An – Huế')}}" maxlength="200" required><label>Lịch trình (theo ngày)</label><textarea name="itinerary" rows="5" required placeholder="Ngày 1: Đà Nẵng – Hội An&#10;Ngày 2: Hội An – Huế&#10;Ngày 3: Huế – Đà Nẵng">{{request.form.get('itinerary','')}}</textarea><button class="btn primary full" type="submit">⌕ &nbsp; Phân tích hành trình</button></form></section>
 {% if journey_error %}<div class="alert danger">{{journey_error}}</div>{% endif %}
 {% if result %}
-<section class="analysis-result"><div class="section-head"><h2>▥ KẾT QUẢ PHÂN TÍCH</h2><small>Ngày phân tích: {{result.get('analyzed_at','')}}</small></div>
-<div class="analysis-tabs"><span class="active">🗺 Tổng quan</span><span>☁ Thời tiết</span><span>⚠ Cảnh báo</span><span>⌘ Lộ trình</span><span>🛡 Dự phòng</span></div>
-<div class="result-card">
-<h3>Tổng quan hành trình</h3><p>{{result.title}}</p>
-<div class="summary-grid">
-  <div><b>Điểm đến:</b> {{ result.places|join(' · ') }}</div>
-  <div><b>Thời tiết hành trình:</b> {{ result.weather|tojson }}</div>
-</div>
-<div class="journey-detail-grid">
-  <article><h4>⚠ Cảnh báo</h4><p>{{ result.risks|join(' · ') if result.risks else 'Chưa phát hiện cảnh báo nổi bật.' }}</p></article>
-  <article><h4>🎙 Trợ lý thuyết minh</h4><p>Chuẩn bị nội dung thuyết minh theo từng điểm đến trong hành trình.</p></article>
-  <article><h4>🛡 Phương án dự phòng</h4><p>{{ result.recommendations|join(' · ') if result.recommendations else 'Kiểm tra lại thời tiết và điều chỉnh lịch trình khi cần.' }}</p></article>
-</div>
-<div class="feedback-row"><b>Đánh giá kết quả</b><a href="/api/v1/journey/feedback" aria-label="Đánh giá kết quả">Gửi đánh giá →</a></div>
-</div>
+<section class="analysis-result">
+  <div class="section-head"><h2>▥ KẾT QUẢ PHÂN TÍCH</h2><small>Ngày phân tích: {{result.get('analyzed_at', result.get('generated_at',''))}}</small></div>
+  <nav class="analysis-tabs" aria-label="Các phần phân tích hành trình">
+    <a class="active" href="#tong-quan">🗺 Tổng quan</a>
+    <a href="#thoi-tiet">☁ Thời tiết</a>
+    <a href="#canh-bao">⚠ Cảnh báo</a>
+    <a href="#lo-trinh">⌘ Lộ trình</a>
+    <a href="#du-phong">🛡 Dự phòng</a>
+  </nav>
+
+  <div id="tong-quan" class="result-card">
+    <h3>Tổng quan hành trình</h3>
+    <p>{{result.title}}</p>
+    <div class="summary-grid">
+      <div><b>Điểm đến:</b> {{ result.places|join(' · ') if result.places else 'Chưa nhận diện được điểm đến' }}</div>
+      <div><b>Mức độ phân tích:</b> {{ result.confidence|default('MEDIUM') }}</div>
+    </div>
+
+    {% set weather_map = result.weather if result.weather is mapping else {} %}
+    <section id="thoi-tiet" class="journey-weather-section">
+      <div class="weather-section-head">
+        <div>
+          <div class="eyebrow cyan">☁ THỜI TIẾT HÀNH TRÌNH</div>
+          <h3>Thời tiết hành trình · Dự báo 7 ngày theo từng điểm đến</h3>
+          <p>Thông tin đã được chuyển sang dạng trực quan để HDV dễ theo dõi và chuẩn bị tour.</p>
+        </div>
+      </div>
+
+      {% if weather_map %}
+      <div class="weather-destination-list">
+      {% for place, forecast in weather_map.items() %}
+        <article class="weather-destination-card">
+          <div class="weather-place-head">
+            <div><span class="weather-pin">📍</span><strong>{{place}}</strong></div>
+            <span class="weather-count">7 ngày</span>
+          </div>
+          <div class="weather-forecast-grid">
+          {% for day in forecast %}
+            <div class="forecast-day">
+              <div class="forecast-date">{{day.get('date','—')}}</div>
+              <div class="forecast-icon">
+                {% set code = day.get('code', -1) %}
+                {% if code == 0 %}☀️{% elif code in [1,2] %}🌤️{% elif code == 3 %}☁️{% elif code in [45,48] %}🌫️{% elif code in [51,53,55] %}🌦️{% elif code in [61,63,65,80,81,82] %}🌧️{% elif code in [95,96,99] %}⛈️{% elif code in [71,73,75] %}❄️{% else %}🌤️{% endif %}
+              </div>
+              <div class="forecast-condition">{{day.get('condition','Chưa có dữ liệu')}}</div>
+              <div class="forecast-temp">
+                {% if day.get('tmax') is not none %}<b>{{day.get('tmax')}}°</b>{% else %}<b>—</b>{% endif %}
+                {% if day.get('tmin') is not none %}<span>{{day.get('tmin')}}°</span>{% endif %}
+              </div>
+              <div class="forecast-meta">
+                <span>🌧 {{day.get('rain')}}%</span>
+                <span>💨 {{day.get('wind')}} km/h</span>
+              </div>
+            </div>
+          {% endfor %}
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+      {% else %}
+      <div class="weather-empty">Chưa có dữ liệu thời tiết cho hành trình này.</div>
+      {% endif %}
+    </section>
+
+    <section id="canh-bao" class="journey-alert-section">
+      <div class="eyebrow cyan">⚠ CẢNH BÁO</div>
+      <h3>Cảnh báo theo điểm đến</h3>
+      {% set risk_map = result.risk_map if result.risk_map is mapping else {} %}
+      {% if risk_map %}
+      <div class="journey-risk-list">
+        {% for place, risk in risk_map.items() %}
+        <article class="journey-risk-card risk-{{risk.get('level','UNKNOWN')|lower}}">
+          <div class="risk-badge">{% if risk.get('level') == 'HIGH' %}⚠ CAO{% elif risk.get('level') == 'MEDIUM' %}⚠ TRUNG BÌNH{% elif risk.get('level') == 'LOW' %}✓ THẤP{% else %}ℹ CHƯA XÁC ĐỊNH{% endif %}</div>
+          <div class="risk-content">
+            <strong>{{place}}</strong>
+            <p>{{risk.get('reason','Chưa có mô tả cảnh báo.')}}</p>
+            <small><b>Khuyến nghị:</b> {{risk.get('action','Theo dõi điều kiện thực tế trước tour.')}}</small>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="weather-empty">Chưa phát hiện cảnh báo nổi bật.</div>
+      {% endif %}
+    </section>
+
+    <section id="lo-trinh" class="journey-route-section">
+      <div class="eyebrow cyan">⌘ LỘ TRÌNH</div>
+      <h3>Lộ trình theo từng ngày</h3>
+      {% if result.days %}
+      <div class="journey-route-list">
+        {% for day in result.days %}
+        <article class="journey-route-card">
+          <div class="route-day">Ngày {{day.get('day','—')}}</div>
+          <div class="route-content">
+            <strong>{{day.get('text','Lịch trình chưa có mô tả')}}</strong>
+            {% if day.get('places') %}<p>📍 {{day.get('places')|join(' → ')}}</p>{% endif %}
+            {% if day.get('distance_km') is not none %}<small>Khoảng cách chặng: {{day.get('distance_km')}} km</small>{% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}<div class="weather-empty">Chưa có dữ liệu lộ trình.</div>{% endif %}
+    </section>
+
+    <section id="du-phong" class="journey-backup-section">
+      <div class="eyebrow cyan">🛡 DỰ PHÒNG</div>
+      <h3>Phương án dự phòng</h3>
+      {% if result.plan_b %}
+      <div class="journey-backup-list">
+        {% for plan in result.plan_b %}
+        <article class="journey-backup-card">
+          <div class="route-day">Ngày {{plan.get('day','—')}}</div>
+          <div><strong>{{plan.get('trigger','Điều kiện thay đổi')}}</strong><p>{{plan.get('action','Chuẩn bị phương án thay thế phù hợp điều kiện thực tế.')}}</p></div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <article class="journey-backup-card"><div><strong>Khuyến nghị chung</strong><p>{{ result.recommendations|join(' · ') if result.recommendations else 'Kiểm tra lại thời tiết và điều chỉnh lịch trình khi cần.' }}</p></div></article>
+      {% endif %}
+    </section>
+
+    <div class="journey-detail-grid">
+      <article><h4>🎙 Trợ lý thuyết minh</h4><p>Chuẩn bị nội dung thuyết minh theo từng điểm đến trong hành trình.</p></article>
+    </div>
+    <div class="feedback-row"><b>Đánh giá kết quả</b><a href="/api/v1/journey/feedback" aria-label="Đánh giá kết quả">Gửi đánh giá →</a></div>
+  </div>
 </section>
 {% endif %}
 </section>
