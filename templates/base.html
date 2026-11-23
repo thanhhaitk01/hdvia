@@ -3,7 +3,7 @@
 <header class="topbar">
   <a class="brand" href="/"><img src="{{url_for('static',filename='assets/hdvia-logo.png')}}" alt="HDVIA"></a>
   <div class="topbar-title">HDVIA – Bạn Đồng Hành Du Lịch Việt Nam <span>Beta</span></div>
-  <button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="document.body.classList.toggle('menu-open')">☰</button><nav class="topnav">
+  <nav class="topnav">
     <a href="/">⌂ <span>Trang chủ</span></a><a href="/journey">🗺️ <span>Hành trình</span></a><a href="/destinations">📍 <span>Điểm đến</span></a><a href="/kinh-nghiem">📚 <span>Kinh nghiệm</span></a><a href="/profile">👤 <span>Tài khoản</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin/guides">🛡️ <span>Quản trị</span></a>{% endif %}
     {% if user %}<a href="/logout">↪ <span>Đăng xuất</span></a>{% else %}<a href="/login">Đăng nhập</a>{% endif %}
@@ -36,8 +36,6 @@
     body.dataset.destinationSlug=d.slug||'';
     body.dataset.destinationName=d.destination||'';
     body.classList.add('location-background-ready');
-    const media={"da-nang":"/static/destinations/da-nang.svg","hoi-an":"/static/destinations/hoi-an.svg","hue":"/static/destinations/hue.svg"};
-    if(media[d.slug]) body.style.setProperty('--location-bg', `url(${media[d.slug]})`);
     const label=document.querySelector('[data-location-label]');
     if(label) label.textContent=d.destination||'Điểm đến gần bạn';
   };

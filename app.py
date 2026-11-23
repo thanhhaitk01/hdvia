@@ -1,5 +1,5 @@
 import os, sqlite3, uuid, json, re, urllib.parse, urllib.request, traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import Flask, request, redirect, url_for, session, render_template, render_template_string, flash, send_from_directory, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -22,7 +22,16 @@ app=Flask(__name__)
 # forwarded host/proto headers so OAuth callback URLs use the public domain.
 app.wsgi_app=ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key=os.environ.get("HDVIA_SECRET_KEY","change-me-in-production")
-app.config.update(MAX_CONTENT_LENGTH=5*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+# Unified HDVIA session: one authenticated browser session is shared by every module.
+# The session is persistent across browser restarts for a bounded period; explicit
+# logout remains the normal way to end it.
+app.config.update(
+    MAX_CONTENT_LENGTH=5*1024*1024,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    SESSION_REFRESH_EACH_REQUEST=True,
+)
 oauth=init_oauth(app)
 init_connect_blueprint(app, provider_enabled)
 
@@ -97,10 +106,30 @@ def log(actor,action,target_type=None,target_id=None,detail=""):
     c=db(); c.execute("INSERT INTO audit_logs(actor_id,action,target_type,target_id,detail,ip,created_at) VALUES(?,?,?,?,?,?,?)",
                       (actor,action,target_type,target_id,detail,request.remote_addr if request else "",now())); c.commit(); c.close()
 
+def _user_snapshot(u):
+    return {k: u[k] for k in ("id", "name", "phone", "email", "role", "trust_level", "status")}
+
+def establish_session(u):
+    """Establish the single HDVIA identity used by every module."""
+    session.permanent = True
+    session["uid"] = int(u["id"])
+    # Keep a small identity snapshot so a fresh serverless instance can still
+    # recognize the authenticated browser before the backing DB is restored.
+    session["user_snapshot"] = _user_snapshot(u)
+    session.modified = True
+
 def current_user():
     uid=session.get("uid")
     if not uid:return None
-    c=db(); u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone(); c.close(); return u
+    try:
+        c=db(); u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone(); c.close()
+        if u:
+            session["user_snapshot"] = _user_snapshot(u)
+            return u
+    except Exception:
+        pass
+    snap=session.get("user_snapshot")
+    return snap if snap and int(snap.get("id", -1)) == int(uid) else None
 
 def login_required(f):
     @wraps(f)
@@ -282,7 +311,14 @@ def oauth_callback(provider):
         link_uid=session.pop("oauth_link_user", None)
         if link_uid:
             link_social_account(link_uid, provider, profile); return redirect(url_for("profile"))
-        uid=social_login(provider,profile); session["uid"]=uid; log(uid,"LOGIN_SOCIAL", "USER",uid,provider); return redirect(safe_next(session.pop("oauth_next","")))
+        uid=social_login(provider,profile)
+        c=db(); u=c.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone(); c.close()
+        if u:
+            establish_session(u)
+        else:
+            session["uid"] = uid
+            session.permanent = True
+        log(uid,"LOGIN_SOCIAL", "USER",uid,provider); return redirect(safe_next(session.pop("oauth_next","")))
     except Exception:
         flash("Không thể hoàn tất đăng nhập. Vui lòng thử lại."); return redirect(url_for("login"))
 
@@ -294,7 +330,8 @@ def login():
         if not require_csrf(): return "Yêu cầu không hợp lệ", 400
         email=request.form.get("email","").strip().lower(); pw=request.form.get("password","")
         c=db(); u=c.execute("SELECT * FROM users WHERE email=? AND password_hash!=''",(email,)).fetchone(); c.close()
-        if u and check_password_hash(u["password_hash"],pw): session["uid"]=u["id"]; log(u["id"],"LOGIN"); return redirect(safe_next(nxt))
+        if u and check_password_hash(u["password_hash"],pw):
+            establish_session(u); log(u["id"],"LOGIN"); return redirect(safe_next(nxt))
         flash("Email hoặc mật khẩu không đúng.")
     providers=[p for p in ("google","facebook","zalo") if provider_enabled(p)]
     return render_template("login.html",next=nxt,providers=providers)
