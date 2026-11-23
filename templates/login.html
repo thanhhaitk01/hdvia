@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block body_class %}auth-body{% endblock %}
 {% block title %}Đăng nhập – HDVIA{% endblock %}
 {% block content %}
 <div class="auth-page location-hero">
@@ -16,7 +17,9 @@
       <a class="forgot" href="#">Quên mật khẩu?</a>
       <button class="btn auth-primary" type="submit">↪ &nbsp; Đăng nhập</button>
     </form>
-    <a class="btn auth-register" href="/register">♙ &nbsp; Đăng ký</a>
+    <div class="quick-login-title"><span></span><b>Đăng nhập nhanh</b><span></span></div>
+    <div class="social-login auth-social">{% for provider in providers %}<a class="btn social-btn {{provider}}" href="/auth/{{provider}}">{% if provider=='google' %}G{% elif provider=='facebook' %}f{% else %}Z{% endif %} &nbsp; {{provider|capitalize}}</a>{% endfor %}</div>
+    <div class="register-line">Bạn chưa có tài khoản? <a href="/register">Đăng ký ngay →</a></div>
     <div class="single-login-note"><span>🔗</span><div><b>Một lần đăng nhập – Dùng cho toàn bộ HDVIA</b><p>Chỉ cần đăng nhập 1 lần, bạn có thể sử dụng xuyên suốt tất cả các module: Hành trình, Điểm đến, Kho kinh nghiệm và Tài khoản.</p></div></div>
   </div>
   <div class="auth-modules"><span>🗺️<b>Lập & phân tích<br>hành trình</b></span><span>🏛️<b>Điểm đến &<br>thông tin</b></span><span>📖<b>Kho kinh nghiệm<br>HDV</b></span><span>🛡️<b>Tài khoản &<br>xác minh</b></span></div>

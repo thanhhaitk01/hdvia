@@ -1,32 +1,54 @@
 {% extends 'base.html' %}
-{% block title %}HDVIA – Trợ lý thông minh cho Hướng dẫn viên Việt Nam{% endblock %}
+{% block title %}HDVIA – AI dành cho Hướng dẫn viên Việt Nam{% endblock %}
 {% block content %}
 <nav class="home-route-index" aria-label="Các module chính">
-<a href="/journey">Lập & phân tích hành trình</a><a href="/destinations">Điểm đến & thông tin</a><a href="/kinh-nghiem">Kho kinh nghiệm HDV</a><a href="/profile">Tài khoản & xác minh</a><span>Cảnh báo</span>
+<a href="/journey">Lập & phân tích hành trình</a>
+<a href="/destinations">Điểm đến & thông tin</a>
+<a href="/kinh-nghiem">Kho kinh nghiệm HDV</a>
+<a href="/profile">Tài khoản & xác minh</a>
 </nav>
-<section class="mobile-home-hero location-hero">
-  <div class="mobile-hero-inner">
+<section class="hdvia-home-hero location-hero">
+  <div class="home-hero-copy">
     <span class="beta-pill">HDVIA Beta 1.9 · <span data-location-label>Việt Nam</span></span>
     <h1>HDVIA – Trợ lý thông minh cho <em>Hướng dẫn viên Việt Nam</em></h1>
-    <p>Lập kế hoạch · Tra cứu điểm đến · Kinh nghiệm thực tế · Thông tin đa chiều · Hỗ trợ hành trình an toàn, hiệu quả.</p>
+    <p>AI đồng hành cùng HDV: lập và phân tích hành trình, theo dõi thời tiết, tra cứu điểm đến, khai thác kho kinh nghiệm và hỗ trợ xử lý tình huống thực tế.</p>
+    <form class="home-ai-search" action="/tro-ly-ai" method="get">
+      <span>✦</span><input name="question" placeholder="Hôm nay HDVIA có thể hỗ trợ gì cho bạn?" aria-label="Hỏi HDVIA">
+      <button type="submit">→</button>
+    </form>
+  </div>
+  <div class="home-hero-side">
+    <div class="hero-side-card"><span>AI HDVIA</span><b>Trợ lý đồng hành 24/7</b><p>Hiểu hành trình, thời tiết, điểm đến và kinh nghiệm HDV.</p><a class="btn primary" href="/tro-ly-ai">Hỏi HDVIA →</a></div>
   </div>
 </section>
-<section class="journey-cta card-glow">
-  <div class="journey-icon">🗺️</div>
-  <div class="journey-copy"><h2>Phân tích hành trình</h2><p>Nhập điểm đến hoặc lịch trình để nhận phân tích chi tiết, thời tiết, cảnh báo và phương án dự phòng.</p></div>
-  <a class="round-arrow" href="/journey">→</a>
+
+<section class="quick-access">
+  <a href="/journey"><span>🗺️</span><b>Lập & phân tích<br>hành trình</b></a>
+  <a href="/tro-ly-ai"><span>🤖</span><b>Hỏi AI<br>HDVIA</b></a>
+  <a href="/destinations"><span>📍</span><b>Tra cứu<br>điểm đến</b></a>
+  <a href="/kinh-nghiem"><span>📖</span><b>Kho kinh nghiệm<br>HDV</b></a>
+  <a href="/profile"><span>🛡️</span><b>Tài khoản &<br>xác minh</b></a>
 </section>
+
 <section class="home-panel weather-home">
-  <div class="section-head"><h2>🌤️ Thời tiết hôm nay</h2><a href="/journey">Xem dự báo 7 ngày →</a></div>
+  <div class="section-head"><h2>☀️ Thời tiết hôm nay</h2><a href="/journey">Xem dự báo 7 ngày →</a></div>
   <div class="weather-cards">
-    <div class="weather-card"><b>📍 Đà Nẵng</b><strong>28°C</strong><span>☀️ Có nắng</span></div>
+    <div class="weather-card"><b>📍 Đà Nẵng</b><strong>28°C</strong><span>☀️ Có nắng · 6° Rủi ro</span></div>
     <div class="weather-card"><b>📍 Hội An</b><strong>29°C</strong><span>🌤️ Ít mây</span></div>
     <div class="weather-card"><b>📍 Huế</b><strong>26°C</strong><span>🌧️ Có mưa nhẹ</span></div>
   </div>
 </section>
-<section class="home-panel warning-home">
-  <div class="section-head"><h2>⚠️ Cảnh báo & gợi ý</h2><a href="/journey">Xem chi tiết →</a></div>
-  <div class="warning-row"><span class="warning-icon">🌧️</span><div><b>Mưa nhẹ tại Huế</b><p>Có thể xuất hiện mưa rào chiều nay.</p></div><span>›</span></div>
-  <div class="warning-row"><span class="warning-icon green">🌿</span><div><b>Gợi ý điều hành</b><p>Chuẩn bị áo mưa, điều chỉnh lịch tham quan ngoài trời.</p></div><span>›</span></div>
+
+<section class="home-grid-2">
+  <div class="home-panel">
+    <div class="section-head"><h2>⚠️ Cảnh báo & gợi ý</h2><a href="/journey">Xem chi tiết →</a></div>
+    <div class="warning-row"><span class="warning-icon">🌧️</span><div><b>Mưa nhẹ tại Huế</b><p>Có thể xuất hiện mưa rào chiều nay. Nên chuẩn bị phương án trong nhà.</p></div></div>
+    <div class="warning-row"><span class="warning-icon green">🛡️</span><div><b>HDVIA đã sẵn sàng phân tích</b><p>Nhập lịch trình để AI kiểm tra thời tiết, rủi ro và phương án dự phòng.</p></div></div>
+  </div>
+  <div class="home-panel world-connect">
+    <div class="section-head"><h2>🌐 Sẵn sàng kết nối với thế giới</h2><a href="/account/connections">Quản lý →</a></div>
+    <p>Liên kết tài khoản và dịch vụ để HDVIA hỗ trợ xuyên suốt hệ sinh thái.</p>
+    <div class="connect-pills"><span>Google · Sẵn sàng</span><span>Facebook · Sẵn sàng</span><span>Zalo · Sẵn sàng</span></div>
+  </div>
 </section>
 {% endblock %}
