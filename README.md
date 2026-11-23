@@ -13,6 +13,7 @@ Beta 1.9 kế thừa toàn bộ nền tảng Beta 1.8.5 và bổ sung **HDVIA Co
 - Google, Facebook và Zalo được quản lý qua cùng một Connect Registry.
 - OAuth route thực tế hiện có vẫn nằm trong `oauth.py` và `app.py`.
 - Client secret/token không được ghi vào source code hoặc API status.
+- Trang hướng dẫn xóa dữ liệu công khai: `/data-deletion` (đồng thời hỗ trợ `/data_deletion`) để dùng làm Data Deletion Instructions URL cho nhà cung cấp đăng nhập bên ngoài.
 - Profile/token synchronization với nền tảng bên ngoài **chưa được xem là hoàn tất trong Beta 1.9**; đây là bước tích hợp tiếp theo của Giai đoạn 1.
 
 ## Quyền Beta
@@ -32,10 +33,3 @@ Bản release phải đạt toàn bộ regression suite trước khi đưa lên 
 - `knowledge_layer.py` thực hiện truy xuất theo từ khóa có trọng số.
 - Đây là lớp truy xuất tri thức có kiểm duyệt, không phải quá trình huấn luyện lại mô hình AI.
 - Trợ lý hành trình dùng kho tri thức này làm nguồn tham chiếu khi câu hỏi phù hợp.
-
-## Meta / Facebook public URLs
-- Chính sách quyền riêng tư: `/chinh-sach`
-- Hướng dẫn xoá dữ liệu: `/xoa-du-lieu`
-- Điều khoản sử dụng: `/dieu-khoan`
-
-Khi cấu hình Meta, ghép các đường dẫn trên với domain public của HDVIA (ví dụ `https://hdvia.vn`). Không dùng URL giả hoặc URL localhost.

@@ -544,8 +544,15 @@ def terms(): return render_template("terms.html")
 @app.get("/chinh-sach")
 def privacy(): return render_template("privacy.html")
 
-@app.get("/xoa-du-lieu")
-def data_deletion(): return render_template("data_deletion.html")
+@app.get("/data-deletion")
+@app.get("/data_deletion")
+def data_deletion():
+    # Public page used by external providers (e.g. Facebook) to explain how
+    # a user can request deletion of HDVIA account data.
+    return render_template(
+        "data_deletion.html",
+        contact_email=os.environ.get("HDVIA_ADMIN_EMAIL", "admin@hdvia.vn").strip(),
+    )
 
 @app.get("/admin/audit")
 @role_required("ADMIN","SUPER_ADMIN")

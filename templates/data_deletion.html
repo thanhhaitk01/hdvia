@@ -1,24 +1,27 @@
 {% extends 'base.html' %}
-{% block title %}Xoá dữ liệu người dùng – HDVIA{% endblock %}
+{% block title %}Xóa dữ liệu người dùng – HDVIA{% endblock %}
 {% block content %}
 <article class="article">
-  <span class="eyebrow">HDVIA BETA</span>
-  <h1>Hướng dẫn xoá dữ liệu người dùng</h1>
-  <p>HDVIA tôn trọng quyền kiểm soát dữ liệu của người dùng. Nếu anh/chị đăng nhập HDVIA bằng Facebook, Google hoặc Zalo và muốn yêu cầu xoá dữ liệu tài khoản, vui lòng gửi yêu cầu cho quản trị HDVIA.</p>
+  <span class="eyebrow">HDVIA · DATA DELETION</span>
+  <h1>Yêu cầu xóa dữ liệu người dùng</h1>
+  <p>HDVIA tôn trọng quyền kiểm soát dữ liệu của người dùng. Nếu bạn đã đăng nhập hoặc liên kết tài khoản HDVIA với Facebook, Google hoặc Zalo và muốn yêu cầu xóa dữ liệu, hãy gửi yêu cầu theo hướng dẫn dưới đây.</p>
 
-  <h2>Cách gửi yêu cầu</h2>
+  <h2>Cách yêu cầu xóa dữ liệu</h2>
   <ol>
-    <li>Gửi email đến <strong>thanhhaitk01@gmail.com</strong> từ địa chỉ email đang dùng cho tài khoản HDVIA (nếu có).</li>
-    <li>Tiêu đề email: <strong>Yêu cầu xoá dữ liệu HDVIA</strong>.</li>
-    <li>Nêu rõ email tài khoản HDVIA và nền tảng đăng nhập (Facebook, Google hoặc Zalo).</li>
+    <li>Gửi email từ địa chỉ email đã sử dụng với HDVIA.</li>
+    <li>Ghi rõ tên tài khoản và nền tảng đã dùng để đăng nhập (Facebook, Google hoặc Zalo).</li>
+    <li>Trong nội dung yêu cầu, ghi: <strong>Yêu cầu xóa dữ liệu HDVIA</strong>.</li>
   </ol>
 
-  <h2>Dữ liệu có thể được yêu cầu xoá</h2>
-  <p>Yêu cầu có thể bao gồm thông tin tài khoản, liên kết tài khoản mạng xã hội, lịch trình đã lưu, phản hồi và các dữ liệu cá nhân khác mà HDVIA đang lưu cho tài khoản đó, trong phạm vi pháp luật và nghĩa vụ lưu trữ áp dụng.</p>
+  <h2>Địa chỉ tiếp nhận</h2>
+  <p>Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
 
-  <h2>Xử lý yêu cầu</h2>
-  <p>Trong giai đoạn Beta, HDVIA tiếp nhận và xử lý yêu cầu xoá dữ liệu thủ công. Quản trị viên có thể cần xác minh quyền sở hữu tài khoản trước khi thực hiện yêu cầu. Các nội dung cộng đồng đã được công khai có thể cần được xử lý theo chính sách dữ liệu và quyền của người dùng khác.</p>
+  <h2>Dữ liệu được xử lý</h2>
+  <p>Yêu cầu có thể bao gồm việc xóa hoặc ngừng liên kết thông tin tài khoản, thông tin đăng nhập qua nhà cung cấp bên ngoài và dữ liệu tài khoản HDVIA trong phạm vi hệ thống cho phép.</p>
 
-  <p><strong>Liên hệ:</strong> thanhhaitk01@gmail.com</p>
+  <h2>Thời gian xử lý</h2>
+  <p>HDVIA sẽ tiếp nhận và xác minh yêu cầu trước khi thực hiện việc xóa dữ liệu. Một số dữ liệu có thể phải được lưu giữ khi pháp luật hoặc yêu cầu bảo mật hệ thống yêu cầu.</p>
+
+  <p><a href="/chinh-sach">Xem Chính sách dữ liệu</a></p>
 </article>
 {% endblock %}
