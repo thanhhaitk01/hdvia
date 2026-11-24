@@ -5,7 +5,7 @@ and sends it through the existing LearningPipeline as CANDIDATE. It never
 publishes external content automatically.
 """
 from __future__ import annotations
-import hashlib, html, json, os, re, urllib.parse, urllib.request, urllib.error
+import hashlib, html, ipaddress, json, os, re, socket, urllib.parse, urllib.request, urllib.error
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -34,13 +34,54 @@ def source_type_for(url: str) -> str:
     return "WEB"
 
 
+def _validate_public_host(url: str) -> None:
+    """Reject localhost/private/link-local/reserved targets by default.
+
+    Data acquisition is admin-only, but the server still must not become an
+    SSRF proxy. Tests/local development can opt in explicitly with
+    HDVIA_INGEST_ALLOW_LOCALHOST=1.
+    """
+    host = urllib.parse.urlsplit(url).hostname
+    if not host:
+        raise ValueError("URL không có hostname hợp lệ")
+    if os.environ.get("HDVIA_INGEST_ALLOW_LOCALHOST", "0") == "1" and host in {"localhost", "127.0.0.1", "::1"}:
+        return
+    try:
+        ip = ipaddress.ip_address(host)
+        if not ip.is_global:
+            raise ValueError("Từ chối nguồn nội bộ/private/reserved")
+        return
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise ValueError("Không phân giải được hostname nguồn") from exc
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if not ip.is_global:
+            raise ValueError("Từ chối nguồn trỏ vào mạng nội bộ/private/reserved")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError("Nguồn chuyển hướng bị từ chối; hãy cung cấp URL đích đã được kiểm tra")
+
+
 def fetch_url(url: str, *, timeout: int = TIMEOUT, max_bytes: int = MAX_BYTES) -> Dict[str, Any]:
     p = urllib.parse.urlsplit(url)
     if p.scheme not in ("http", "https"):
         raise ValueError("Chỉ cho phép nguồn HTTP/HTTPS")
-    req = urllib.request.Request(canonical_url(url), headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"})
+    target = canonical_url(url)
+    _validate_public_host(target)
+    req = urllib.request.Request(target, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"})
+    opener = urllib.request.build_opener(_NoRedirect())
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "")
             data = resp.read(max_bytes + 1)
             if len(data) > max_bytes:
