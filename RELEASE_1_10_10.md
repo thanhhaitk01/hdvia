@@ -13,7 +13,8 @@ Baseline: Beta 1.10.9 Data Acquisition Ready.
 - Existing legacy warehouse collections/routes remain compatible.
 
 ## Verification
-- Full automated regression suite: 71 passed.
+- Full automated regression suite: 73 passed.
+- Dynamic destination/province search UI added: the 34 provinces remain in the Data Core but are hidden from the initial screen and appear only when the user searches.
 - Python bytecode compilation: passed before cleanup.
 - Flask live import was not executed in this runner because Flask is not installed in the execution environment; deployment/runtime dependencies remain declared in `requirements.txt`.
 
