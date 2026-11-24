@@ -98,3 +98,25 @@ class LearningPipeline:
         item["reviewed_by"]=reviewer; item["reviewed_at"]=now(); item["status"]="PUBLISHED" if approved else "REJECTED"; return item
 
 def kind_requires_provenance(kind): return kind in {"administrative","knowledge","experiences","weather_risk","market","lineage"}
+
+def graph_integrity_report(records_by_kind: Dict[str,List[Dict[str,Any]]]) -> Dict[str,Any]:
+    """Check that every cross-domain reference resolves to a known master record."""
+    ids={k:set(str(r.get(ID_FIELDS[k])) for r in records_by_kind.get(k,[]) if r.get(ID_FIELDS[k])) for k in COLLECTIONS}
+    checks=[]
+    def check(condition, code, detail): checks.append({"code":code,"ok":bool(condition),"detail":detail})
+    for r in records_by_kind.get("destinations",[]):
+        check(str(r.get("admin_id")) in ids["administrative"],"DEST_ADMIN_LINK",r.get("destination_id"))
+    for kind in ("knowledge","experiences","weather_risk","market"):
+        for r in records_by_kind.get(kind,[]):
+            if r.get("destination_id"):
+                check(str(r.get("destination_id")) in ids["destinations"],f"{kind.upper()}_DEST_LINK",r.get(ID_FIELDS[kind]))
+            if r.get("admin_id"):
+                check(str(r.get("admin_id")) in ids["administrative"],f"{kind.upper()}_ADMIN_LINK",r.get(ID_FIELDS[kind]))
+    for r in records_by_kind.get("journeys",[]):
+        for did in r.get("destination_ids",[]) or []:
+            check(str(did) in ids["destinations"],"JOURNEY_DEST_LINK",r.get("journey_id"))
+    non_lineage={f"{k}:{r.get(ID_FIELDS[k])}" for k in COLLECTIONS if k!="lineage" for r in records_by_kind.get(k,[]) if r.get(ID_FIELDS[k])}
+    for r in records_by_kind.get("lineage",[]):
+        check(str(r.get("record_ref")) in non_lineage,"LINEAGE_RECORD_LINK",r.get("lineage_id"))
+    failed=[x for x in checks if not x["ok"]]
+    return {"ok":not failed,"checks":len(checks),"failed":failed,"counts":{k:len(v) for k,v in records_by_kind.items()}}
