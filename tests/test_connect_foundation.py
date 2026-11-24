@@ -36,8 +36,8 @@ def test_connect_provider_status_endpoint_is_registered():
 
 
 
-def test_version_is_beta_19_connect_foundation():
-    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.10.9-data-core-integrated"
+def test_version_is_current_release():
+    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.10.10-data-core-acquisition-ui"
 
 
 def test_connect_health_and_dashboard_contracts():
