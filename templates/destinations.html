@@ -2,43 +2,15 @@
 {% block title %}Điểm đến & thông tin – HDVIA{% endblock %}
 {% block content %}
 <section class="dest-hero location-hero"><div><span class="eyebrow">📍 ĐIỂM ĐẾN & THÔNG TIN</span><h1>Khám phá điểm đến <em>Việt Nam</em></h1><p>Tra cứu thông tin văn hóa, lịch sử, kinh tế và nội dung thuyết minh chuẩn cho HDV.</p></div></section>
-<div class="destination-search"><span>⌕</span><input id="q" autocomplete="off" placeholder="Tìm tỉnh/thành, điểm đến, di tích, danh thắng... (VD: Đà Nẵng, Huế, Hạ Long)" oninput="filterDest()"><button type="button" onclick="filterDest()">⌕ Tra cứu</button></div>
-
-<section class="dest-section search-results-section" id="searchResults" hidden>
-  <div class="section-head"><div><h2 id="resultTitle">KẾT QUẢ TRA CỨU</h2><p class="section-sub" id="resultHint">Nhập tên tỉnh/thành hoặc điểm đến để bắt đầu.</p></div></div>
-  <div id="provinceResults" class="province-grid"></div>
-  <div id="destinationResults" class="featured-dest"></div>
-</section>
-
-<section class="dest-section empty-search" id="emptySearch"><div class="search-empty"><span>⌕</span><h2>Tìm một điểm đến để bắt đầu</h2><p>Nhập tên tỉnh/thành hoặc điểm du lịch. HDVIA sẽ chỉ hiển thị thông tin phù hợp với nội dung sếp đang tra cứu.</p></div></section>
-
-<section class="dest-section"><div class="section-head"><h2>★ ĐIỂM ĐẾN NỔI BẬT</h2></div>
+<div class="destination-search"><span>⌕</span><input id="q" placeholder="Tìm điểm đến, di tích, danh thắng... (VD: Hội An, Huế, Hạ Long)" oninput="filterDest()"><button onclick="filterDest()">⌕ Tra cứu</button></div>
+<section class="dest-section"><div class="section-head"><h2>★ ĐIỂM ĐẾN NỔI BẬT</h2><a href="/destinations">Xem tất cả →</a></div>
 <div class="featured-dest">{% for d in destinations[:4] %}<a class="dest-tile" data-name="{{d.name|lower}}" href="{{url_for('destination_detail',slug=d.slug)}}"><div class="dest-photo">{{d.name}}</div><div><b>{{d.name}}</b><small>📍 {{d.region}}</small></div></a>{% endfor %}</div></section>
-
 <section class="dest-section"><h2>▦ THÔNG TIN ĐIỂM ĐẾN</h2><div class="info-grid">
 <div class="info-card"><span>🏛️</span><h3>Văn hóa</h3><p>Phong tục, lễ hội, ẩm thực, đời sống và bản sắc địa phương.</p>›</div>
 <div class="info-card"><span>📜</span><h3>Lịch sử</h3><p>Dấu mốc, nhân vật, sự kiện và giá trị di sản.</p>›</div>
 <div class="info-card"><span>📊</span><h3>Kinh tế</h3><p>Tiềm năng, ngành nghề, du lịch, đầu tư và phát triển địa phương.</p>›</div>
 <div class="info-card"><span>🎙️</span><h3>Thông tin thuyết minh</h3><p>Nội dung thuyết minh chuẩn, ngắn gọn, dễ truyền đạt cho HDV.</p>›</div>
 </div></section>
-
-<script>
-const PROVINCES={{ provinces|tojson }};
-const DESTINATIONS={{ destinations|tojson }};
-const norm=s=>(s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d');
-function provinceCard(p){return `<a class="province-card" href="{{ url_for('destinations') }}#${p.slug}"><span class="province-code">${p.code}</span><div><strong>${p.name}</strong><small>${p.region} · ${p.type}</small><small>Điểm du lịch: ${(p.tourism_hubs||[]).slice(0,3).join(' · ')}</small></div></a>`;}
-function destinationCard(d){return `<a class="dest-tile" href="/destinations/${d.slug}"><div class="dest-photo">${d.name}</div><div><b>${d.name}</b><small>📍 ${d.region}</small></div></a>`;}
-function filterDest(){
- const q=document.getElementById('q').value.trim(); const n=norm(q); const results=document.getElementById('searchResults'); const empty=document.getElementById('emptySearch');
- if(!n){results.hidden=true; empty.hidden=false; return;}
- const provinces=PROVINCES.filter(p=>[p.name,p.region,p.type,...(p.aliases||[]),...(p.tourism_hubs||[])].some(v=>norm(v).includes(n)));
- const destinations=DESTINATIONS.filter(d=>norm(d.name).includes(n)||norm(d.overview).includes(n)||norm(d.region).includes(n));
- document.getElementById('provinceResults').innerHTML=provinces.map(provinceCard).join('');
- document.getElementById('destinationResults').innerHTML=destinations.map(destinationCard).join('');
- document.getElementById('resultTitle').textContent=`KẾT QUẢ: ${q}`;
- document.getElementById('resultHint').textContent=`${provinces.length} tỉnh/thành · ${destinations.length} điểm đến phù hợp`;
- results.hidden=false; empty.hidden=true;
-}
-document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')filterDest()});
-</script>
+<section class="dest-section province-section"><div class="section-head"><div><h2>🇻🇳 34 TỈNH, THÀNH PHỐ TỪ 01/07/2025</h2><p class="section-sub">Danh mục hành chính chuẩn để HDVIA liên kết điểm đến, hành trình, thời tiết và kho tri thức.</p></div></div><div class="province-grid">{% for p in provinces %}<a class="province-card" href="{{ url_for('destinations') }}#{{ p.slug }}" id="{{ p.slug }}"><span class="province-code">{{ p.code }}</span><div><strong>{{ p.name }}</strong><small>{{ p.region }} · {{ p.type }}</small><small>Điểm du lịch: {{ p.tourism_hubs[:3]|join(' · ') }}</small></div></a>{% endfor %}</div></section>
+<script>function filterDest(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('.dest-tile').forEach(x=>x.style.display=(!q||x.dataset.name.includes(q))?'block':'none')}</script>
 {% endblock %}

@@ -69,7 +69,7 @@
         "source"
       ],
       "fields": [
-        "knowledge_id",
+        "knowledg_id",
         "destination_id",
         "admin_id",
         "title",
