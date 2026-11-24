@@ -12,11 +12,14 @@ from destination_catalog import DESTINATIONS, BY_SLUG
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
 from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
+from data_core import COLLECTIONS as CORE_COLLECTIONS, schema as core_schema, seed as core_seed, resolve_context
+from data_core_bridge import DataCoreBridge
 from copilot import CopilotEngine
 from agent import HDVIAAgent, ToolRegistry
 from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from knowledge_learning import KnowledgeLearningPipeline
+from data_acquisition import candidate_from_web, google_cse_search, source_manifest
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -120,6 +123,18 @@ def init_db():
                 c.execute(
                     "INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)",
                     (kind, json.dumps(payload, ensure_ascii=False), payload.get("status", "DRAFT") or "DRAFT", admin_id, now(), payload.get("updated_at", now()))
+                )
+    # Additive bootstrap for the linked 8-domain data core. Existing rows are preserved.
+    # Seed is inserted per kind only when that core kind is still empty, so upgrades
+    # never duplicate or overwrite curated/admin-entered data.
+    admin_id = c.execute("SELECT id FROM users WHERE email=?", (admin_email,)).fetchone()[0]
+    core_seed_data = core_seed()
+    for kind in CORE_COLLECTIONS:
+        if c.execute("SELECT COUNT(*) FROM warehouse_records WHERE kind=?", (kind,)).fetchone()[0] == 0:
+            for payload in core_seed_data.get(kind, []):
+                c.execute(
+                    "INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)",
+                    (kind, json.dumps(payload, ensure_ascii=False), payload.get("status", "ACTIVE") or "ACTIVE", admin_id, now(), payload.get("updated_at", now()))
                 )
     c.commit(); c.close()
 
@@ -494,6 +509,9 @@ def _safe_journey_analyze(title, itinerary):
     try:
         title, itinerary = _normalize_journey_input(title, itinerary)
         result = engine.analyze(title, itinerary)
+        # Resolve the live Journey result against the same eight-domain Data Core.
+        # This is additive: existing Journey fields remain unchanged.
+        result = data_core_bridge.enrich_journey(result)
         if not isinstance(result, dict):
             raise RuntimeError("Journey engine returned an invalid result")
         # Keep the response/template contract stable even if a provider returns partial data.
@@ -641,7 +659,7 @@ def openapi_copilot():
     u=current_user() or {"id":_open_api_auth(),"role":"API_CLIENT"}
     data=request.get_json(silent=True) or {}
     journey=data.get("journey") or _load_latest_journey_for_user(u)
-    return jsonify(copilot_engine.compose(user=dict(u),journey=journey,question=str(data.get("question",""))))
+    return jsonify(copilot_engine.compose(user=dict(u),journey=journey,question=str(data.get("question","")),data_context=(journey or {}).get("data_context")))
 
 @app.post("/api/v1/openapi/agent/inspect-tour")
 @_open_api_required
@@ -649,7 +667,7 @@ def openapi_agent():
     u=current_user() or {"id":_open_api_auth(),"role":"API_CLIENT"}
     data=request.get_json(silent=True) or {}
     journey=data.get("journey") or _load_latest_journey_for_user(u)
-    return jsonify(agent_engine.inspect_tour(user=dict(u),journey=journey))
+    return jsonify(agent_engine.inspect_tour(user=dict(u),journey=journey,data_context=(journey or {}).get("data_context")))
 
 @app.get("/api/v1/openapi/connect/status")
 @_open_api_required
@@ -678,11 +696,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.0-five-phase-integrated","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.9-data-core-integrated","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.10.0-five-phase-integrated","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.10.9-data-core-integrated","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -739,6 +757,17 @@ def admin_user_update(user_id):
     flash("Đã cập nhật quyền và trạng thái thành viên.")
     return redirect(url_for("admin_users"))
 
+@app.get("/admin/kho-du-lieu-8")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_data_core():
+    return render_template_string("""{% extends 'base.html' %}{% block title %}8 kho dữ liệu – HDVIA{% endblock %}{% block content %}<div class="page-head"><div><span class="eyebrow">HDVIA DATA CORE</span><h1>8 kho dữ liệu sống</h1><p>Kiến trúc dữ liệu chuẩn hóa, có nguồn, phiên bản và trạng thái kiểm duyệt.</p></div></div><div class="warehouse-grid">{% for k in collections %}<div class="card"><span class="eyebrow">{{k}}</span><h2>{{schema[k].label}}</h2><p>Trường bắt buộc: {{schema[k].required|join(', ')}}</p><span class="badge">{{counts[k]}} bản ghi</span></div>{% endfor %}</div>{% endblock %}""",collections=CORE_COLLECTIONS,schema=core_schema()["collections"],counts=counts_core())
+
+def counts_core():
+    c=db(); out={}
+    for k in CORE_COLLECTIONS:
+        out[k]=c.execute("SELECT COUNT(*) FROM warehouse_records WHERE kind=?",(k,)).fetchone()[0]
+    c.close(); return out
+
 @app.get("/admin/kho-du-lieu")
 @role_required("ADMIN","SUPER_ADMIN")
 def admin_data_warehouse():
@@ -772,11 +801,63 @@ def admin_data_warehouse_export(kind):
     response.headers["Content-Disposition"] = f'attachment; filename="hdvia_{kind}.json"'
     return response
 
+@app.get("/api/v1/data-acquisition/status")
+def data_acquisition_status():
+    return jsonify({"ok":True,"version":"1.0.0","manifest":source_manifest()})
+
+@app.post("/api/v1/data-acquisition/fetch")
+@login_required
+def data_acquisition_fetch():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN"):
+        return jsonify({"ok":False,"error":"Chỉ ADMIN/SUPER_ADMIN được chạy ingestion."}),403
+    body=request.get_json(silent=True) or {}
+    url=(body.get("url") or "").strip()
+    kind=(body.get("kind") or "knowledge").strip()
+    if not url: return jsonify({"ok":False,"error":"Thiếu url."}),400
+    try:
+        item=candidate_from_web(url=url, requested_kind=kind, destination_id=(body.get("destination_id") or ""), admin_id=(body.get("admin_id") or ""))
+    except (ValueError, RuntimeError) as exc:
+        return jsonify({"ok":False,"error":str(exc)}),400
+    c=db(); now_s=now(); rec=item["record"]; rec["status"]="CANDIDATE"
+    cur=c.execute("INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)", (item["kind"], json.dumps(rec,ensure_ascii=False), "CANDIDATE", current_user()["id"], now_s, now_s))
+    # Store lineage as a separate first-class warehouse record.
+    lin=item["lineage"]; c.execute("INSERT INTO warehouse_records(kind,payload_json,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?)", ("lineage", json.dumps(lin,ensure_ascii=False), "CANDIDATE", current_user()["id"], now_s, now_s))
+    c.commit(); c.close(); log(current_user()["id"],"DATA_ACQUISITION_CANDIDATE","WAREHOUSE",cur.lastrowid,item["kind"]+" <- "+item["fetch"]["url"])
+    return jsonify({"ok":True,"status":"CANDIDATE","kind":item["kind"],"record":rec,"lineage":lin,"fetch":item["fetch"]}),201
+
+@app.get("/api/v1/data-acquisition/google-search")
+@login_required
+def data_acquisition_google_search():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN"):
+        return jsonify({"ok":False,"error":"Chỉ ADMIN/SUPER_ADMIN được dùng connector."}),403
+    q=(request.args.get("q") or "").strip()
+    if not q:return jsonify({"ok":False,"error":"Thiếu q."}),400
+    try:
+        return jsonify({"ok":True,"query":q,"results":google_cse_search(q,num=int(request.args.get("num",5)))})
+    except (ValueError,RuntimeError) as exc:
+        return jsonify({"ok":False,"error":str(exc)}),400
+
 @app.get("/api/v1/data-warehouse/<kind>")
 def data_warehouse_api(kind):
     if kind not in COLLECTIONS: return jsonify({"ok":False,"error":"Loại dữ liệu không hợp lệ."}),400
     c=db(); rows=c.execute("SELECT payload_json FROM warehouse_records WHERE kind=? AND status IN ('PUBLISHED','ACTIVE') ORDER BY id",(kind,)).fetchall(); c.close()
     return jsonify({"ok":True,"version":"1.0","kind":kind,"count":len(rows),"records":[json.loads(r["payload_json"]) for r in rows]})
+
+@app.get("/api/v1/data-core/context/<journey_id>")
+def data_core_context(journey_id):
+    """Return one linked context graph for a journey across all eight domains."""
+    c=db()
+    records={k:[json.loads(r["payload_json"]) for r in c.execute("SELECT payload_json FROM warehouse_records WHERE kind=? AND status IN ('PUBLISHED','ACTIVE') ORDER BY id",(k,)).fetchall()] for k in CORE_COLLECTIONS}
+    c.close()
+    graph=resolve_context(records, journey_id=journey_id)
+    return jsonify({"ok":True,"version":"2.0.0-linked","journey_id":journey_id,"graph":graph,"counts":{k:len(v) for k,v in graph.items()}})
+
+@app.get("/api/v1/data-core/context/destination/<destination_id>")
+def data_core_destination_context(destination_id):
+    """Return all eight-domain records linked to a destination."""
+    c=db(); records={k:[json.loads(r["payload_json"]) for r in c.execute("SELECT payload_json FROM warehouse_records WHERE kind=? AND status IN ('PUBLISHED','ACTIVE') ORDER BY id",(k,)).fetchall()] for k in CORE_COLLECTIONS}; c.close()
+    graph=resolve_context(records, destination_id=destination_id)
+    return jsonify({"ok":True,"version":"2.0.0-linked","destination_id":destination_id,"graph":graph,"counts":{k:len(v) for k,v in graph.items()}})
 
 @app.get("/admin/guides")
 @role_required("ADMIN","SUPER_ADMIN")
@@ -841,6 +922,7 @@ def audit():
 
 engine=JourneyIntelligenceEngine()
 copilot_engine=CopilotEngine()
+data_core_bridge=DataCoreBridge(db)
 external_connect=ExternalConnectManager(DEFAULT_EXTERNAL_CONNECTORS)
 learning_pipeline=KnowledgeLearningPipeline()
 agent_tools=ToolRegistry()

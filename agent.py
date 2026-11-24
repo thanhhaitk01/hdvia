@@ -16,9 +16,10 @@ class ToolRegistry:
 class HDVIAAgent:
     VERSION = "1.0.0-foundation"
     def __init__(self, registry: ToolRegistry): self.registry = registry
-    def inspect_tour(self, *, user: Dict[str, Any], journey: Dict[str, Any] | None):
+    def inspect_tour(self, *, user: Dict[str, Any], journey: Dict[str, Any] | None, data_context: Dict[str, Any] | None = None):
         allowed = {"journey.summary", "weather.summary"}
+        data_context = data_context or (journey or {}).get("data_context") or {}
         trace=[]
         summary=self.registry.execute("journey.summary", allowed=allowed, journey=journey); trace.append("journey.summary")
         weather=self.registry.execute("weather.summary", allowed=allowed, journey=journey); trace.append("weather.summary")
-        return {"ok":True,"agent":"HDVIA Tour Agent","version":self.VERSION,"summary":summary,"weather":weather,"trace":trace,"actions": ["prepare_plan_b"] if (weather.get("risk_count",0)>0) else []}
+        return {"ok":True,"agent":"HDVIA Tour Agent","version":self.VERSION,"summary":summary,"weather":weather,"trace":trace,"actions": ["prepare_plan_b"] if (weather.get("risk_count",0)>0) else [], "data_core": {"linked": bool(data_context), "counts": {k:len(v) for k,v in data_context.items() if isinstance(v,list)}}}

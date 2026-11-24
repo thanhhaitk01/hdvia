@@ -1,0 +1,214 @@
+{
+  "version": "2.0.0",
+  "architecture": "HDVIA 8 Data Warehouses",
+  "collections": {
+    "administrative": {
+      "label": "Hành chính & địa danh chuẩn",
+      "required": [
+        "admin_id",
+        "code",
+        "slug",
+        "name",
+        "type",
+        "region",
+        "effective_from"
+      ],
+      "fields": [
+        "admin_id",
+        "code",
+        "slug",
+        "name",
+        "type",
+        "region",
+        "aliases",
+        "formed_from",
+        "effective_from",
+        "effective_to",
+        "status",
+        "source",
+        "updated_at"
+      ]
+    },
+    "destinations": {
+      "label": "Địa điểm & điểm đến",
+      "required": [
+        "destination_id",
+        "slug",
+        "name",
+        "admin_id",
+        "province_code",
+        "type",
+        "overview"
+      ],
+      "fields": [
+        "destination_id",
+        "admin_id",
+        "slug",
+        "name",
+        "province_code",
+        "type",
+        "overview",
+        "history",
+        "culture",
+        "food",
+        "guide_notes",
+        "lat",
+        "lon",
+        "source",
+        "status",
+        "updated_at"
+      ]
+    },
+    "knowledge": {
+      "label": "Tri thức & thuyết minh",
+      "required": [
+        "knowledge_id",
+        "title",
+        "place",
+        "content",
+        "source"
+      ],
+      "fields": [
+        "knowledg_id",
+        "destination_id",
+        "admin_id",
+        "title",
+        "place",
+        "topic",
+        "content",
+        "source",
+        "confidence",
+        "status",
+        "updated_at"
+      ]
+    },
+    "experiences": {
+      "label": "Kinh nghiệm HDV",
+      "required": [
+        "experience_id",
+        "title",
+        "place",
+        "content",
+        "source"
+      ],
+      "fields": [
+        "experience_id",
+        "destination_id",
+        "admin_id",
+        "title",
+        "place",
+        "season",
+        "risk_level",
+        "content",
+        "source",
+        "confidence",
+        "status",
+        "updated_at"
+      ]
+    },
+    "weather_risk": {
+      "label": "Thời tiết & rủi ro",
+      "required": [
+        "risk_id",
+        "location_code",
+        "observed_at",
+        "forecast_type",
+        "risk_level"
+      ],
+      "fields": [
+        "risk_id",
+        "destination_id",
+        "admin_id",
+        "location_code",
+        "observed_at",
+        "forecast_type",
+        "temperature_c",
+        "rain_probability",
+        "wind_kmh",
+        "hazards",
+        "risk_level",
+        "plan_b",
+        "source",
+        "status",
+        "updated_at"
+      ]
+    },
+    "journeys": {
+      "label": "Hành trình & dữ liệu vận hành",
+      "required": [
+        "journey_id",
+        "title",
+        "destination_ids",
+        "locations",
+        "source"
+      ],
+      "fields": [
+        "journey_id",
+        "destination_ids",
+        "title",
+        "locations",
+        "duration_days",
+        "traveler_profile",
+        "transport",
+        "issues",
+        "solutions",
+        "source",
+        "status",
+        "updated_at"
+      ]
+    },
+    "market": {
+      "label": "Thị trường & nhu cầu",
+      "required": [
+        "market_id",
+        "segment",
+        "market",
+        "insight",
+        "source"
+      ],
+      "fields": [
+        "market_id",
+        "destination_id",
+        "admin_id",
+        "segment",
+        "market",
+        "season",
+        "insight",
+        "demand_signal",
+        "source",
+        "confidence",
+        "status",
+        "updated_at"
+      ]
+    },
+    "lineage": {
+      "label": "Nguồn, phiên bản & quản trị dữ liệu",
+      "required": [
+        "lineage_id",
+        "record_ref",
+        "source",
+        "source_type",
+        "collected_at"
+      ],
+      "fields": [
+        "lineage_id",
+        "record_ref",
+        "source",
+        "source_type",
+        "collected_at",
+        "reviewed_by",
+        "reviewed_at",
+        "version",
+        "confidence",
+        "license",
+        "status",
+        "notes",
+        "updated_at"
+      ]
+    }
+  },
+  "legacy_compatibility": [
+    "guide_scripts",
+    "media"
+  ]
+}
