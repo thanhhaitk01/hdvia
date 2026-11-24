@@ -833,7 +833,8 @@ def data_acquisition_google_search():
     q=(request.args.get("q") or "").strip()
     if not q:return jsonify({"ok":False,"error":"Thiếu q."}),400
     try:
-        return jsonify({"ok":True,"query":q,"results":google_cse_search(q,num=int(request.args.get("num",5)))})
+        num = max(1, min(10, int(request.args.get("num", 5))))
+        return jsonify({"ok":True,"query":q,"results":google_cse_search(q,num=num)})
     except (ValueError,RuntimeError) as exc:
         return jsonify({"ok":False,"error":str(exc)}),400
 

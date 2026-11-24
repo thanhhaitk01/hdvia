@@ -9,7 +9,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type","text/html; charset=utf-8"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
     def log_message(self,*a): pass
 
-def test_external_web_becomes_candidate_only():
+def test_external_web_becomes_candidate_only(monkeypatch):
+    monkeypatch.setenv("HDVIA_INGEST_ALLOW_LOCALHOST", "1")
     server=HTTPServer(("127.0.0.1",0),Handler); t=threading.Thread(target=server.serve_forever); t.daemon=True; t.start()
     try:
         item=candidate_from_web(url=f"http://127.0.0.1:{server.server_port}/x", requested_kind="knowledge")
@@ -28,3 +29,14 @@ def test_strip_html():
 
 def test_source_type():
     assert source_type_for("https://example.gov.vn/a") == "OFFICIAL_GOVERNMENT"
+
+
+def test_private_source_rejected(monkeypatch):
+    monkeypatch.delenv("HDVIA_INGEST_ALLOW_LOCALHOST", raising=False)
+    from data_acquisition import fetch_url
+    try:
+        fetch_url("http://127.0.0.1:9/")
+    except ValueError as exc:
+        assert "Từ chối" in str(exc)
+    else:
+        raise AssertionError("Private source must be rejected")
