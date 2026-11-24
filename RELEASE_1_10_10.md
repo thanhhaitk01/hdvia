@@ -1,22 +1,18 @@
-# HDVIA Beta 1.10.10 — Data Core + Acquisition Hardened
+# HDVIA Beta 1.10.11 — Hành trình AI Unified
 
-Baseline: Beta 1.10.9 Data Acquisition Ready.
+## Chốt giao diện
+- Gộp **Phân tích hành trình** và **Điểm đến & Thông tin** thành module duy nhất: **Hành trình AI**.
+- Bỏ module điều hướng **Điểm đến & Thông tin** khỏi menu chính.
+- Giữ URL `/destinations` để tương thích và tự chuyển về `/journey`.
+- Một ô nhập nhận tên tỉnh/thành, điểm du lịch, địa danh hoặc cả lịch trình.
 
-## Included
-- 8 linked data warehouses through Data Core.
-- `Điểm đến & Thông tin` remains the user-facing knowledge/destination module.
-- Controlled Data Acquisition pipeline: external source -> extraction -> CANDIDATE -> validation/review -> publication.
-- Official Google Custom Search JSON API connector when configured; no Google HTML scraping.
-- Source/lineage metadata for acquired records.
-- Admin-only acquisition endpoints.
-- SSRF hardening: private/local/link-local/reserved network targets are rejected by default and redirects are rejected.
-- Existing legacy warehouse collections/routes remain compatible.
+## Luồng dữ liệu
+- AI intent resolver phân biệt yêu cầu điểm đến/địa danh và yêu cầu hành trình.
+- Tra cứu kết hợp dữ liệu catalog, 34 tỉnh/thành, Kho tri thức và dữ liệu 8 kho khi đã có bản ghi ACTIVE/PUBLISHED.
+- Ví dụ `Hà Nội` trả hồ sơ Hà Nội; `Lăng Khải Định` nhận diện thuộc Huế; chuỗi `Đà Nẵng → Hội An → Huế` nhận diện là hành trình.
+- Đây là lớp **retrieval + intent**; chưa giả lập việc mô hình AI tự sinh dữ liệu chưa có trong kho.
 
-## Verification
-- Full automated regression suite: 73 passed.
-- Dynamic destination/province search UI added: the 34 provinces remain in the Data Core but are hidden from the initial screen and appear only when the user searches.
-- Python bytecode compilation: passed before cleanup.
-- Flask live import was not executed in this runner because Flask is not installed in the execution environment; deployment/runtime dependencies remain declared in `requirements.txt`.
-
-## GitHub/Vercel
-Upload this ZIP as the next commit on top of the deployed 1.10.9 source. Do not mix files from older Beta ZIPs.
+## Kiểm thử
+- 77/77 regression tests PASS.
+- Python compile PASS.
+- Đã loại bỏ `__pycache__`, `.pyc`, `.pytest_cache` và thư mục build lồng nhau trước khi đóng gói.
