@@ -291,7 +291,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.10.11-hanh-trinh-ai-unified","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.10.12-hanh-trinh-ai-single-module","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -551,9 +551,18 @@ def journey():
     if request.method=="POST":
         try:
             if not require_csrf(): return "Yêu cầu không hợp lệ", 400
-            title=request.form.get("title","Hành trình mới")
-            itinerary=request.form.get("itinerary","")
-            result, error = _safe_journey_analyze(title, itinerary)
+            query=request.form.get("query","").strip()
+            # Hành Trình AI dùng một ô nhập duy nhất: địa danh/điểm đến sẽ tra cứu,
+            # còn chuỗi nhiều chặng/ngày sẽ chuyển thẳng sang bộ phân tích hành trình.
+            detected=unified_search(query) if query else {"intent":"EMPTY","query":"","context":{}}
+            if detected.get("intent") == "ITINERARY":
+                title=f"Hành trình AI — {query[:120]}"
+                result, error = _safe_journey_analyze(title, query)
+                ai_search=detected
+            else:
+                ai_search=detected
+                result=None
+                error=None
             if result is not None:
                 try:
                     u=current_user()

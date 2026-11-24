@@ -2,17 +2,18 @@
 {% block title %}Lập & phân tích hành trình – HDVIA{% endblock %}
 {% block content %}
 <section class="journey-page journey-layout">
-<div class="page-hero"><span class="eyebrow">HÀNH TRÌNH</span><h1>Lập & phân tích hành trình</h1><p>Phân tích lịch trình, thời tiết, cảnh báo, lộ trình và phương án dự phòng cho chuyến đi của bạn.</p></div>
 <section class="ai-command card">
   <div class="eyebrow cyan">✦ HÀNH TRÌNH AI</div>
-  <h2>Một ô nhập — hiểu cả hành trình</h2>
-  <p>Nhập tên tỉnh/thành, điểm du lịch, địa danh hoặc cả lịch trình. HDVIA tự nhận diện nhu cầu và kết nối dữ liệu phù hợp.</p>
-  <form class="ai-search-form" method="get" action="/journey">
-    <input name="q" value="{{ request.args.get('q','') }}" autocomplete="off" placeholder="Ví dụ: Hà Nội · Lăng Khải Định · Đà Nẵng → Hội An → Huế" aria-label="Tìm kiếm điểm đến hoặc hành trình">
-    <button class="btn primary" type="submit">⌕ Tra cứu</button>
+  <h1>Hành Trình AI</h1>
+  <p>Một giao diện duy nhất cho cả <b>tra cứu điểm đến</b> và <b>phân tích hành trình</b>. Nhập tên địa danh, tỉnh/thành, câu hỏi hoặc toàn bộ lịch trình — HDVIA tự nhận diện và kết nối dữ liệu phù hợp.</p>
+  <form class="ai-search-form ai-unified-form" method="post" action="/journey">
+    <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+    <textarea name="query" rows="3" autocomplete="off" placeholder="Ví dụ: Hà Nội&#10;Lăng Khải Định&#10;Đà Nẵng → Hội An → Huế 4 ngày" aria-label="Nhập điểm đến hoặc hành trình">{{ request.args.get('q','') if request.method == 'GET' else request.form.get('query','') }}</textarea>
+    <button class="btn primary" type="submit">✦ Phân tích với Hành Trình AI</button>
   </form>
+  <div class="ai-search-hint">Bạn có thể nhập một điểm đến, một địa danh hoặc cả lịch trình nhiều ngày.</div>
   <div class="ai-search-chips">
-    <a href="/journey?q=Hà Nội">Hà Nội</a><a href="/journey?q=Lăng Khải Định">Lăng Khải Định</a><a href="/journey?q=Đà Nẵng → Hội An → Huế">Đà Nẵng → Hội An → Huế</a>
+    <a href="/journey?q=Hà Nội">Hà Nội</a><a href="/journey?q=Lăng Khải Định">Lăng Khải Định</a><a href="/journey?q=Đà Nẵng → Hội An → Huế 4 ngày">Đà Nẵng → Hội An → Huế 4 ngày</a>
   </div>
 </section>
 {% if ai_search and ai_search.intent != 'ERROR' %}
@@ -48,7 +49,6 @@
   {% endif %}
 </section>
 {% endif %}
-<section class="journey-input card"><div class="eyebrow cyan">✎ NHẬP HÀNH TRÌNH</div><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><label>Tên hành trình</label><input name="title" value="{{request.form.get('title','Hành trình Đà Nẵng – Hội An – Huế')}}" maxlength="200" required><label>Lịch trình (theo ngày)</label><textarea name="itinerary" rows="5" required placeholder="Ngày 1: Đà Nẵng – Hội An&#10;Ngày 2: Hội An – Huế&#10;Ngày 3: Huế – Đà Nẵng">{{request.form.get('itinerary','')}}</textarea><button class="btn primary full" type="submit">⌕ &nbsp; Phân tích hành trình</button></form></section>
 {% if journey_error %}<div class="alert danger">{{journey_error}}</div>{% endif %}
 {% if result %}
 <section class="analysis-result">
