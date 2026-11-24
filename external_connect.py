@@ -20,10 +20,5 @@ DEFAULT_EXTERNAL_CONNECTORS=(
     ExternalConnector("facebook","identity",False,("login","identity_linking")),
     ExternalConnector("zalo","identity",False,("login","identity_linking")),
     ExternalConnector("weather","travel-data",True,("forecast_7_day","risk")),
-    ExternalConnector("maps","travel-data",False,("route","distance","places_search")),
-    ExternalConnector("youtube","content",False,("search","videos")),
-    ExternalConnector("meta_graph","social",False,("read","webhooks")),
-    ExternalConnector("openai","ai",False,("ask","context_analysis")),
-    ExternalConnector("gemini","ai",False,("ask","context_analysis")),
-    ExternalConnector("anthropic","ai",False,("ask","context_analysis")),
+    ExternalConnector("maps","travel-data",False,("route","distance")),
 )

@@ -6,7 +6,6 @@ relationships and builds module-ready context; it does not duplicate warehouse d
 from __future__ import annotations
 import json
 import re
-from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List
 from data_core import COLLECTIONS, ID_FIELDS, resolve_context
 
@@ -85,29 +84,6 @@ class DataCoreBridge:
                 graph=merged
         else:
             graph={k:[] for k in COLLECTIONS}
-        # Live Journey Intelligence weather is authoritative for the current run.
-        # It is merged into the context graph as runtime evidence, not persisted as
-        # curated warehouse data. This keeps weather linked without storing stale forecasts.
-        live_weather = journey_result.get("weather") or {}
-        if isinstance(live_weather, dict):
-            for d in graph.get("destinations", []):
-                name = d.get("name")
-                forecast = live_weather.get(name)
-                if not forecast:
-                    continue
-                rid = f"runtime:{d.get('destination_id')}"
-                graph.setdefault("weather_risk", []).append({
-                    "risk_id": rid,
-                    "destination_id": d.get("destination_id"),
-                    "admin_id": d.get("admin_id"),
-                    "location_code": d.get("province_code"),
-                    "observed_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
-                    "forecast_type": "LIVE_JOURNEY",
-                    "forecast": forecast,
-                    "risk_level": (journey_result.get("risk_map") or {}).get(name, {}).get("level", "UNKNOWN"),
-                    "source": "Journey Intelligence runtime weather",
-                    "status": "RUNTIME"
-                })
         return {
             "version": self.VERSION,
             "destination_ids": destination_ids,
