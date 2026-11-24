@@ -37,7 +37,7 @@ def test_connect_provider_status_endpoint_is_registered():
 
 
 def test_version_is_current_release():
-    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.10.14-external-connect-gateway"
+    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.11.0-open-data-first"
 
 
 def test_connect_health_and_dashboard_contracts():

@@ -22,6 +22,7 @@ from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, ut
 from knowledge_learning import KnowledgeLearningPipeline
 from unified_destination_search import unified_search
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
+from open_data_connectors import osm_nominatim_search, geonames_search, open_data_status
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -292,7 +293,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.10.14-external-connect-gateway","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.11.0-open-data-first","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -716,11 +717,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.14-external-connect-gateway","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.11.0-open-data-first","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.10.14-external-connect-gateway","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.11.0-open-data-first","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -864,6 +865,33 @@ def external_ai_gateway():
     if not prompt: return jsonify({"ok":False,"error":"Thiếu prompt."}),400
     try: return jsonify({"ok":True,"result":external_gateway.ai_ask(provider,prompt,body.get("model"))})
     except ExternalGatewayError as exc: return jsonify({"ok":False,"error":str(exc)}),400
+
+@app.get("/api/v1/open-data/status")
+def open_data_connector_status():
+    return jsonify({"ok": True, "version": "1.0.0", **open_data_status()})
+
+
+@app.get("/api/v1/open-data/osm/search")
+@login_required
+def open_data_osm_search():
+    if current_user().get("role") not in ("ADMIN", "SUPER_ADMIN", "GUIDE"):
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+    q=(request.args.get("q") or "").strip()
+    if not q: return jsonify({"ok": False, "error": "Thiếu q."}), 400
+    try: return jsonify({"ok": True, **osm_nominatim_search(q, limit=int(request.args.get("num",5)))})
+    except ValueError as exc: return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.get("/api/v1/open-data/geonames/search")
+@login_required
+def open_data_geonames_search():
+    if current_user().get("role") not in ("ADMIN", "SUPER_ADMIN", "GUIDE"):
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+    q=(request.args.get("q") or "").strip()
+    if not q: return jsonify({"ok": False, "error": "Thiếu q."}), 400
+    try: return jsonify({"ok": True, **geonames_search(q, max_rows=int(request.args.get("num",5)))})
+    except ValueError as exc: return jsonify({"ok": False, "error": str(exc)}), 400
+
 
 @app.get("/api/v1/data-acquisition/status")
 def data_acquisition_status():
