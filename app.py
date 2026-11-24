@@ -17,6 +17,7 @@ from data_core_bridge import DataCoreBridge
 from copilot import CopilotEngine
 from agent import HDVIAAgent, ToolRegistry
 from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
+from external_gateway import ExternalDataGateway, ExternalGatewayError
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from knowledge_learning import KnowledgeLearningPipeline
 from unified_destination_search import unified_search
@@ -291,7 +292,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.10.12-hanh-trinh-ai-single-module","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.10.14-external-connect-gateway","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -715,11 +716,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.9-data-core-integrated","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.14-external-connect-gateway","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.10.9-data-core-integrated","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.10.14-external-connect-gateway","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -820,6 +821,50 @@ def admin_data_warehouse_export(kind):
     response.headers["Content-Disposition"] = f'attachment; filename="hdvia_{kind}.json"'
     return response
 
+@app.get("/api/v1/external-gateway/status")
+def external_gateway_status():
+    return jsonify({"ok":True,"gateway":external_gateway.status()})
+
+@app.get("/api/v1/external-gateway/google-places")
+@login_required
+def external_google_places():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN","GUIDE"):
+        return jsonify({"ok":False,"error":"Forbidden"}),403
+    q=(request.args.get("q") or "").strip()
+    if not q: return jsonify({"ok":False,"error":"Thiếu q."}),400
+    try: return jsonify({"ok":True,**external_gateway.google_places_search(q, max_results=int(request.args.get("num",5)))})
+    except ExternalGatewayError as exc: return jsonify({"ok":False,"error":str(exc)}),400
+
+@app.get("/api/v1/external-gateway/youtube-search")
+@login_required
+def external_youtube_search():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN","GUIDE"):
+        return jsonify({"ok":False,"error":"Forbidden"}),403
+    q=(request.args.get("q") or "").strip()
+    if not q: return jsonify({"ok":False,"error":"Thiếu q."}),400
+    try: return jsonify({"ok":True,**external_gateway.youtube_search(q, max_results=int(request.args.get("num",5)))})
+    except ExternalGatewayError as exc: return jsonify({"ok":False,"error":str(exc)}),400
+
+@app.post("/api/v1/external-gateway/meta-graph")
+@login_required
+def external_meta_graph():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN"):
+        return jsonify({"ok":False,"error":"Chỉ ADMIN/SUPER_ADMIN được gọi Meta Graph."}),403
+    body=request.get_json(silent=True) or {}
+    try: return jsonify({"ok":True,**external_gateway.meta_graph_get(body.get("path",""), body.get("params") or {})})
+    except ExternalGatewayError as exc: return jsonify({"ok":False,"error":str(exc)}),400
+
+@app.post("/api/v1/external-gateway/ai")
+@login_required
+def external_ai_gateway():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN","GUIDE"):
+        return jsonify({"ok":False,"error":"Forbidden"}),403
+    body=request.get_json(silent=True) or {}
+    provider=body.get("provider","openai"); prompt=str(body.get("prompt") or "").strip()
+    if not prompt: return jsonify({"ok":False,"error":"Thiếu prompt."}),400
+    try: return jsonify({"ok":True,"result":external_gateway.ai_ask(provider,prompt,body.get("model"))})
+    except ExternalGatewayError as exc: return jsonify({"ok":False,"error":str(exc)}),400
+
 @app.get("/api/v1/data-acquisition/status")
 def data_acquisition_status():
     return jsonify({"ok":True,"version":"1.0.0","manifest":source_manifest()})
@@ -856,6 +901,47 @@ def data_acquisition_google_search():
         return jsonify({"ok":True,"query":q,"results":google_cse_search(q,num=num)})
     except (ValueError,RuntimeError) as exc:
         return jsonify({"ok":False,"error":str(exc)}),400
+
+@app.post("/api/v1/data-acquisition/review/<int:record_id>")
+@login_required
+def data_acquisition_review(record_id):
+    """Validate/review a candidate without bypassing provenance policy."""
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN"):
+        return jsonify({"ok":False,"error":"Chỉ ADMIN/SUPER_ADMIN được review ingestion."}),403
+    body=request.get_json(silent=True) or {}
+    action=str(body.get("action") or "").upper()
+    if action not in ("VALIDATE","PUBLISH","REJECT"):
+        return jsonify({"ok":False,"error":"action phải là VALIDATE, PUBLISH hoặc REJECT."}),400
+    c=db(); row=c.execute("SELECT * FROM warehouse_records WHERE id=?",(record_id,)).fetchone()
+    if not row:
+        c.close(); return jsonify({"ok":False,"error":"Không tìm thấy candidate."}),404
+    payload=json.loads(row["payload_json"])
+    lineage_ref=f"{row['kind']}:{payload.get({'administrative':'admin_id','destinations':'destination_id','knowledge':'knowledge_id','experiences':'experience_id','weather_risk':'risk_id','journeys':'journey_id','market':'market_id','lineage':'lineage_id'}.get(row['kind'],''))}"
+    linrow=c.execute("SELECT * FROM warehouse_records WHERE kind='lineage' AND payload_json LIKE ? ORDER BY id DESC LIMIT 1",(f'%"record_ref": "{lineage_ref}"%',)).fetchone()
+    if action=="VALIDATE":
+        if not payload.get("source") and not (json.loads(linrow["payload_json"]) if linrow else {}).get("source"):
+            c.close(); return jsonify({"ok":False,"status":"REJECTED","error":"Thiếu provenance/source."}),422
+        status="VALIDATED"
+    elif action=="PUBLISH":
+        if row["status"] not in ("VALIDATED","CANDIDATE","ACTIVE"):
+            c.close(); return jsonify({"ok":False,"error":"Candidate chưa ở trạng thái có thể publish."}),409
+        payload["status"]="PUBLISHED"; payload["reviewed_by"]=current_user().get("email"); payload["reviewed_at"]=now(); status="PUBLISHED"
+    else:
+        payload["status"]="REJECTED"; payload["reviewed_by"]=current_user().get("email"); payload["reviewed_at"]=now(); status="REJECTED"
+    c.execute("UPDATE warehouse_records SET payload_json=?,status=?,updated_at=? WHERE id=?",(json.dumps(payload,ensure_ascii=False),status,now(),record_id))
+    if linrow:
+        lp=json.loads(linrow["payload_json"]); lp["status"]=status; lp["reviewed_by"]=current_user().get("email"); lp["reviewed_at"]=now()
+        c.execute("UPDATE warehouse_records SET payload_json=?,status=?,updated_at=? WHERE id=?",(json.dumps(lp,ensure_ascii=False),status,now(),linrow["id"]))
+    c.commit(); c.close(); log(current_user()["id"],"DATA_ACQUISITION_"+action,"WAREHOUSE",record_id,row["kind"])
+    return jsonify({"ok":True,"record_id":record_id,"status":status,"kind":row["kind"],"record":payload})
+
+@app.get("/api/v1/data-acquisition/candidates")
+@login_required
+def data_acquisition_candidates():
+    if current_user().get("role") not in ("ADMIN","SUPER_ADMIN"):
+        return jsonify({"ok":False,"error":"Forbidden"}),403
+    c=db(); rows=c.execute("SELECT id,kind,payload_json,status,created_at,updated_at FROM warehouse_records WHERE status IN ('CANDIDATE','VALIDATED') ORDER BY id DESC LIMIT 200").fetchall(); c.close()
+    return jsonify({"ok":True,"count":len(rows),"records":[{"id":r["id"],"kind":r["kind"],"status":r["status"],"created_at":r["created_at"],"updated_at":r["updated_at"],"record":json.loads(r["payload_json"])} for r in rows]})
 
 @app.get("/api/v1/data-warehouse/<kind>")
 def data_warehouse_api(kind):
@@ -944,6 +1030,7 @@ engine=JourneyIntelligenceEngine()
 copilot_engine=CopilotEngine()
 data_core_bridge=DataCoreBridge(db)
 external_connect=ExternalConnectManager(DEFAULT_EXTERNAL_CONNECTORS)
+external_gateway=ExternalDataGateway()
 learning_pipeline=KnowledgeLearningPipeline()
 agent_tools=ToolRegistry()
 agent_tools.register("journey.summary", lambda journey=None: {"title": (journey or {}).get("title",""), "days": len((journey or {}).get("days",[])), "risk_count": len((journey or {}).get("risks",[]))})
