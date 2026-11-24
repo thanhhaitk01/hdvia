@@ -12,6 +12,11 @@ from destination_catalog import DESTINATIONS, BY_SLUG
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
 from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
+from copilot import CopilotEngine
+from agent import HDVIAAgent, ToolRegistry
+from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
+from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
+from knowledge_learning import KnowledgeLearningPipeline
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -97,6 +102,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS journey_feedback(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,journey_id INTEGER,score INTEGER NOT NULL,comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(journey_id) REFERENCES journeys(id));
     CREATE TABLE IF NOT EXISTS knowledge_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,place TEXT,status TEXT NOT NULL DEFAULT 'PENDING_REVIEW',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
+    CREATE TABLE IF NOT EXISTS api_keys(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,owner_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL,last_used_at TEXT,FOREIGN KEY(owner_id) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
     admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","Nhatkhang@123")
@@ -600,12 +606,83 @@ def route_api():
         if p: points.append(p[0])
     return jsonify({"points":points,"total_km":round(sum(__import__('journey_engine').haversine_km(points[i],points[i+1]) for i in range(len(points)-1)),1) if len(points)>1 else 0})
 
+def _load_latest_journey_for_user(u):
+    c=db(); row=c.execute("SELECT result_json FROM journeys WHERE user_id=? ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone(); c.close()
+    if not row: return None
+    try: return json.loads(row["result_json"])
+    except Exception: return None
+
+def _open_api_auth():
+    raw=request.headers.get("X-HDVia-Key","").strip()
+    if raw:
+        c=db(); row=c.execute("SELECT id,owner_id FROM api_keys WHERE key_hash=? AND status='ACTIVE'",(hash_key(raw),)).fetchone()
+        if row:
+            c.execute("UPDATE api_keys SET last_used_at=? WHERE id=?",(utcnow(),row["id"])); c.commit(); c.close(); return row["owner_id"]
+        c.close()
+    u=current_user()
+    return u["id"] if u else None
+
+def _open_api_required(f):
+    @wraps(f)
+    def w(*a,**kw):
+        owner=_open_api_auth()
+        if not owner: return jsonify({"ok":False,"error":"API key hoặc phiên đăng nhập không hợp lệ."}),401
+        return f(*a,**kw)
+    return w
+
+@app.get("/api/v1/openapi/status")
+@_open_api_required
+def openapi_status():
+    return jsonify({"ok":True,"version":OPEN_API_VERSION,"service":"HDVIA","endpoints":OPEN_API_CATALOG,"connectors":external_connect.status()})
+
+@app.post("/api/v1/openapi/copilot")
+@_open_api_required
+def openapi_copilot():
+    u=current_user() or {"id":_open_api_auth(),"role":"API_CLIENT"}
+    data=request.get_json(silent=True) or {}
+    journey=data.get("journey") or _load_latest_journey_for_user(u)
+    return jsonify(copilot_engine.compose(user=dict(u),journey=journey,question=str(data.get("question",""))))
+
+@app.post("/api/v1/openapi/agent/inspect-tour")
+@_open_api_required
+def openapi_agent():
+    u=current_user() or {"id":_open_api_auth(),"role":"API_CLIENT"}
+    data=request.get_json(silent=True) or {}
+    journey=data.get("journey") or _load_latest_journey_for_user(u)
+    return jsonify(agent_engine.inspect_tour(user=dict(u),journey=journey))
+
+@app.get("/api/v1/openapi/connect/status")
+@_open_api_required
+def openapi_connect_status(): return jsonify({"ok":True,"connectors":external_connect.status()})
+
+@app.post("/admin/api-keys")
+@role_required("SUPER_ADMIN")
+def admin_issue_api_key():
+    if not require_csrf(): return "Yêu cầu không hợp lệ",400
+    name=request.form.get("name","HDVIA API Client").strip()[:100] or "HDVIA API Client"
+    raw,digest=issue_key("hdvia")
+    c=db(); c.execute("INSERT INTO api_keys(name,key_hash,owner_id,status,created_at) VALUES(?,?,?,?,?)",(name,digest,current_user()["id"],"ACTIVE",utcnow())); c.commit(); c.close()
+    log(current_user()["id"],"API_KEY_CREATED","API_KEY",None,name)
+    return jsonify({"ok":True,"name":name,"api_key":raw,"warning":"Lưu khóa ngay; HDVIA không hiển thị lại khóa thô."})
+
+@app.get("/admin/connect")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_connect(): return render_template_string("""{% extends 'base.html' %}{% block title %}External Connect – HDVIA{% endblock %}{% block content %}<div class='page-head'><div><span class='eyebrow'>EXTERNAL CONNECT</span><h1>Kết nối bên ngoài</h1><p>Quản lý trạng thái connector và khả năng tích hợp.</p></div></div><div class='warehouse-grid'>{% for c in connectors %}<div class='card'><span class='eyebrow'>{{c.category}}</span><h2>{{c.name}}</h2><p>Trạng thái: {% if c.enabled %}Đang bật{% else %}Chưa cấu hình{% endif %}</p><p>{{ ', '.join(c.capabilities) }}</p></div>{% endfor %}</div>{% endblock %}""",connectors=external_connect.status())
+
+@app.post("/admin/knowledge/learning")
+@role_required("ADMIN","SUPER_ADMIN")
+def admin_learning_ingest():
+    if not require_csrf(): return "Yêu cầu không hợp lệ",400
+    rec=learning_pipeline.ingest(source_type=request.form.get("source_type","manual"),title=request.form.get("title",""),content=request.form.get("content",""),source_url=request.form.get("source_url",""))
+    rec["validation"]=learning_pipeline.validate(rec)
+    return jsonify(rec)
+
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.9.3-beta-data-warehouse-admin","modules":["journey_intelligence","tour_briefing","plan_b","feedback","weather_7_day","route_intelligence","guide_profile","google_sync_login","knowledge_hub","knowledge_write"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.0-five-phase-integrated","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.9.3-beta-data-warehouse-admin","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config"})
+    return jsonify({"service":"HDVIA","version":"1.10.0-five-phase-integrated","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -763,5 +840,12 @@ def audit():
     c=db(); rows=c.execute("SELECT a.*,u.email FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 300").fetchall(); c.close(); return render_template("audit.html",rows=rows)
 
 engine=JourneyIntelligenceEngine()
+copilot_engine=CopilotEngine()
+external_connect=ExternalConnectManager(DEFAULT_EXTERNAL_CONNECTORS)
+learning_pipeline=KnowledgeLearningPipeline()
+agent_tools=ToolRegistry()
+agent_tools.register("journey.summary", lambda journey=None: {"title": (journey or {}).get("title",""), "days": len((journey or {}).get("days",[])), "risk_count": len((journey or {}).get("risks",[]))})
+agent_tools.register("weather.summary", lambda journey=None: {"risk_count": len([x for x in ((journey or {}).get("risks") or []) if x.get("level") in ("HIGH","MEDIUM")]), "risk_levels": [x.get("level") for x in ((journey or {}).get("risks") or [])]})
+agent_engine=HDVIAAgent(agent_tools)
 init_db()
 if __name__=="__main__": app.run(host=os.environ.get("HOST","0.0.0.0"),port=int(os.environ.get("PORT","8000")),debug=os.environ.get("FLASK_DEBUG","0")=="1")
