@@ -33,3 +33,9 @@ Bản release phải đạt toàn bộ regression suite trước khi đưa lên 
 - `knowledge_layer.py` thực hiện truy xuất theo từ khóa có trọng số.
 - Đây là lớp truy xuất tri thức có kiểm duyệt, không phải quá trình huấn luyện lại mô hình AI.
 - Trợ lý hành trình dùng kho tri thức này làm nguồn tham chiếu khi câu hỏi phù hợp.
+
+
+## Beta 1.10.10
+- Controlled external Data Acquisition: web/API/Google CSE connector.
+- External records enter CANDIDATE with Lineage; no auto-publish.
+- Data Core remains the orchestration layer for the 8 warehouses.
