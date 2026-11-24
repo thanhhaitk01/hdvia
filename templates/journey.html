@@ -3,6 +3,51 @@
 {% block content %}
 <section class="journey-page journey-layout">
 <div class="page-hero"><span class="eyebrow">HÀNH TRÌNH</span><h1>Lập & phân tích hành trình</h1><p>Phân tích lịch trình, thời tiết, cảnh báo, lộ trình và phương án dự phòng cho chuyến đi của bạn.</p></div>
+<section class="ai-command card">
+  <div class="eyebrow cyan">✦ HÀNH TRÌNH AI</div>
+  <h2>Một ô nhập — hiểu cả hành trình</h2>
+  <p>Nhập tên tỉnh/thành, điểm du lịch, địa danh hoặc cả lịch trình. HDVIA tự nhận diện nhu cầu và kết nối dữ liệu phù hợp.</p>
+  <form class="ai-search-form" method="get" action="/journey">
+    <input name="q" value="{{ request.args.get('q','') }}" autocomplete="off" placeholder="Ví dụ: Hà Nội · Lăng Khải Định · Đà Nẵng → Hội An → Huế" aria-label="Tìm kiếm điểm đến hoặc hành trình">
+    <button class="btn primary" type="submit">⌕ Tra cứu</button>
+  </form>
+  <div class="ai-search-chips">
+    <a href="/journey?q=Hà Nội">Hà Nội</a><a href="/journey?q=Lăng Khải Định">Lăng Khải Định</a><a href="/journey?q=Đà Nẵng → Hội An → Huế">Đà Nẵng → Hội An → Huế</a>
+  </div>
+</section>
+{% if ai_search and ai_search.intent != 'ERROR' %}
+<section class="ai-context card">
+  <div class="eyebrow">AI NHẬN DIỆN · {{ 'HÀNH TRÌNH' if ai_search.intent == 'ITINERARY' else 'ĐIỂM ĐẾN / ĐỊA DANH' }}</div>
+  <h2>{{ ai_search.query }}</h2>
+  <p class="ai-summary">{{ ai_search.summary }}</p>
+  {% set ctx=ai_search.context %}
+  {% if ctx.primary_destination %}
+  {% set d=ctx.primary_destination %}
+  <div class="ai-place-hero">
+    <div><span class="eyebrow cyan">{{ d.region }}</span><h3>{{ d.name }}</h3><p>{{ d.overview }}</p></div>
+    <a class="btn" href="/destinations/{{ d.slug }}">Xem hồ sơ điểm đến</a>
+  </div>
+  <div class="ai-info-grid">
+    <article><span>📍</span><b>Điểm nổi bật</b><p>{{ (d.highlights or [])|join(' · ') }}</p></article>
+    <article><span>🏛️</span><b>Văn hóa</b><p>{{ d.culture or 'Đang cập nhật từ kho dữ liệu.' }}</p></article>
+    <article><span>📜</span><b>Lịch sử</b><p>{{ d.history or 'Đang cập nhật từ kho dữ liệu.' }}</p></article>
+    <article><span>🍜</span><b>Ẩm thực</b><p>{{ d.food or 'Đang cập nhật từ kho dữ liệu.' }}</p></article>
+  </div>
+  {% endif %}
+  {% if ctx.provinces %}
+  <div class="ai-section"><h3>Thông tin địa phương</h3><div class="ai-tags">{% for p in ctx.provinces %}<span>{{ p.name }} · {{ p.region }}</span>{% endfor %}</div></div>
+  {% endif %}
+  {% if ctx.destinations %}
+  <div class="ai-section"><h3>Điểm đến liên quan</h3><div class="ai-related">{% for d in ctx.destinations[:8] %}<a href="/destinations/{{ d.slug }}"><b>{{ d.name }}</b><small>{{ d.type }}</small></a>{% endfor %}</div></div>
+  {% endif %}
+  {% if ctx.knowledge %}
+  <div class="ai-section"><h3>Tri thức & thuyết minh</h3><div class="ai-knowledge">{% for k in ctx.knowledge[:6] %}<article><b>{{ k.title }}</b><p>{{ k.summary or k.content }}</p></article>{% endfor %}</div></div>
+  {% endif %}
+  {% if ctx.warehouse %}
+  <div class="ai-section"><h3>Dữ liệu HDVIA liên kết</h3><div class="ai-tags">{% for item in ctx.warehouse[:10] %}<span>{{ item.kind|capitalize }} · {{ item.record.get('title') or item.record.get('name') or item.record.get('place') }}</span>{% endfor %}</div></div>
+  {% endif %}
+</section>
+{% endif %}
 <section class="journey-input card"><div class="eyebrow cyan">✎ NHẬP HÀNH TRÌNH</div><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><label>Tên hành trình</label><input name="title" value="{{request.form.get('title','Hành trình Đà Nẵng – Hội An – Huế')}}" maxlength="200" required><label>Lịch trình (theo ngày)</label><textarea name="itinerary" rows="5" required placeholder="Ngày 1: Đà Nẵng – Hội An&#10;Ngày 2: Hội An – Huế&#10;Ngày 3: Huế – Đà Nẵng">{{request.form.get('itinerary','')}}</textarea><button class="btn primary full" type="submit">⌕ &nbsp; Phân tích hành trình</button></form></section>
 {% if journey_error %}<div class="alert danger">{{journey_error}}</div>{% endif %}
 {% if result %}

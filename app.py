@@ -19,6 +19,7 @@ from agent import HDVIAAgent, ToolRegistry
 from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from knowledge_learning import KnowledgeLearningPipeline
+from unified_destination_search import unified_search
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
 
 BASE=os.path.dirname(__file__)
@@ -290,15 +291,16 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.9.3-beta-data-warehouse","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.10.11-hanh-trinh-ai-unified","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
 
 @app.get("/destinations")
 def destinations():
-    regions=sorted({d["region"] for d in DESTINATIONS})
-    return render_template("destinations.html", destinations=DESTINATIONS, regions=regions, provinces=PROVINCES_2025)
+    # Backward-compatible URL: destination lookup now lives inside Hành trình AI.
+    q=request.args.get("q", "").strip()
+    return redirect(url_for("journey", q=q))
 
 @app.get("/destinations/<slug>")
 def destination_detail(slug):
@@ -538,6 +540,14 @@ def _safe_journey_analyze(title, itinerary):
 def journey():
     result=None
     error=None
+    ai_search=None
+    q=request.args.get("q", "").strip()
+    if q and request.method=="GET":
+        try:
+            ai_search=unified_search(q)
+        except Exception as exc:
+            traceback.print_exc()
+            ai_search={"intent":"ERROR","query":q,"summary":"Không thể tra cứu lúc này.","context":{},"matches":[]}
     if request.method=="POST":
         try:
             if not require_csrf(): return "Yêu cầu không hợp lệ", 400
@@ -568,7 +578,7 @@ def journey():
             result=None
             error=f"Không thể hoàn tất phân tích hành trình: {type(exc).__name__}: {exc}"
     try:
-        return render_template("journey.html",result=result,journey_error=error)
+        return render_template("journey.html",result=result,journey_error=error,ai_search=ai_search)
     except Exception:
         # Final safety net: never turn a journey analysis failure into a blank
         # Vercel 500 page. The analysis form remains usable even if a template
