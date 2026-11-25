@@ -1,0 +1,11 @@
+{
+  "version": "1.14.3",
+  "name": "Vietnam Tourism Knowledge Manifest",
+  "status": "beta-release",
+  "policy": "recognized_place_is_not_verified_fact",
+  "curated_entries": 8,
+  "destination_catalog_entries": 22,
+  "coverage_registry": "province_catalog_2025.json",
+  "provenance_required": true,
+  "note": "Catalog and registry metadata are not substitutes for verified historical/cultural facts."
+}

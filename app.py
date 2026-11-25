@@ -505,11 +505,11 @@ def _normalize_journey_input(title, itinerary):
     return title, itinerary
 
 
-def _safe_journey_analyze(title, itinerary):
+def _safe_journey_analyze(title, itinerary, start_date=None):
     """Run the Journey engine without allowing any Journey POST exception to escape."""
     try:
         title, itinerary = _normalize_journey_input(title, itinerary)
-        result = engine.analyze(title, itinerary)
+        result = engine.analyze(title, itinerary, start_date=start_date)
         # Resolve the live Journey result against the same eight-domain Data Core.
         # This is additive: existing Journey fields remain unchanged.
         result = data_core_bridge.enrich_journey(result)
@@ -593,12 +593,31 @@ def _ai_query_analyze(query):
 
     intents = conversation_engine.detect_intents(q)
     places = conversation_engine.resolve_places(q)
+    start_date = None
+    for _pat in (r"(?:khởi hành|khoi hanh|bắt đầu|bat dau|ngày đi|ngay di)\s*(?:ngày)?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})",
+                  r"(?:từ|tu)\s*(\d{4}-\d{1,2}-\d{1,2})"):
+        _m = re.search(_pat, q, re.I)
+        if _m:
+            start_date = _m.group(1)
+            break
     weather_intent = "WEATHER" in intents
     journey_like = any(x in intents for x in ("ITINERARY", "ROUTE", "RISK", "PLAN_B"))
+    mutation_like = bool(re.search(r"\b(?:thêm|them|bỏ|bo|xóa|xoa|chuyển|chuyen|đổi|doi|sang|qua)\b", q.lower())) and bool(re.search(r"\bngày\s*\d+\b", q.lower()))
+
+    # Journey Memory: when a follow-up omits the place name (e.g.
+    # "Ngày 2 mưa thì làm sao?"), reuse the latest saved journey as context.
+    remembered_journey = None
+    if not places and (weather_intent or journey_like):
+        try:
+            u = current_user()
+            if u:
+                remembered_journey = _load_latest_journey_for_user(u)
+        except Exception:
+            remembered_journey = None
 
     if weather_intent and places:
         place = places[0]["name"]
-        result, error = _safe_journey_analyze(f"Thời tiết {place}", f"Ngày 1: {place}")
+        result, error = _safe_journey_analyze(f"Thời tiết {place}", f"Ngày 1: {place}", start_date=start_date)
         if result is not None:
             result = _merge_conversation_result(
                 result, conversation_engine.answer(q, journey=result)
@@ -607,15 +626,43 @@ def _ai_query_analyze(query):
             result["destination_context"] = _destination_context_for_places(result.get("places") or places)
         return result, error
 
+    if mutation_like and remembered_journey:
+        try:
+            base_itinerary = remembered_journey.get("itinerary") or "\n".join(
+                f"Ngày {d.get('day')}: {d.get('text','')}" for d in remembered_journey.get("days",[])
+            )
+            mutation = engine.mutate_journey(base_itinerary, q)
+            if mutation.get("changed"):
+                title = remembered_journey.get("title") or "Hành Trình AI"
+                result, error = _safe_journey_analyze(title, mutation["itinerary"])
+                if result is not None:
+                    result["mutation"] = {"changed":True,"notes":mutation.get("notes",[]),"itinerary":mutation["itinerary"]}
+                    result = _merge_conversation_result(result, conversation_engine.answer(q, journey=result))
+                    result["destination_context"] = _destination_context_for_places(result.get("places") or places)
+                return result, error
+        except Exception:
+            pass
+
     if journey_like:
         title = places[0]["name"] if places else "Phân tích Hành Trình AI"
-        result, error = _safe_journey_analyze(title, q)
+        result, error = _safe_journey_analyze(title, q, start_date=start_date)
         if result is not None:
             result = _merge_conversation_result(
                 result, conversation_engine.answer(q, journey=result)
             )
             result["destination_context"] = _destination_context_for_places(result.get("places") or places)
         return result, error
+
+    # A place-less follow-up can still be answered against the remembered journey.
+    # This keeps the conversation anchored to the active tour instead of falling
+    # back to generic knowledge search.
+    if remembered_journey:
+        result = conversation_engine.answer(q, journey=remembered_journey)
+        result = _merge_conversation_result(remembered_journey, result)
+        result["query"] = q
+        result["title"] = remembered_journey.get("title") or "Hành Trình AI"
+        result["destination_context"] = _destination_context_for_places(result.get("places") or places)
+        return result, None
 
     # Knowledge / destination / natural-language question path. We still enrich
     # the response with a small Journey result when a recognized place exists,
@@ -663,7 +710,8 @@ def journey():
             if not query:
                 title=request.form.get("title","Hành trình mới")
                 itinerary=request.form.get("itinerary","")
-                result, error = _safe_journey_analyze(title, itinerary)
+                start_date=request.form.get("start_date", "").strip() or None
+                result, error = _safe_journey_analyze(title, itinerary, start_date=start_date)
                 if result is not None:
                     result["destination_context"] = _destination_context_for_places(result.get("places") or [])
             else:
@@ -708,7 +756,7 @@ def journey():
 @permission_required("journey.analyze")
 def journey_api():
     data=request.get_json(silent=True) or {}
-    result, error = _safe_journey_analyze(data.get("title","Hành trình mới"), data.get("itinerary",""))
+    result, error = _safe_journey_analyze(data.get("title","Hành trình mới"), data.get("itinerary",""), data.get("start_date"))
     if error:
         return jsonify({"error":"Không thể phân tích hành trình.","detail":"Dữ liệu hoặc nguồn phân tích tạm thời không khả dụng."}), 422
     try:
@@ -733,7 +781,7 @@ def place_image_api():
     if not name:return jsonify({"error":"missing name"}),400
     try:
         q=urllib.parse.urlencode({"action":"query","format":"json","generator":"search","gsrsearch":name+" Vietnam","gsrnamespace":6,"gsrlimit":1,"prop":"imageinfo","iiprop":"url|extmetadata","iiurlwidth":1000})
-        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":"HDVIA/1.8.1-beta-commercial Travel Intelligence"})
+        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":"HDVIA/1.9.0-beta-commercial Travel Intelligence"})
         with urllib.request.urlopen(req,timeout=8) as r: data=json.loads(r.read().decode("utf-8"))
         pages=data.get("query",{}).get("pages",{})
         for page in pages.values():
@@ -925,11 +973,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.13.3-unified-journey","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.14.3-vietnam-knowledge-hardening","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.13.3-unified-journey","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.14.3-vietnam-knowledge-hardening","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

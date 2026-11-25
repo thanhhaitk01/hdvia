@@ -61,6 +61,23 @@
     <a href="#du-phong">🛡 Dự phòng</a>
   </nav>
 
+  {% if result.get('mutation',{}).get('changed') %}
+  <article class="result-card ai-answer-card">
+    <div class="eyebrow cyan">↻ ĐÃ CẬP NHẬT HÀNH TRÌNH</div>
+    <h3>{{result.get('mutation',{}).get('notes',[])|join(' · ')}}</h3>
+    <p>{{result.get('mutation',{}).get('itinerary','')}}</p>
+  </article>
+  {% endif %}
+
+  {% if result.get('place_resolution',{}).get('ambiguous') %}
+  <article class="result-card ai-followup-card">
+    <div class="eyebrow cyan">⚠ CẦN XÁC NHẬN ĐỊA ĐIỂM</div>
+    {% for item in result.get('place_resolution',{}).get('ambiguous',[]) %}
+      <p><b>{{item.get('mention')}}</b> có thể là: {{item.get('candidates')|join(' · ')}}. {{item.get('action')}}</p>
+    {% endfor %}
+  </article>
+  {% endif %}
+
   <div id="tong-quan" class="result-card">
     <h3>Tổng quan hành trình</h3>
     <p>{{result.title}}</p>
@@ -137,6 +154,24 @@
       {% endif %}
     </section>
 
+    {% if result.get('weather_impact') %}
+    <section class="journey-alert-section">
+      <div class="eyebrow cyan">🌦 ẢNH HƯỞNG THỜI TIẾT ĐẾN HÀNH TRÌNH</div>
+      <h3>Thời tiết ảnh hưởng theo từng ngày</h3>
+      <div class="journey-risk-list">
+        {% for impact in result.get('weather_impact',[]) %}
+        <article class="journey-risk-card risk-{{impact.get('level','LOW')|lower}}">
+          <div class="risk-badge">Ngày {{impact.get('day')}} · {{impact.get('level')}}</div>
+          <div class="risk-content">
+            <strong>Mưa cao nhất: {{impact.get('max_rain_probability')}}% · Gió tối đa: {{impact.get('max_wind_kmh')}} km/h</strong>
+            <p>{{impact.get('action')}}</p>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     <section id="canh-bao" class="journey-alert-section">
       <div class="eyebrow cyan">⚠ CẢNH BÁO</div>
       <h3>Cảnh báo theo điểm đến</h3>
@@ -170,7 +205,9 @@
           <div class="route-content">
             <strong>{{day.get('text','Lịch trình chưa có mô tả')}}</strong>
             {% if day.get('places') %}<p>📍 {{day.get('places')|join(' → ')}}</p>{% endif %}
-            {% if day.get('distance_km') is not none %}<small>Khoảng cách chặng: {{day.get('distance_km')}} km</small>{% endif %}
+            {% if day.get('distance_km') is not none %}<small>Khoảng cách chặng: {{day.get('distance_km')}} km · Thời gian di chuyển ước tính: {{day.get('estimated_drive_minutes',0)}} phút · Buffer khuyến nghị: {{day.get('recommended_buffer_minutes',0)}} phút</small>{% endif %}
+            {% if day.get('time_windows') %}<small>⏱ Khung thời gian: {{day.get('time_windows')|join(' · ')}}</small>{% endif %}
+            {% if day.get('activities') %}<small>🎯 Hoạt động: {{day.get('activities')|join(' · ')}}</small>{% endif %}
           </div>
         </article>
         {% endfor %}
@@ -186,7 +223,7 @@
         {% for plan in result.plan_b %}
         <article class="journey-backup-card">
           <div class="route-day">Ngày {{plan.get('day','—')}}</div>
-          <div><strong>{{plan.get('trigger','Điều kiện thay đổi')}}</strong><p>{{plan.get('action','Chuẩn bị phương án thay thế phù hợp điều kiện thực tế.')}}</p></div>
+          <div><strong>{{plan.get('trigger','Điều kiện thay đổi')}}</strong><p><b>Plan B:</b> {{plan.get('action','Chuẩn bị phương án thay thế phù hợp điều kiện thực tế.')}}</p>{% if plan.get('plan_c') %}<p><b>Plan C:</b> {{plan.get('plan_c')}}</p>{% endif %}</div>
         </article>
         {% endfor %}
       </div>
@@ -194,6 +231,30 @@
       <article class="journey-backup-card"><div><strong>Khuyến nghị chung</strong><p>{{ result.recommendations|join(' · ') if result.recommendations else 'Kiểm tra lại thời tiết và điều chỉnh lịch trình khi cần.' }}</p></div></article>
       {% endif %}
     </section>
+
+    {% if result.get('validation') %}
+    <section class="journey-alert-section">
+      <div class="eyebrow cyan">🧭 KIỂM TRA TÍNH KHẢ THI</div>
+      <h3>Những điểm cần rà trước khi chốt tour</h3>
+      <div class="journey-risk-list">
+      {% for flag in result.get('validation',[]) %}
+        <article class="journey-risk-card risk-{{flag.get('severity','LOW')|lower}}"><div class="risk-badge">{{flag.get('severity')}}</div><div class="risk-content"><strong>{{flag.get('code')}}</strong><p>{{flag.get('message')}}</p></div></article>
+      {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if result.get('explainability') %}
+    <section class="journey-alert-section">
+      <div class="eyebrow cyan">💡 VÌ SAO HDVIA ĐỀ XUẤT?</div>
+      <h3>Giải thích các cảnh báo và đề xuất</h3>
+      <div class="journey-risk-list">
+      {% for item in result.get('explainability',[]) %}
+        <article class="journey-risk-card"><div class="risk-content"><strong>{{item.get('reason')}}</strong><p>{{item.get('evidence')}}</p><small><b>Hành động:</b> {{item.get('action')}}</small></div></article>
+      {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     {% if result.get('quality') %}
     <section class="journey-quality-card" aria-label="Chất lượng phân tích">

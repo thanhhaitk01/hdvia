@@ -20,3 +20,6 @@ def test_hanh_trinh_ai_has_predicted_question_surface():
     assert "CÂU HỎI GỢI Ý" in html
     assert "predicted_questions" in html
     assert "Độ tin cậy" in html
+    assert "ẢNH HƯỞNG THỜI TIẾT ĐẾN HÀNH TRÌNH" in html
+    assert "Plan C" in html
+    assert "estimated_drive_minutes" in html
