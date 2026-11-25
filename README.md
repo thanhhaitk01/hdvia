@@ -1,8 +1,8 @@
-# HDVIA Beta 1.14.5 — Open API Orchestrator
+# HDVIA Beta 1.14.7 — Open API Orchestrator
 
-Release baseline: `1.14.5-open-api-orchestrator`
+Release baseline: `1.14.7-integrated-journey-ai-ui`
 
-Beta 1.14.5 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
+Beta 1.14.7 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
 
 ## Open/Public providers
 - Open-Meteo: weather + geocoding

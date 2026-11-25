@@ -29,7 +29,7 @@ class PublicProvider:
         base = self.base_url.rstrip("/") + "/" + path.lstrip("/")
         query = urllib.parse.urlencode({k: v for k, v in (params or {}).items() if v is not None}, doseq=True)
         url = base + ("?" + query if query else "")
-        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.5")})
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.7")})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read(2_000_001)
@@ -126,7 +126,7 @@ def opentripmap_details(xid: str) -> Dict[str, Any]:
 
 def _raw_post_json(url: str, body: str, provider: str) -> Dict[str, Any]:
     encoded = urllib.parse.urlencode({"data": body}).encode("utf-8")
-    req = urllib.request.Request(url, data=encoded, headers={"Accept":"application/json", "Content-Type":"application/x-www-form-urlencoded", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.5")}, method="POST")
+    req = urllib.request.Request(url, data=encoded, headers={"Accept":"application/json", "Content-Type":"application/x-www-form-urlencoded", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.7")}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
             raw = resp.read(2_000_001)

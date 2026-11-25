@@ -1,10 +1,10 @@
-# HDVIA Beta 1.14.5 — Open API Orchestrator
+# HDVIA Beta 1.14.7 — Open API Orchestrator
 
 Adds vendor-neutral orchestration for open/public travel data: weather, geocoding, routing, air quality, marine conditions, OSM/Nominatim/Overpass, Wikidata, Wikipedia, sunrise/sunset, and optional OpenTripMap.
 
 All external providers are optional, bounded, cached, and fail closed. API keys are supplied only through environment variables. External data is never automatically promoted to verified HDVIA knowledge.
 
-Release baseline: `1.14.5-open-api-orchestrator`.
+Release baseline: `1.14.7-integrated-journey-ai-ui`.
 
 
 ## Pre-deploy checklist

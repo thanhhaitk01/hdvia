@@ -14,7 +14,7 @@ from public_apis import (
     opentripmap_places, opentripmap_details,
 )
 
-API_LAYER_VERSION = "1.14.5-open-api-orchestrator"
+API_LAYER_VERSION = "1.14.7-integrated-journey-ai-ui"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
