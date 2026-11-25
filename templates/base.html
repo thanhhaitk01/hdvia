@@ -16,7 +16,6 @@
   <nav class="topnav" aria-label="Điều hướng chính">
     <a class="{% if request.path == '/' %}active{% endif %}" href="/">⌂ <span>Trang chủ</span></a>
     <a class="{% if request.path.startswith('/journey') %}active{% endif %}" href="/journey">✦ <span>Hành Trình AI</span></a>
-    <a class="{% if request.path.startswith('/destinations') %}active{% endif %}" href="/destinations">📍 <span>Điểm đến & thông tin</span></a>
     <a class="{% if request.path.startswith('/kinh-nghiem') %}active{% endif %}" href="/kinh-nghiem">📚 <span>Kho kinh nghiệm HDV</span></a>
     <a class="{% if request.path.startswith('/profile') or request.path.startswith('/guide/apply') or request.path.startswith('/account') %}active{% endif %}" href="/profile">👤 <span>Tài khoản & xác minh</span></a>
     {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a class="admin-link" href="/admin">🛡️ <span>Quản trị</span></a>{% endif %}
@@ -32,7 +31,6 @@
     <div class="mobile-menu-panel">
       <a href="/">⌂ Trang chủ</a>
       <a href="/journey">✦ Hành Trình AI</a>
-      <a href="/destinations">📍 Điểm đến & thông tin</a>
       <a href="/kinh-nghiem">📚 Kho kinh nghiệm HDV</a>
       <a href="/profile">👤 Tài khoản & xác minh</a>
       {% if user and user.role in ['ADMIN','SUPER_ADMIN'] %}<a href="/admin">🛡️ Quản trị</a>{% endif %}
@@ -44,7 +42,6 @@
 <nav class="mobile-module-nav" aria-label="Điều hướng module">
   <a href="/">⌂ <span>Trang chủ</span></a>
   <a href="/journey">✦ <span>Hành Trình AI</span></a>
-  <a href="/destinations">🏛️ <span>Điểm đến</span></a>
   <a class="active" href="/kinh-nghiem">📖 <span>Kho kinh nghiệm</span></a>
   <a href="/profile">👤 <span>Tài khoản</span></a>
 </nav>

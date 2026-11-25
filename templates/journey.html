@@ -54,6 +54,7 @@
   <div class="section-head"><h2>▥ KẾT QUẢ PHÂN TÍCH</h2><small>Ngày phân tích: {{result.get('analyzed_at', result.get('generated_at',''))}}</small></div>
   <nav class="analysis-tabs" aria-label="Các phần phân tích hành trình">
     <a class="active" href="#tong-quan">🗺 Tổng quan</a>
+    <a href="#diem-den">📍 Điểm đến</a>
     <a href="#thoi-tiet">☁ Thời tiết</a>
     <a href="#canh-bao">⚠ Cảnh báo</a>
     <a href="#lo-trinh">⌘ Lộ trình</a>
@@ -64,11 +65,33 @@
     <h3>Tổng quan hành trình</h3>
     <p>{{result.title}}</p>
     <div class="summary-grid">
-      <div><b>Điểm đến:</b> {{ result.places|join(' · ') if result.places else 'Chưa nhận diện được điểm đến' }}</div>
+      <div><b>Điểm đến:</b> {{ result.places|map(attribute='name')|join(' · ') if result.places else 'Chưa nhận diện được điểm đến' }}</div>
       <div><b>Mức độ phân tích:</b> {{ result.confidence|default('MEDIUM') }}</div>
     </div>
 
     {% set weather_map = result.weather if result.weather is mapping else {} %}
+
+    {% if result.get('destination_context') %}
+    <section id="diem-den" class="journey-destination-section">
+      <div class="eyebrow cyan">📍 ĐIỂM ĐẾN & THÔNG TIN</div>
+      <h3>Thông tin điểm đến trong hành trình</h3>
+      <p class="section-sub">Dữ liệu điểm đến được tích hợp trực tiếp vào Hành Trình AI, để HDV không phải chuyển sang module khác.</p>
+      <div class="journey-destination-grid">
+      {% for d in result.get('destination_context',[]) %}
+        <article class="journey-destination-card">
+          <div class="destination-card-head"><strong>{{d.get('name')}}</strong><span>{{d.get('region')}}</span></div>
+          <p>{{d.get('overview')}}</p>
+          {% if d.get('highlights') %}<div><b>Điểm nổi bật:</b> {{d.get('highlights')|join(' · ')}}</div>{% endif %}
+          {% if d.get('culture') %}<div><b>Văn hóa:</b> {{d.get('culture')}}</div>{% endif %}
+          {% if d.get('history') %}<div><b>Lịch sử:</b> {{d.get('history')}}</div>{% endif %}
+          {% if d.get('food') %}<div><b>Ẩm thực:</b> {{d.get('food')}}</div>{% endif %}
+          {% if d.get('best_for') %}<div><b>Phù hợp:</b> {{d.get('best_for')}}</div>{% endif %}
+        </article>
+      {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     <section id="thoi-tiet" class="journey-weather-section">
       <div class="weather-section-head">
         <div>
@@ -172,9 +195,40 @@
       {% endif %}
     </section>
 
-    <div class="journey-detail-grid">
-      <article><h4>🎙 Trợ lý thuyết minh</h4><p>Chuẩn bị nội dung thuyết minh theo từng điểm đến trong hành trình.</p></article>
-    </div>
+    {% if result.get('quality') %}
+    <section class="journey-quality-card" aria-label="Chất lượng phân tích">
+      <div class="journey-quality-head">
+        <div><div class="eyebrow cyan">✓ KIỂM TRA CHẤT LƯỢNG</div><strong>Độ hoàn chỉnh của dữ liệu hành trình</strong></div>
+        <div class="journey-quality-score">{{result.get('quality',{}).get('score',0)}}/100</div>
+      </div>
+      <div class="journey-quality-bar"><div class="journey-quality-fill" style="width: {{result.get('quality',{}).get('score',0)}}%"></div></div>
+      {% if result.get('quality',{}).get('flags') %}
+      <div class="journey-quality-flags">
+        {% for flag in result.get('quality',{}).get('flags',[]) %}
+        <div class="journey-quality-flag {{flag.get('severity','LOW')|lower}}">• {{flag.get('message')}}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section id="thuyet-minh" class="journey-briefing-section">
+      <div class="eyebrow cyan">🎙 TRỢ LÝ THUYẾT MINH</div>
+      <h3>Gợi ý thuyết minh theo từng ngày</h3>
+      {% if result.get('briefing') %}
+      <div class="journey-briefing-list">
+        {% for brief in result.get('briefing',[]) %}
+        <article class="journey-briefing-card">
+          <h4>{{brief.get('title','Ngày ' ~ brief.get('day','—'))}}</h4>
+          {% if brief.get('talking_points') %}<ul>{% for point in brief.get('talking_points',[]) %}<li>{{point}}</li>{% endfor %}</ul>{% endif %}
+          {% if brief.get('hdv_check') %}<small>✓ {{brief.get('hdv_check')}}</small>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="weather-empty">Chưa có dữ liệu thuyết minh theo ngày.</div>
+      {% endif %}
+    </section>
     <div class="feedback-row"><b>Đánh giá kết quả</b><a href="/api/v1/journey/feedback" aria-label="Đánh giá kết quả">Gửi đánh giá →</a></div>
   </div>
 </section>

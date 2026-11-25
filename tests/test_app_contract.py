@@ -17,3 +17,11 @@ def test_beta_all_logged_in_user_permissions_include_core_features():
     assert '"USER"' in src
     for p in ['journey.analyze','weather.read','destination.read','ai.assistant.use','ai.copilot.use','itinerary.optimize','knowledge.write']:
         assert p in src
+
+
+def test_release_version_and_unified_destination_contract():
+    root=Path(__file__).resolve().parents[1]
+    assert (root/'VERSION').read_text(encoding='utf-8').strip() == '1.13.3-unified-journey'
+    html=(root/'templates/base.html').read_text(encoding='utf-8')
+    assert 'href="/journey"' in html
+    assert 'Điểm đến & thông tin' not in html

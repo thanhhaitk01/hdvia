@@ -300,14 +300,15 @@ def home(): return render_template("home.html")
 
 @app.get("/destinations")
 def destinations():
-    regions=sorted({d["region"] for d in DESTINATIONS})
-    return render_template("destinations.html", destinations=DESTINATIONS, regions=regions, provinces=PROVINCES_2025)
+    """Legacy compatibility route. Destination discovery now lives inside Hành Trình AI."""
+    return redirect(url_for("journey"))
 
 @app.get("/destinations/<slug>")
 def destination_detail(slug):
+    """Legacy destination route: hand the destination question to Hành Trình AI."""
     d=BY_SLUG.get(slug)
     if not d: return "404 Not Found",404
-    return render_template("destination_detail.html", destination=d)
+    return redirect(url_for("journey", q=f"Thông tin điểm đến {d['name']}"))
 
 @app.get("/api/v1/destinations")
 def destinations_api():
@@ -522,6 +523,9 @@ def _safe_journey_analyze(title, itinerary):
         result.setdefault("risk_map", {})
         result.setdefault("risks", [])
         result.setdefault("recommendations", ["Kiểm tra lại lịch trình và thời tiết trước tour."])
+        # Destination intelligence is now part of the Journey result contract.
+        # Keep it here so HTML, API and future clients receive the same unified payload.
+        result["destination_context"] = _destination_context_for_places(result.get("places") or [])
         return result, None
     except Exception as exc:
         # Log the full traceback for Vercel Runtime Logs while keeping the public response safe.
@@ -530,6 +534,49 @@ def _safe_journey_analyze(title, itinerary):
         except Exception:
             pass
         return None, f"Journey analysis failed: {type(exc).__name__}: {exc}"
+
+
+def _destination_context_for_places(places):
+    """Return curated destination knowledge for the Journey AI result.
+
+    The former destination module is now a data capability of Journey AI, not a
+    separate UI module. This keeps the destination catalog reusable while making
+    destination facts available in the same Journey Intelligence response.
+    """
+    contexts=[]
+    for place in places or []:
+        name=(place.get("name") if isinstance(place, dict) else str(place)).strip()
+        if not name:
+            continue
+        d=BY_NAME.get(name.lower())
+        if not d:
+            # Accept small naming differences from the conversation resolver.
+            d=next((x for x in DESTINATIONS if x["name"].lower() in name.lower() or name.lower() in x["name"].lower()), None)
+        if d:
+            contexts.append({
+                "slug":d["slug"], "name":d["name"], "region":d["region"],
+                "type":d["type"], "overview":d["overview"],
+                "highlights":d.get("highlights",[]), "culture":d.get("culture",""),
+                "history":d.get("history",""), "food":d.get("food",""),
+                "best_for":d.get("best_for","")
+            })
+    return contexts
+
+
+def _merge_conversation_result(journey_result, conversation_result):
+    """Overlay conversational fields without destroying Journey Intelligence data.
+
+    ConversationIntelligence returns a lightweight answer contract with empty/default
+    journey fields in some paths. Never let those defaults erase live weather, route,
+    risk, Plan B or briefing data already produced by Journey Intelligence.
+    """
+    merged = dict(journey_result or {})
+    conv = dict(conversation_result or {})
+    for key in ("ok", "engine", "query", "intent", "intents", "answer",
+                "confidence", "sources", "predicted_questions"):
+        if key in conv and conv[key] not in (None, ""):
+            merged[key] = conv[key]
+    return merged
 
 
 def _ai_query_analyze(query):
@@ -553,15 +600,21 @@ def _ai_query_analyze(query):
         place = places[0]["name"]
         result, error = _safe_journey_analyze(f"Thời tiết {place}", f"Ngày 1: {place}")
         if result is not None:
-            result.update(conversation_engine.answer(q, journey=result))
+            result = _merge_conversation_result(
+                result, conversation_engine.answer(q, journey=result)
+            )
             result["intent"] = "WEATHER"
+            result["destination_context"] = _destination_context_for_places(result.get("places") or places)
         return result, error
 
     if journey_like:
         title = places[0]["name"] if places else "Phân tích Hành Trình AI"
         result, error = _safe_journey_analyze(title, q)
         if result is not None:
-            result.update(conversation_engine.answer(q, journey=result))
+            result = _merge_conversation_result(
+                result, conversation_engine.answer(q, journey=result)
+            )
+            result["destination_context"] = _destination_context_for_places(result.get("places") or places)
         return result, error
 
     # Knowledge / destination / natural-language question path. We still enrich
@@ -573,10 +626,12 @@ def _ai_query_analyze(query):
         journey_context, _ = _safe_journey_analyze(place, f"Ngày 1: {place}")
     result = conversation_engine.answer(q, journey=journey_context)
     if journey_context:
-        # Keep the existing result contract while replacing only conversation fields.
-        journey_context.update(result)
+        # Keep the existing Journey Intelligence contract while replacing only
+        # conversational fields. Do not overwrite route/weather/risk/Plan B.
+        journey_context = _merge_conversation_result(journey_context, result)
         journey_context["title"] = journey_context.get("title") or places[0]["name"]
         journey_context["query"] = q
+        journey_context["destination_context"] = _destination_context_for_places(journey_context.get("places") or places)
         return journey_context, None
     result["title"] = "Hành Trình AI"
     result["days"] = []
@@ -584,6 +639,7 @@ def _ai_query_analyze(query):
     result["risk_map"] = {}
     result["risks"] = []
     result["recommendations"] = ["Chọn một câu hỏi gợi ý để HDVIA phân tích tiếp."]
+    result["destination_context"] = _destination_context_for_places(result.get("places") or [])
     result["confidence"] = result.get("confidence", "LOW")
     return result, None
 
@@ -608,6 +664,8 @@ def journey():
                 title=request.form.get("title","Hành trình mới")
                 itinerary=request.form.get("itinerary","")
                 result, error = _safe_journey_analyze(title, itinerary)
+                if result is not None:
+                    result["destination_context"] = _destination_context_for_places(result.get("places") or [])
             else:
                 result, error = _ai_query_analyze(query)
                 title = result.get("title","Hành trình AI") if result else "Hành trình AI"
@@ -867,11 +925,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.13.1-public-apis","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.13.3-unified-journey","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.13.1-public-apis","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.13.3-unified-journey","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

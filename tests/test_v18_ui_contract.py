@@ -6,8 +6,8 @@ def test_v18_branding_and_vietnamese_ui():
     home=(ROOT/'templates/home.html').read_text(encoding='utf8')
     assert 'Bạn Đồng Hành Du Lịch Việt Nam' in base
     assert 'hdvia-logo.png' in base
-    assert 'Lập & phân tích hành trình' in home
-    assert 'Điểm đến & thông tin' in home
+    assert 'Hành Trình AI' in base
+    assert 'Điểm đến & thông tin' not in home
     assert 'Kho kinh nghiệm HDV' in home
     assert 'Thời tiết' in home
     assert 'Cảnh báo' in home

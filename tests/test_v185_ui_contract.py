@@ -22,5 +22,8 @@ def test_v185_navigation_is_consolidated():
     journey=(ROOT/'templates/journey.html').read_text(encoding='utf8')
     assert '/tro-ly-ai' not in base
     assert 'Thời tiết & Cảnh báo' not in base
-    assert all(label in home for label in ['Lập & phân tích hành trình','Điểm đến & thông tin','Kho kinh nghiệm HDV','Tài khoản & xác minh'])
+    assert 'Hành Trình AI' in base
+    assert 'Điểm đến & thông tin' not in base
+    assert 'Điểm đến & thông tin' not in home
+    assert all(label in home for label in ['Kho kinh nghiệm HDV','Tài khoản & xác minh'])
     assert 'journey-layout' in journey and '<aside class="side">' not in journey
