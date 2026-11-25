@@ -37,7 +37,7 @@ def test_connect_provider_status_endpoint_is_registered():
 
 
 def test_version_is_current_unified_journey_release():
-    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.15.0-knowledge-journey-intelligence"
+    assert (ROOT / "VERSION").read_text(encoding="utf8").strip() == "1.22.0-tour-intelligence"
 
 
 def test_connect_health_and_dashboard_contracts():

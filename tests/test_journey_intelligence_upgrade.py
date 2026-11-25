@@ -17,7 +17,7 @@ def test_natural_day_markers_are_split():
 def test_journey_has_time_weather_impact_and_memory():
     e=JourneyIntelligenceEngine(weather_provider=weather)
     r=e.analyze("Tour miền Trung", "Ngày 1: Đà Nẵng → Hội An\nNgày 2: Hội An → Huế")
-    assert r["version"]=="1.15.0"
+    assert r["version"]=="1.22.0"
     assert all("estimated_drive_minutes" in d for d in r["days"])
     assert len(r["weather_impact"])==2
     assert r["journey_memory"]["places"]==["Đà Nẵng","Hội An","Huế"]

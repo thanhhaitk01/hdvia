@@ -23,7 +23,7 @@ def test_one_thousand_full_deterministic_analyses():
     e=JourneyIntelligenceEngine(weather_provider=lambda p:[{"date":"2026-11-21","condition":"Trời quang","code":0,"tmin":20,"tmax":28,"rain":10,"wind":10}]*7)
     for _ in range(1000):
         r=e.analyze('HDVIA 1.8','Ngày 1: Đà Nẵng → Hội An\nNgày 2: Hội An → Huế')
-        assert r['version']=='1.15.0'
+        assert r['version']=='1.22.0'
         assert len(r['weather']['Đà Nẵng'])==7
         assert len(r['weather']['Hội An'])==7
         assert len(r['weather']['Huế'])==7
