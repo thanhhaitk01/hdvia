@@ -78,15 +78,77 @@
   </article>
   {% endif %}
 
-  <div id="tong-quan" class="result-card">
-    <h3>Tổng quan hành trình</h3>
-    <p>{{result.title}}</p>
-    <div class="summary-grid">
-      <div><b>Điểm đến:</b> {{ result.places|map(attribute='name')|join(' · ') if result.places else 'Chưa nhận diện được điểm đến' }}</div>
-      <div><b>Mức độ phân tích:</b> {{ result.confidence|default('MEDIUM') }}</div>
+  <div id="tong-quan" class="result-card journey-overview-card">
+    <div class="journey-overview-head">
+      <div>
+        <div class="eyebrow cyan">✦ TỔNG QUAN HÀNH TRÌNH</div>
+        <h3>{{result.title}}</h3>
+        <p>{{result.itinerary}}</p>
+      </div>
+      <div class="journey-score">
+        <span>Đánh giá đề xuất</span>
+        <strong>{{result.get('quality',{}).get('score',0)}}/100</strong>
+      </div>
+    </div>
+    <div class="journey-summary-metrics">
+      <div><span>Thời gian</span><b>{{result.days|length}} ngày</b></div>
+      <div><span>Tuyến</span><b>{{ result.places|map(attribute='name')|join(' → ') if result.places else 'Chưa xác định' }}</b></div>
+      <div><span>Đối tượng</span><b>{{result.get('traveler_profile','Khách du lịch')}}</b><span class="sr-only">{{ result.places|map(attribute='name')|join(' · ') }}</span></div>
+      <div><span>Mục tiêu</span><b>{{result.get('trip_goal','Tham quan · trải nghiệm')}}</b></div>
     </div>
 
     {% set weather_map = result.weather if result.weather is mapping else {} %}
+
+    {% set destination_context = result.get('destination_context',[]) %}
+    {% if result.get('days') %}
+    <section class="journey-integrated-section" aria-label="Thông tin tích hợp trong hành trình">
+      <div class="eyebrow cyan">▣ THÔNG TIN TÍCH HỢP TRONG HÀNH TRÌNH</div>
+      <h3>Lịch trình + điểm đến + kiến thức HDV</h3>
+      <p class="section-sub">HDVIA gom thông tin điểm đến trực tiếp vào từng ngày để HDV không phải chuyển sang module khác.</p>
+      <div class="journey-timeline">
+      {% for day in result.days %}
+        <article class="journey-day-intel">
+          <div class="journey-day-marker">
+            <span>Ngày {{day.get('day','—')}}</span>
+            {% if result.get('start_date') %}<small>{{result.get('start_date')}}</small>{% endif %}
+          </div>
+          <div class="journey-day-body">
+            <div class="journey-day-route">
+              <strong>{{day.get('text') or (day.get('places',[])|join(' → '))}}</strong>
+              <span>{{day.get('estimated_drive_minutes','—')}} phút di chuyển{% if day.get('recommended_buffer_minutes') %} · +{{day.get('recommended_buffer_minutes')}} phút buffer{% endif %}</span>
+            </div>
+            {% for place_name in day.get('places',[]) %}
+              {% set ns = namespace(place_info=none) %}
+              {% for d in destination_context %}{% if d.get('name') == place_name %}{% set ns.place_info = d %}{% endif %}{% endfor %}
+              <div class="journey-place-intel">
+                <div class="journey-place-visual">
+                  <div class="journey-place-icon">📍</div>
+                  <span>{{place_name}}</span>
+                </div>
+                <div class="journey-place-main">
+                  <div class="journey-place-title"><h4>{{place_name}}</h4>{% if ns.place_info %}<span>{{ns.place_info.get('region','')}}</span>{% endif %}</div>
+                  {% if ns.place_info %}
+                  <p class="journey-place-overview">{{ns.place_info.get('overview','')}}</p>
+                  <div class="journey-fact-grid">
+                    {% if ns.place_info.get('highlights') %}<div><b>★ Điểm nổi bật</b><span>{{ns.place_info.get('highlights')|join(' · ')}}</span></div>{% endif %}
+                    {% if ns.place_info.get('culture') %}<div><b>◉ Văn hóa</b><span>{{ns.place_info.get('culture')}}</span></div>{% endif %}
+                    {% if ns.place_info.get('history') %}<div><b>▣ Lịch sử</b><span>{{ns.place_info.get('history')}}</span></div>{% endif %}
+                    {% if ns.place_info.get('food') %}<div><b>🍜 Ẩm thực</b><span>{{ns.place_info.get('food')}}</span></div>{% endif %}
+                    {% if ns.place_info.get('best_for') %}<div><b>✓ Kinh nghiệm HDV</b><span>{{ns.place_info.get('best_for')}}</span></div>{% endif %}
+                    <div><b>⚠ Dữ liệu rủi ro liên kết</b><span>{{result.get('risk_map',{}).get(place_name,{}).get('reason','Theo dõi điều kiện thực tế trước tour.')}}</span></div>
+                  </div>
+                  {% else %}
+                  <p class="journey-place-overview">HDVIA đã nhận diện điểm đến nhưng chưa có đủ dữ liệu kiến thức để hiển thị chi tiết.</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     {% if result.get('destination_context') %}
     <section id="diem-den" class="journey-destination-section">

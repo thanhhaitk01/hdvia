@@ -45,7 +45,7 @@ def target_aliases(name):
     return {n, n.replace(" hills","").strip()}
 
 class JourneyIntelligenceEngine:
-    VERSION="1.14.5"
+    VERSION="1.14.7"
 
     PLACE_ALIASES = {
         "ba na hill": "Bà Nà Hills", "ba na hills": "Bà Nà Hills",
@@ -243,22 +243,41 @@ class JourneyIntelligenceEngine:
         return self._fallback_weather()
 
     def _normalize_weather(self, weather):
-        """Guarantee the public contract contains exactly 7 forecast slots."""
+        """Guarantee exactly 7 forecast slots without replacing real dates."""
         if not isinstance(weather, list):
-            weather = []
-        clean = [x for x in weather if isinstance(x, dict)]
-        if len(clean) >= 7:
-            return clean[:7]
-        today = datetime.now().date()
-        existing_dates = {str(x.get("date", "")) for x in clean}
-        for i in range(7):
-            date = str(today + timedelta(days=i))
-            if date not in existing_dates:
-                clean.append({"date": date, "condition": "Chưa có dữ liệu", "code": -1,
-                              "tmin": None, "tmax": None, "rain": None, "wind": None})
-            if len(clean) >= 7:
-                break
+            weather=[]
+        clean=[x for x in weather if isinstance(x,dict)]
+        seen_dates=set(); unique=[]
+        for item in clean:
+            key=str(item.get("date", ""))
+            if key and key in seen_dates:
+                continue
+            if key: seen_dates.add(key)
+            unique.append(item)
+        clean=unique[:7]
+        if len(clean)>=7: return clean
+        base=datetime.now().date()
+        valid=[]
+        for item in clean:
+            try: valid.append(datetime.fromisoformat(str(item.get("date"))).date())
+            except Exception: pass
+        if valid: base=max(valid)+timedelta(days=1)
+        for i in range(7-len(clean)):
+            date=str(base+timedelta(days=i))
+            if date in seen_dates: continue
+            clean.append({"date":date,"condition":"Chưa có dữ liệu","code":-1,
+                          "tmin":None,"tmax":None,"rain":None,"wind":None})
         return clean[:7]
+
+    def _forecast_for_day(self, place_name, day_number, weather, calendar_weather=None):
+        """Select only the forecast that belongs to this journey day."""
+        if calendar_weather and place_name in calendar_weather:
+            item=calendar_weather.get(place_name,{}).get(day_number)
+            if isinstance(item,dict): return [item]
+        forecast=weather.get(place_name) or []
+        if 1<=day_number<=len(forecast) and isinstance(forecast[day_number-1],dict):
+            return [forecast[day_number-1]]
+        return []
 
     def risk(self,w):
         valid=[x for x in w if x.get("code") is not None]
@@ -599,35 +618,37 @@ class JourneyIntelligenceEngine:
                    else "Chưa phát hiện tín hiệu rủi ro lớn từ dữ liệu hiện có.")
         if any((x.get("estimated_drive_minutes") or 0)>240 for x in route):
             rec.append("Có ngày có thời gian di chuyển ước tính trên 4 giờ; nên rà lại nhịp tour và điểm nghỉ.")
+        calendar_weather=self._calendarized_weather(weather,start_date,days)
         briefing=[]; plan_b=[]; weather_impact=[]
         for d in days:
             day_places=d["places"]
             if day_places:
-                day_risks=[risk_map.get(p["name"],{}) for p in day_places]
-                affected=[p["name"] for p in day_places if risk_map.get(p["name"],{}).get("level") in ("HIGH","MEDIUM")]
-                max_rain=max([max((x.get("rain") or 0) for x in weather.get(p["name"],[])) for p in day_places] or [0])
-                max_wind=max([max((x.get("wind") or 0) for x in weather.get(p["name"],[])) for p in day_places] or [0])
-                impact="LOW"
-                if max_rain>=70 or max_wind>=45: impact="HIGH"
-                elif max_rain>=45 or max_wind>=30: impact="MEDIUM"
+                # Destination risk is a 7-day watchlist; day impact must use only
+                # the forecast that belongs to this journey day.
+                day_forecasts={p["name"]:self._forecast_for_day(p["name"],d["day"],weather,calendar_weather) for p in day_places}
+                affected=[]; max_rain=0; max_wind=0
+                for name,forecast in day_forecasts.items():
+                    rain=max((x.get("rain") or 0) for x in forecast) if forecast else 0
+                    wind=max((x.get("wind") or 0) for x in forecast) if forecast else 0
+                    max_rain=max(max_rain,rain); max_wind=max(max_wind,wind)
+                    if rain>=70 or wind>=45: affected.append(name)
+                impact="HIGH" if (max_rain>=70 or max_wind>=45) else ("MEDIUM" if (max_rain>=45 or max_wind>=30) else "LOW")
                 weather_impact.append({"day":d["day"],"level":impact,"max_rain_probability":max_rain,"max_wind_kmh":max_wind,
+                    "forecast_basis":"calendar_date" if calendar_weather else "forecast_slot",
                     "action":"Ưu tiên hoạt động trong nhà hoặc dời hoạt động ngoài trời sang khung giờ an toàn hơn." if impact=="HIGH" else
                              ("Theo dõi sát và chừa buffer; chuẩn bị phương án thay thế." if impact=="MEDIUM" else "Chưa cần thay đổi lớn theo dữ liệu hiện có.")})
-                briefing.append({
-                    "day":d["day"], "title":f"Ngày {d['day']} — {day_places[0]['name']}",
+                briefing.append({"day":d["day"],"title":f"Ngày {d['day']} — {day_places[0]['name']}",
                     "talking_points":[f"Giới thiệu bối cảnh và điểm nổi bật của {p['name']}." for p in day_places[:3]],
-                    "hdv_check":"Kiểm tra thời tiết, thời gian di chuyển và nhu cầu khách trước khi khởi hành."
-                })
+                    "hdv_check":"Kiểm tra thời tiết, thời gian di chuyển và nhu cầu khách trước khi khởi hành."})
                 if affected:
-                    plan_b.append({"day":d["day"],
-                        "trigger":f"Rủi ro tại {', '.join(affected)}",
-                        "action":"Rút ngắn hoạt động ngoài trời, tăng buffer và chuyển sang điểm linh hoạt/trong nhà nếu điều kiện xấu.",
-                        "plan_c":"Nếu điều kiện xấu kéo dài, bỏ hoạt động ngoài trời có rủi ro cao và chuyển toàn bộ ngày sang chương trình trong nhà/điểm ít phụ thuộc thời tiết."})
+                    plan_b.append({"day":d["day"],"trigger":f"Rủi ro theo dự báo ngày này tại {', '.join(affected)}",
+                        "action":"Rút ngắn hoạt động ngoài trời, tăng buffer và chuyển sang điểm thay thế phù hợp.",
+                        "plan_c":"Nếu điều kiện xấu kéo dài, thay bằng điểm có cùng nhóm trải nghiệm."})
                 else:
-                    plan_b.append({"day":d["day"],
-                        "trigger":"Thời tiết chưa có cảnh báo lớn",
-                        "action":"Giữ lịch trình chính; chuẩn bị một phương án thay thế nếu dự báo thay đổi.",
-                        "plan_c":"Nếu phát sinh sự cố điểm chính, giữ tuyến và thay bằng điểm có cùng nhóm trải nghiệm."})
+                    plan_b.append({"day":d["day"],"trigger":"Không có cảnh báo lớn từ dự báo của ngày này.",
+                        "action":"Giữ lịch trình chính; vẫn theo dõi điều kiện thực tế trước giờ khởi hành.",
+                        "plan_c":"Nếu điều kiện thay đổi, giữ tuyến và thay điểm theo cùng nhóm trải nghiệm."})
+
         journey_memory={
             "context_key": re.sub(r"[^a-z0-9]+","-",(title or "journey").lower()).strip("-")[:80] or "journey",
             "summary": f"{len(days)} ngày/chặng, {len(places)} điểm, khoảng {round(journey_minutes/60,1)} giờ di chuyển + buffer ước tính.",
@@ -652,7 +673,6 @@ class JourneyIntelligenceEngine:
                 quality_flags.append(flag)
         quality={"score":max(0,100-len([x for x in quality_flags if x["severity"]=="HIGH"])*35-len([x for x in quality_flags if x["severity"]=="MEDIUM"])*15),"flags":quality_flags}
         raw_resolution=self.resolve_place_mentions(raw)
-        calendar_weather=self._calendarized_weather(weather,start_date,days)
         pending_clarification=[]
         for amb in raw_resolution.get("ambiguous",[]):
             pending_clarification.append({"type":"AMBIGUOUS_DESTINATION","mention":amb["mention"],"candidates":amb["candidates"],"message":amb["action"]})
