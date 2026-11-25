@@ -1,5 +1,6 @@
 
-import math, re, json, unicodedata, urllib.parse, urllib.request
+import math, re, json, unicodedata, urllib.parse, urllib.request, os
+from api_adapters import OPEN_API_ADAPTER
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from coverage_registry import resolve_known_place
@@ -44,7 +45,7 @@ def target_aliases(name):
     return {n, n.replace(" hills","").strip()}
 
 class JourneyIntelligenceEngine:
-    VERSION="1.14.3"
+    VERSION="1.14.5"
 
     PLACE_ALIASES = {
         "ba na hill": "Bà Nà Hills", "ba na hills": "Bà Nà Hills",
@@ -62,7 +63,7 @@ class JourneyIntelligenceEngine:
 
     def __init__(self, weather_provider=None, geocoder=None):
         self.weather_provider=weather_provider or self._open_meteo
-        self.geocoder=geocoder or self._nominatim
+        self.geocoder=geocoder or self._open_api_geocoder
 
     def parse_days(self, raw):
         """Parse both structured and natural Vietnamese day markers.
@@ -197,6 +198,15 @@ class JourneyIntelligenceEngine:
                     if p: found.append(p); break
         return found
 
+    def _open_api_geocoder(self,name):
+        """Use the configured Open API adapter; return HDVIA place shape."""
+        result=OPEN_API_ADAPTER.geocode(name)
+        for item in (result.get("data",{}).get("results",[]) if result.get("ok") else []):
+            lat=item.get("latitude"); lon=item.get("longitude")
+            if lat is not None and lon is not None:
+                return {"name":item.get("name") or name,"lat":float(lat),"lon":float(lon),"source":"open-meteo-geocoding","route_ready":True}
+        return self._nominatim(name)
+
     def _nominatim(self,name):
         try:
             q=urllib.parse.urlencode({"q":name+", Vietnam","format":"jsonv2","limit":1})
@@ -217,24 +227,20 @@ class JourneyIntelligenceEngine:
                  "code":-1,"tmin":None,"tmax":None,"rain":None,"wind":None} for i in range(7)]
 
     def _open_meteo(self,p):
-        params=urllib.parse.urlencode({
-            "latitude":p["lat"],"longitude":p["lon"],
-            "daily":"weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max",
-            "timezone":"Asia/Ho_Chi_Minh","forecast_days":7
-        })
-        try:
-            req=urllib.request.Request("https://api.open-meteo.com/v1/forecast?"+params,
-                                       headers={"User-Agent":"HDVIA/1.8.1-beta-commercial"})
-            with urllib.request.urlopen(req,timeout=8) as r:
-                d=json.loads(r.read().decode("utf-8"))["daily"]
-            return [{
-                "date":d["time"][i],"condition":WEATHER_CODES.get(d["weather_code"][i],"Biến động"),
-                "code":d["weather_code"][i],"tmin":d["temperature_2m_min"][i],
-                "tmax":d["temperature_2m_max"][i],"rain":d["precipitation_probability_max"][i],
-                "wind":d["windspeed_10m_max"][i]
-            } for i in range(len(d["time"]))]
-        except Exception:
-            return self._fallback_weather()
+        """Open-Meteo adapter with the existing deterministic fallback."""
+        live=OPEN_API_ADAPTER.weather(float(p["lat"]), float(p["lon"]), 7)
+        daily=live.get("data",{}).get("daily",{}) if live.get("ok") else {}
+        if daily.get("time"):
+            out=[]
+            for i,date in enumerate(daily.get("time",[])):
+                code=(daily.get("weather_code") or [None])[i]
+                out.append({"date":date,"condition":WEATHER_CODES.get(code,"Không rõ"),"code":code,
+                            "tmin":(daily.get("temperature_2m_min") or [None])[i],
+                            "tmax":(daily.get("temperature_2m_max") or [None])[i],
+                            "rain":(daily.get("precipitation_probability_max") or [None])[i],
+                            "wind":(daily.get("wind_speed_10m_max") or [None])[i]})
+            return out
+        return self._fallback_weather()
 
     def _normalize_weather(self, weather):
         """Guarantee the public contract contains exactly 7 forecast slots."""
@@ -283,6 +289,41 @@ class JourneyIntelligenceEngine:
             except ValueError:
                 continue
         return None
+
+    def _time_window_minutes(self, windows):
+        total=0
+        explicit=[]
+        for w in windows or []:
+            if not isinstance(w, dict):
+                continue
+            def mins(v):
+                h,m=map(int,str(v).split(":")); return h*60+m
+            a,b=mins(w["from"]),mins(w["to"])
+            if b < a:
+                b += 24*60
+            total += b-a
+            explicit.append((a,b))
+        return total, explicit
+
+    def _activity_minutes(self, activities, places_count):
+        base={"sightseeing":120,"food":60,"checkin":45,"outdoor":120,"transfer":30}
+        total=sum(base.get(x,0) for x in activities or [])
+        if not total and places_count:
+            total=90*places_count
+        return total
+
+    def _calendarized_weather(self, weather, start_date, days):
+        start=self._parse_start_date(start_date)
+        if not start:
+            return None
+        indexed={}
+        for name, forecast in weather.items():
+            by_date={str(x.get("date")):x for x in forecast if isinstance(x,dict)}
+            indexed[name]={}
+            for d in days:
+                actual=start+timedelta(days=d["day"]-1)
+                indexed[name][d["day"]]=by_date.get(str(actual))
+        return indexed
 
     def _time_window_minutes(self, windows):
         total=0
@@ -532,13 +573,21 @@ class JourneyIntelligenceEngine:
             route_ready=all(p.get("lat") is not None and p.get("lon") is not None for p in d.get("places", []))
             dist=(sum(haversine_km(d["places"][i],d["places"][i+1])
                      for i in range(len(d["places"])-1)) if route_ready else (0 if len(d.get("places",[]))<=1 else None))
-            # Conservative road-time estimate for planning only; live routing can replace it later.
-            drive_minutes=round((dist/45.0)*60) if dist is not None and dist else None
+            live_route=None
+            if route_ready and len(d.get("places",[]))>1:
+                coords=";".join(f'{p["lon"]},{p["lat"]}' for p in d["places"])
+                live=OPEN_API_ADAPTER.route(coords)
+                if live.get("ok"):
+                    rr=(live.get("data") or {}).get("routes") or []
+                    if rr: live_route=rr[0]
+            drive_minutes=(round(float(live_route.get("duration",0))/60) if live_route else (round((dist/45.0)*60) if dist is not None and dist else None))
+            live_distance_km=(round(float(live_route.get("distance",0))/1000,1) if live_route else dist)
             buffer_minutes=round(drive_minutes*0.20) if drive_minutes else None
             journey_minutes += (drive_minutes or 0) + (buffer_minutes or 0)
             route.append({"day":d["day"],"text":d["text"],
                           "places":[p["name"] for p in d["places"]],
-                          "distance_km":round(dist,1) if dist is not None else None,
+                          "distance_km":live_distance_km,
+                          "routing_source":"osrm-live" if live_route else "hdvia-haversine-estimate",
                           "estimated_drive_minutes":drive_minutes,
                           "recommended_buffer_minutes":buffer_minutes,
                           "time_windows":d.get("time_windows",[]),

@@ -21,6 +21,7 @@ from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
 from external_world import build_external_world_from_env, SyncEngine, ExternalAIOrchestrator, AgentExecutor, AgentExecutionPolicy
 from public_apis import weather, geocode, air_quality, marine, search_place, route, wikipedia_search, wikidata_search, country
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
+from api_adapters import OPEN_API_ADAPTER, API_LAYER_VERSION
 from knowledge_learning import KnowledgeLearningPipeline
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
 
@@ -111,7 +112,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS api_keys(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,owner_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL,last_used_at TEXT,FOREIGN KEY(owner_id) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
-    admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","Nhatkhang@123")
+    admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","").strip()
+    if not admin_email or not admin_password:
+        raise RuntimeError("HDVIA_ADMIN_EMAIL and HDVIA_DEMO_ADMIN_PASSWORD must be configured before startup.")
     if not c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone():
         c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                   ("HDVIA Super Admin","0000000000",admin_email,generate_password_hash(admin_password),"SUPER_ADMIN","L4","ACTIVE",now()))
@@ -824,9 +827,13 @@ def _open_api_required(f):
 
 
 
+@app.get("/api/v1/public-api/health")
+def public_api_health():
+    return jsonify({"ok": True, "adapter": OPEN_API_ADAPTER.status(), "time": now()})
+
 @app.get("/api/v1/public-api/catalog")
 def public_api_catalog():
-    return jsonify({"ok": True, "version": "1.13.1-public-apis", "providers": [
+    return jsonify({"ok": True, "version": API_LAYER_VERSION, "providers": [
         {"name":"open_meteo","group":"weather","free":True,"auth":"none"},
         {"name":"open_meteo_geocoding","group":"geocoding","free":True,"auth":"none"},
         {"name":"open_meteo_air_quality","group":"air_quality","free":True,"auth":"none"},
@@ -836,15 +843,18 @@ def public_api_catalog():
         {"name":"wikipedia","group":"knowledge","free":True,"auth":"none"},
         {"name":"wikidata","group":"knowledge_graph","free":True,"auth":"none"},
         {"name":"rest_countries","group":"countries","free":True,"auth":"bearer token"},
+        {"name":"sunrise_sunset","group":"astronomy","free":True,"auth":"none"},
+        {"name":"overpass","group":"osm_poi","free":True,"auth":"none","rate_limit":"public infrastructure; cache and rate-limit required"},
+        {"name":"opentripmap","group":"tourism_poi","free":False,"auth":"api key","note":"optional; key supplied via OPENTRIPMAP_API_KEY"},
     ]})
 
 @app.get("/api/v1/public-api/weather")
 def public_api_weather():
-    return jsonify(weather(float(request.args.get("lat")), float(request.args.get("lon")), int(request.args.get("days", 7))))
+    return jsonify(OPEN_API_ADAPTER.weather(float(request.args.get("lat")), float(request.args.get("lon")), int(request.args.get("days", 7))))
 
 @app.get("/api/v1/public-api/geocode")
 def public_api_geocode():
-    return jsonify(geocode(request.args.get("q", ""), int(request.args.get("count", 5))))
+    return jsonify(OPEN_API_ADAPTER.geocode(request.args.get("q", "")))
 
 @app.get("/api/v1/public-api/air-quality")
 def public_api_air_quality():
@@ -860,7 +870,27 @@ def public_api_search_place():
 
 @app.get("/api/v1/public-api/route")
 def public_api_route():
-    return jsonify(route(request.args.get("coords", ""), request.args.get("profile", "driving")))
+    return jsonify(OPEN_API_ADAPTER.route(request.args.get("coords", ""), request.args.get("profile", "driving")))
+
+@app.get("/api/v1/public-api/sun")
+def public_api_sun():
+    return jsonify(OPEN_API_ADAPTER.sun(float(request.args.get("lat")), float(request.args.get("lon")), request.args.get("date")))
+
+@app.get("/api/v1/public-api/osm")
+def public_api_osm():
+    return jsonify(OPEN_API_ADAPTER.osm_search(request.args.get("q", ""), int(request.args.get("limit", 5))))
+
+@app.get("/api/v1/public-api/opentripmap/places")
+def public_api_opentripmap_places():
+    return jsonify(OPEN_API_ADAPTER.opentripmap_places(float(request.args.get("lat")), float(request.args.get("lon")), int(request.args.get("radius", 5000)), request.args.get("kinds", "interesting_places")))
+
+@app.get("/api/v1/public-api/opentripmap/details")
+def public_api_opentripmap_details():
+    return jsonify(OPEN_API_ADAPTER.opentripmap_details(request.args.get("xid", "")))
+
+@app.get("/api/v1/public-api/destination/enrich")
+def public_api_destination_enrich():
+    return jsonify(OPEN_API_ADAPTER.enrich_destination(request.args.get("q", ""), request.args.get("lat", type=float), request.args.get("lon", type=float)))
 
 @app.get("/api/v1/public-api/wikipedia")
 def public_api_wikipedia():
@@ -876,7 +906,7 @@ def public_api_country():
 
 @app.get("/api/v1/external-world/status")
 def external_world_status():
-    return jsonify({"ok": True, "version": "1.13.1-public-apis", "layers": {
+    return jsonify({"ok": True, "version": API_LAYER_VERSION, "layers": {
         "two_way_sync": True, "provider_integration": True, "external_ai_orchestration": True, "agent_execution": True
     }, "providers": external_world.status(), "agent": {"dry_run_default": True}})
 
@@ -973,11 +1003,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.14.3-vietnam-knowledge-hardening","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.14.5-open-api-orchestrator","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.14.3-vietnam-knowledge-hardening","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.14.5-open-api-orchestrator","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
