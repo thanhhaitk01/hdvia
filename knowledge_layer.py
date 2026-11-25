@@ -26,11 +26,48 @@ def load_knowledge():
     return data
 
 
+@lru_cache(maxsize=1)
+def _knowledge_index():
+    """Pre-tokenize curated entries so repeated HDV questions stay fast.
+
+    The index is deterministic and read-only; it changes retrieval performance,
+    not the underlying knowledge or ranking semantics.
+    """
+    rows=[]
+    for item in load_knowledge().get("entries", []):
+        hay = " ".join([
+            item.get("title", ""), item.get("destination", ""),
+            item.get("category", ""), item.get("summary", ""),
+            " ".join(item.get("keywords", [])), item.get("content", "")
+        ]).lower()
+        rows.append((item, _tokens(hay)))
+    return tuple(rows)
+
+
+@lru_cache(maxsize=4096)
+def _search_knowledge_cached(query_norm: str, limit: int):
+    q = _tokens(query_norm)
+    if not q:
+        return ()
+    scored = []
+    for item, t in _knowledge_index():
+        score = len(q & t)
+        if item.get("destination", "").lower() in query_norm:
+            score += 3
+        if item.get("category", "").lower() in query_norm:
+            score += 1
+        if score:
+            scored.append((score, item))
+    scored.sort(key=lambda x: (-x[0], x[1].get("id", "")))
+    return tuple(item for _, item in scored[:limit])
+
+
 
 def _norm(s):
     return " ".join(re.findall(r"[\wÀ-ỹĐđ]+", (s or "").lower(), flags=re.UNICODE))
 
 
+@lru_cache(maxsize=4096)
 def catalog_entries(query=""):
     """Return structured catalog knowledge when curated KB has no direct hit.
 
@@ -58,28 +95,11 @@ def catalog_entries(query=""):
     return out
 
 def search_knowledge(query, limit=5):
-    """Return the most relevant curated entries using transparent token scoring."""
-    q = _tokens(query)
-    if not q:
+    """Return relevant curated entries with deterministic cached retrieval."""
+    query_norm = _norm(query)
+    if not query_norm:
         return []
-    scored = []
-    for item in load_knowledge().get("entries", []):
-        hay = " ".join([
-            item.get("title", ""), item.get("destination", ""),
-            item.get("category", ""), item.get("summary", ""),
-            " ".join(item.get("keywords", [])), item.get("content", "")
-        ]).lower()
-        t = _tokens(hay)
-        score = len(q & t)
-        # Destination/category matches are deliberately weighted higher.
-        if item.get("destination", "").lower() in (query or "").lower():
-            score += 3
-        if item.get("category", "").lower() in (query or "").lower():
-            score += 1
-        if score:
-            scored.append((score, item))
-    scored.sort(key=lambda x: (-x[0], x[1].get("id", "")))
-    result=[item for _, item in scored[:limit]]
+    result = list(_search_knowledge_cached(query_norm, limit))
     if len(result) < limit:
         seen={item.get("id") for item in result}
         for item in catalog_entries(query):

@@ -12,6 +12,7 @@ from knowledge_layer import search_knowledge
 from province_data import PROVINCES_2025
 from destination_catalog import DESTINATIONS
 from coverage_registry import CATEGORIES, resolve_known_place
+from journey_engine.engine import haversine_km
 
 INTENTS = {
     "WEATHER": ("thời tiết", "mưa", "nhiệt độ", "nắng", "gió", "bão", "dông", "weather"),
@@ -19,7 +20,7 @@ INTENTS = {
     "CULTURE": ("văn hóa", "phong tục", "truyền thống", "tập quán", "di sản"),
     "FOOD": ("ẩm thực", "món ăn", "đặc sản", "ăn gì", "quán ăn", "nhà hàng"),
     "GUIDE_SCRIPT": ("thuyết minh", "giới thiệu", "nói với khách", "bài thuyết minh", "kịch bản"),
-    "ROUTE": ("lộ trình", "đi bao lâu", "khoảng cách", "quãng đường", "di chuyển", "tuyến"),
+    "ROUTE": ("lộ trình", "đi bao lâu", "mất bao lâu", "bao lâu để đi", "khoảng cách", "quãng đường", "di chuyển", "tuyến"),
     "ITINERARY": ("ngày 1", "ngày 2", "ngày 3", "ngày 4", "ngày 5", "lịch trình", "tour", "hành trình"),
     "RISK": ("rủi ro", "cảnh báo", "nguy hiểm", "an toàn", "mưa bão", "đường xấu"),
     "PLAN_B": ("plan b", "phương án dự phòng", "thay thế", "nếu trời mưa", "nếu mưa"),
@@ -27,6 +28,15 @@ INTENTS = {
     "EXPERIENCE": ("kinh nghiệm", "mẹo", "lưu ý", "nên làm gì", "gợi ý"),
     "DESTINATION": ("ở đâu", "có gì", "nổi tiếng", "điểm đến", "tham quan"),
     "KNOWLEDGE_GAP": ("chưa có dữ liệu", "chưa biết", "có nguồn không", "nguồn chính thức", "kiểm chứng"),
+    "ECONOMY": ("kinh tế", "ngành kinh tế", "thu nhập", "sản xuất", "doanh nghiệp"),
+    "PEOPLE": ("dân cư", "người dân", "dân số", "cộng đồng", "dân tộc"),
+    "ADMIN": ("tỉnh", "thành phố", "hành chính", "địa giới", "đơn vị hành chính", "thuộc vùng", "vùng nào"),
+    "RELIGION": ("tôn giáo", "tín ngưỡng", "thờ", "đền", "chùa", "nhà thờ"),
+    "NATURE": ("thiên nhiên", "hệ sinh thái", "địa chất", "rừng", "hang động", "sông", "núi"),
+    "TRANSPORT": ("giao thông", "sân bay", "bến xe", "tàu", "xe", "đường"),
+    "SHOPPING": ("mua sắm", "đặc sản mua", "quà", "quà lưu niệm", "chợ", "mua"),
+    "FESTIVAL": ("lễ hội", "sự kiện", "festival", "ngày hội"),
+    "SUSTAINABILITY": ("du lịch bền vững", "môi trường", "rác thải", "bảo tồn"),
 }
 
 FOLLOWUPS = {
@@ -42,6 +52,15 @@ FOLLOWUPS = {
     "TOURIST_PROFILE": ["Khách này thường quan tâm điều gì?", "Nên thuyết minh theo cách nào?", "Có lưu ý văn hóa nào cho HDV không?"],
     "EXPERIENCE": ["Lưu ý quan trọng nhất cho HDV là gì?", "Có lỗi thường gặp nào cần tránh?", "Có thể áp dụng vào lịch trình hiện tại thế nào?"],
     "DESTINATION": ["Điểm nổi bật nhất để giới thiệu là gì?", "Có câu chuyện nào hay để thuyết minh về điểm này?", "Món ăn và trải nghiệm nào nên kết hợp?"],
+    "ECONOMY": ["Ngành kinh tế nào nổi bật ở địa phương này?", "Thông tin kinh tế nào HDV có thể giới thiệu an toàn cho khách?"],
+    "PEOPLE": ["Cộng đồng nào sinh sống và tạo nên bản sắc địa phương?", "Có lưu ý văn hóa nào khi giới thiệu về cộng đồng này?"],
+    "ADMIN": ["Địa phương này thuộc vùng nào?", "Có thông tin hành chính nào cần xác minh trước khi thuyết minh?"],
+    "RELIGION": ["Địa điểm tín ngưỡng này có ý nghĩa gì?", "HDV cần lưu ý gì khi giới thiệu không gian tôn giáo?"],
+    "NATURE": ["Giá trị tự nhiên nổi bật là gì?", "Có yếu tố bảo tồn nào HDV cần lưu ý?"],
+    "TRANSPORT": ["Có những cách di chuyển nào phù hợp?", "Thông tin giao thông nào cần dữ liệu LIVE trước khi tư vấn?"],
+    "SHOPPING": ["Đặc sản nào có thể giới thiệu?", "Khi tư vấn mua sắm cần xác minh giá và nguồn gốc thế nào?"],
+    "FESTIVAL": ["Lễ hội hoặc sự kiện nào nổi bật?", "Thông tin thời gian tổ chức cần xác minh từ nguồn nào?"],
+    "SUSTAINABILITY": ["HDV nên hướng dẫn khách du lịch có trách nhiệm thế nào?", "Có điểm nào cần lưu ý về bảo tồn và môi trường?"],
 }
 
 
@@ -117,7 +136,75 @@ class ConversationIntelligenceEngine:
         intents=self.detect_intents(q)
         places=self.resolve_places(q)
         primary=intents[0] if intents else "GENERAL_QA"
+        # Resolve action-oriented questions before broad context intents.
+        # A conditional request such as "nếu mưa thì đổi lịch thế nào" is
+        # operationally a PLAN_B request, even though WEATHER is also present.
+        qn=_norm(q)
+        if "PLAN_B" in intents and any(x in qn for x in ("nếu mưa", "nếu trời mưa", "plan b", "phương án dự phòng", "phương án thay thế")):
+            primary="PLAN_B"
+        elif "KNOWLEDGE_GAP" in intents and any(x in qn for x in ("nguồn chính thức", "có nguồn không", "kiểm chứng", "theo nguồn")):
+            primary="KNOWLEDGE_GAP"
+        elif "TOURIST_PROFILE" in intents and any(x in qn for x in ("khách ấn", "khách hàn", "khách nhật", "khách trung", "khách việt", "khách lớn tuổi", "trẻ em")):
+            primary="TOURIST_PROFILE"
+        elif "TOURIST_PROFILE" in intents and "khách quốc tế" in qn and any(x in qn for x in ("cần lưu ý", "quan tâm", "phù hợp", "nên giới thiệu", "nên thuyết minh")):
+            primary="TOURIST_PROFILE"
+        elif "ROUTE" in intents and any(x in qn for x in ("mất bao lâu", "bao lâu để đi", "khoảng cách", "quãng đường")):
+            primary="ROUTE"
+        elif "RISK" in intents and any(x in qn for x in ("nguy hiểm", "an toàn", "cảnh báo", "rủi ro")):
+            primary="RISK"
+        else:
+            # Prefer the explicit subject of the question over incidental context
+            # such as "trong mùa mưa" or "cho khách quốc tế".
+            lead_priority=("HISTORY", "CULTURE", "FOOD", "GUIDE_SCRIPT", "WEATHER", "ITINERARY", "ROUTE", "RISK", "ECONOMY", "PEOPLE", "ADMIN", "RELIGION", "NATURE", "TRANSPORT", "SHOPPING", "FESTIVAL", "SUSTAINABILITY", "EXPERIENCE", "DESTINATION")
+            lead_text=_norm(q.split("?", 1)[0])
+            for candidate in lead_priority:
+                if candidate in intents:
+                    markers={
+                        "HISTORY": ("lịch sử",), "CULTURE": ("văn hóa",),
+                        "FOOD": ("ẩm thực", "đặc sản", "món ăn", "ăn gì"),
+                        "GUIDE_SCRIPT": ("thuyết minh", "giới thiệu", "nói với khách", "bài thuyết minh", "kịch bản"),
+                        "WEATHER": ("thời tiết", "nhiệt độ", "gió", "bão", "dông"),
+                        "ITINERARY": ("lịch trình", "hành trình", "tour", "ngày 1", "ngày 2"),
+                        "EXPERIENCE": ("kinh nghiệm", "mẹo", "lưu ý", "nên làm gì", "gợi ý"),
+                        "DESTINATION": ("có gì", "nổi tiếng", "điểm đến", "ở đâu"),
+                        "ECONOMY": ("kinh tế", "ngành kinh tế", "thu nhập", "sản xuất", "doanh nghiệp"),
+                        "PEOPLE": ("dân cư", "người dân", "dân số", "cộng đồng", "dân tộc"),
+                        "ADMIN": ("tỉnh", "thành phố", "hành chính", "địa giới", "đơn vị hành chính", "thuộc vùng", "vùng nào"),
+                        "RELIGION": ("tôn giáo", "tín ngưỡng", "thờ", "đền", "chùa", "nhà thờ"),
+                        "NATURE": ("thiên nhiên", "hệ sinh thái", "địa chất", "rừng", "hang động", "sông", "núi"),
+                        "TRANSPORT": ("giao thông", "sân bay", "bến xe", "tàu", "xe", "đường"),
+                        "SHOPPING": ("mua sắm", "đặc sản mua", "quà", "quà lưu niệm", "chợ", "mua"),
+                        "FESTIVAL": ("lễ hội", "sự kiện", "festival", "ngày hội"),
+                        "SUSTAINABILITY": ("du lịch bền vững", "môi trường", "rác thải", "bảo tồn"),
+                    }[candidate]
+                    if any(m in lead_text for m in markers):
+                        primary=candidate; break
         lines=[]; sources=[]; confidence="LOW"
+        data_status="UNKNOWN"
+
+        # Route questions without a Journey context can still be useful when two
+        # curated places have coordinates. This is deliberately labelled ESTIMATE
+        # because it is straight-line distance, not live road routing or traffic.
+        if primary == "ROUTE" and len(places) >= 2:
+            a, b = places[0], places[1]
+            ac = a.get("catalog") or a; bc = b.get("catalog") or b
+            if ac.get("lat") is not None and ac.get("lon") is not None and bc.get("lat") is not None and bc.get("lon") is not None:
+                km = haversine_km(ac, bc)
+                lines.append(f"Ước tính khoảng cách đường chim bay giữa {a['name']} và {b['name']} là {km:.0f} km.")
+                lines.append("Đây là ESTIMATE, không phải thời gian/ khoảng cách đường bộ LIVE. Muốn tính thời gian di chuyển cần dùng tuyến đường thực tế và tình trạng giao thông.")
+                confidence="MEDIUM"; data_status="ESTIMATE"; sources.append("HDVIA Geo Estimate")
+        elif primary == "PLAN_B" and not journey:
+            if places:
+                lines.append(f"HDVIA đã xác định yêu cầu Plan B cho {places[0]['name']}, nhưng chưa có dữ liệu thời tiết/lịch trình LIVE đi kèm để chọn một phương án thay thế cụ thể.")
+                lines.append("Không tự bịa điểm thay thế. Khi có lịch trình và thời tiết, HDVIA sẽ đối chiếu các điểm phù hợp, thời gian di chuyển và mức rủi ro trước khi đề xuất.")
+                confidence="MEDIUM"; data_status="UNKNOWN"; sources.append("HDVIA Plan B Safety Guard")
+        elif primary == "TOURIST_PROFILE" and not journey:
+            profile_terms = [x for x in ("khách Ấn Độ", "khách Hàn", "khách Nhật", "khách Trung Quốc", "khách quốc tế") if x in qn]
+            profile_name = profile_terms[0] if profile_terms else "nhóm khách này"
+            if places:
+                lines.append(f"HDVIA nhận diện nhóm khách {profile_name} và điểm đến {places[0]['name']}, nhưng chưa có hồ sơ khách đã kiểm duyệt đủ sâu để đưa ra khuyến nghị đặc thù.")
+                lines.append("Hệ thống không suy diễn khẩu vị, tôn giáo hoặc hành vi của khách chỉ từ quốc tịch; cần hồ sơ đoàn cụ thể hoặc nguồn đã kiểm chứng.")
+                confidence="MEDIUM"; data_status="UNKNOWN"; sources.append("HDVIA Tourist Profile Safety Guard")
 
         if journey:
             if primary == "WEATHER" and journey.get("weather"):
@@ -128,7 +215,7 @@ class ConversationIntelligenceEngine:
                         lines.append(f"{place}: xác suất mưa cao nhất trong 7 ngày là khoảng {max_rain}%." )
                 if lines:
                     lines.insert(0,"HDVIA đã dùng dữ liệu thời tiết của chính hành trình để trả lời:")
-                    confidence="HIGH"
+                    confidence="HIGH"; data_status="LIVE"
                     sources.append("Journey Intelligence / Weather")
             if primary in ("RISK","PLAN_B","ITINERARY","ROUTE"):
                 if journey.get("risks"):
@@ -138,13 +225,49 @@ class ConversationIntelligenceEngine:
                 if journey.get("days"):
                     lines.append(f"Lịch trình hiện có {len(journey['days'])} ngày/chặng được nhận diện.")
                 if lines:
-                    confidence="HIGH"; sources.append("Journey Intelligence")
+                    confidence="HIGH"; data_status="LIVE"; sources.append("Journey Intelligence")
+
+        if primary == "KNOWLEDGE_GAP":
+            # A request for an official/authoritative source is a provenance
+            # question, not a request to recycle ordinary destination prose.
+            hits=search_knowledge(q, limit=6)
+            if places:
+                place_names={_norm(p.get("name")) for p in places}
+                hits=[h for h in hits if _norm(h.get("destination")) in place_names]
+            if hits and places:
+                labels=[h.get("source") or h.get("title") for h in hits]
+                labels=list(dict.fromkeys(x for x in labels if x))
+                lines.append("HDVIA có các nhãn nguồn/tri thức liên quan sau: " + "; ".join(labels[:3]) + ".")
+                lines.append("Đây chưa phải xác nhận rằng các nhãn trên là cơ quan phát hành chính thức. Muốn khẳng định tính chính thống cần nguồn gốc/URL hoặc registry nguồn tương ứng.")
+                confidence="MEDIUM"; data_status="UNKNOWN"; sources.extend(labels[:3])
+            elif places:
+                lines.append(f"HDVIA nhận diện {places[0]['name']} nhưng chưa có registry nguồn chính thức đủ dữ liệu để xác nhận URL/cơ quan phát hành cho câu hỏi này.")
+                lines.append("Không tự gắn nhãn một nguồn bất kỳ thành nguồn chính thức.")
+                confidence="LOW"; data_status="UNKNOWN"; sources.append("HDVIA Source Registry")
+
+        # Additional tourism domains: use only curated fields or explicitly expose a knowledge boundary.
+        if primary == "ADMIN" and places:
+            p=places[0]
+            lines.append(f"{p['name']} được HDVIA nhận diện thuộc {p.get('province', p.get('region',''))} và vùng {p.get('region','')}.")
+            lines.append("Đây là thông tin nhận diện/coverage; các thay đổi hành chính cần được xác minh theo dữ liệu chính thức mới nhất trước khi thuyết minh.")
+            confidence="MEDIUM"; data_status="VERIFIED"; sources.append("HDVIA Coverage Registry")
+        elif primary in ("ECONOMY","PEOPLE","TRANSPORT","FESTIVAL","SUSTAINABILITY") and places:
+            lines.append(f"HDVIA đã nhận diện {places[0]['name']}, nhưng Kho tri thức hiện tại chưa có đủ dữ liệu kiểm duyệt cho câu hỏi {primary.lower()} này.")
+            lines.append("Không tự suy đoán số liệu, lịch tổ chức, tình hình giao thông hoặc thông tin kinh tế/xã hội. Cần bổ sung nguồn chuyên ngành hoặc dữ liệu LIVE phù hợp.")
+            confidence="LOW"; data_status="UNKNOWN"; sources.append("HDVIA Knowledge Boundary")
+        elif primary in ("PEOPLE","RELIGION","NATURE","SHOPPING") and places and places[0].get("catalog"):
+            d=places[0]["catalog"]
+            detail=(d.get("culture","") if primary in ("PEOPLE","RELIGION") else d.get("overview","") if primary=="NATURE" else d.get("food",""))
+            if detail:
+                lines.append(f"{d['name']}: {detail}")
+                lines.append("Lưu ý: đây là mô tả trong catalog; thông tin định lượng, giá, giờ mở cửa hoặc tình trạng hiện tại cần nguồn LIVE/nguồn chính thức.")
+                confidence="MEDIUM"; data_status="VERIFIED"; sources.append("HDVIA Destination Catalog")
 
         hits=search_knowledge(q, limit=3)
         if places:
             place_names={_norm(p.get("name")) for p in places}
             hits=[h for h in hits if _norm(h.get("destination")) in place_names or any(_norm(p.get("name")) in _norm(h.get("content","")) for p in places)]
-        if hits and primary not in ("WEATHER", "ROUTE", "RISK", "PLAN_B", "GENERAL_QA"):
+        if hits and primary not in ("WEATHER", "ROUTE", "RISK", "PLAN_B", "TOURIST_PROFILE", "KNOWLEDGE_GAP", "GENERAL_QA"):
             lines.append("Theo dữ liệu du lịch đã được HDVIA kiểm duyệt/đăng ký:")
             for item in hits:
                 catalog=item.get("catalog") or {}
@@ -163,8 +286,9 @@ class ConversationIntelligenceEngine:
                     lines.append("  Điểm nổi bật: " + ", ".join(catalog["highlights"][:5]) + ".")
                 sources.append(item.get("source") or item.get("title", "Kho tri thức"))
             confidence="HIGH" if any(item.get("source") == "HDVIA Destination Catalog" for item in hits) else ("MEDIUM" if len(hits)>=2 else "LOW")
+            data_status="VERIFIED"
 
-        if not lines and places and places[0].get("catalog") and not _requires_verified_detail(q, primary):
+        if not lines and places and places[0].get("catalog") and primary in ("HISTORY", "CULTURE", "FOOD", "GUIDE_SCRIPT", "DESTINATION", "GENERAL_QA") and not _requires_verified_detail(q, primary):
             d=places[0]["catalog"]
             if primary in ("FOOD",):
                 lines.append(f"{d['name']}: {d.get('food','Chưa có dữ liệu ẩm thực trong catalog.')}")
@@ -177,7 +301,7 @@ class ConversationIntelligenceEngine:
                 if d.get('highlights'):
                     lines.append("Điểm nổi bật: " + ", ".join(d['highlights'][:4]) + ".")
             lines.append(f"Phù hợp: {d.get('best_for','Chưa có dữ liệu phân nhóm trải nghiệm.')}")
-            confidence="MEDIUM"; sources.append("HDVIA Destination Catalog")
+            confidence="MEDIUM"; data_status="VERIFIED"; sources.append("HDVIA Destination Catalog")
 
         if not lines:
             if places:
@@ -186,10 +310,12 @@ class ConversationIntelligenceEngine:
                 lines.append("Tên địa điểm đã được nhận diện, nhưng HDVIA chưa có đủ tri thức đã kiểm duyệt để khẳng định chi tiết cho câu hỏi này; hệ thống không tự bịa thông tin.")
                 lines.append("Có thể tiếp tục bằng cách hỏi về lịch sử, văn hóa, ẩm thực, thuyết minh, thời tiết hoặc Plan B của chính địa điểm này.")
                 confidence="MEDIUM"
+                data_status="UNKNOWN"
                 sources.append("HDVIA Coverage Registry")
             else:
                 lines.append("HDVIA đã hiểu câu hỏi nhưng chưa có nguồn dữ liệu đủ tin cậy để trả lời trực tiếp. Hãy thêm tên địa điểm, thời gian hoặc tình huống cụ thể để hệ thống phân tích chính xác hơn.")
                 confidence="LOW"
+                data_status="UNKNOWN"
 
         return {
             "ok": True,
@@ -200,6 +326,7 @@ class ConversationIntelligenceEngine:
             "places": places,
             "answer": "\n".join(lines),
             "confidence": confidence,
+            "data_status": data_status,
             "sources": list(dict.fromkeys(sources))[:6],
             "predicted_questions": self.predict_questions(q, intents, places),
             "coverage": {"categories": CATEGORIES, "recognized_place_count": len(places),

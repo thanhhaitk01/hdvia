@@ -1,4 +1,4 @@
-"""Journey Data Fusion for HDVIA 1.15.0.
+"""Journey Data Fusion for HDVIA 1.22.0.
 
 Turns the existing vendor-neutral API adapters into a single, small, reviewable
 payload consumed by Journey AI. External providers are optional and fail closed;
@@ -15,7 +15,7 @@ from api_adapters import OPEN_API_ADAPTER
 from knowledge_intelligence import destination_card
 
 
-FUSION_VERSION = "1.15.0-journey-data-fusion"
+FUSION_VERSION = "1.22.0-journey-data-fusion"
 
 
 def _enabled(name: str, default: bool = True) -> bool:

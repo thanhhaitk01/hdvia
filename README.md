@@ -1,8 +1,8 @@
-# HDVIA Beta 1.15.0 — Journey Data Fusion
+# HDVIA Beta 1.22.0 — Journey Data Fusion
 
-Release baseline: `1.15.0-knowledge-journey-intelligence`
+Release baseline: `1.22.0-tour-intelligence`
 
-Beta 1.15.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
+Beta 1.22.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
 
 ## Open/Public providers
 - Open-Meteo: weather + geocoding
@@ -19,7 +19,7 @@ Beta 1.15.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và b�
 ## Environment
 See `.env.example` for `HDVIA_OPEN_API_TIMEOUT`, `HDVIA_OPEN_API_CACHE_TTL`, `HDVIA_LIVE_WEATHER`, `HDVIA_LIVE_GEOCODING`, `HDVIA_LIVE_ROUTING`.
 
-## Beta 1.15.0 Knowledge Expansion
+## Beta 1.22.0 Knowledge Expansion
 
 HDVIA 1.14.8 includes a controlled Knowledge Expansion Engine on top of Journey Data Fusion. It provides:
 - 9 knowledge domains: geography, history, culture, people, food, tourism, nature, operations, guide experience.
@@ -32,7 +32,7 @@ HDVIA 1.14.8 includes a controlled Knowledge Expansion Engine on top of Journey 
 External data is never treated as verified merely because it was retrieved successfully.
 
 
-## Beta 1.15.0 — Knowledge & Journey Intelligence Upgrade
+## Beta 1.22.0 — Knowledge & Journey Intelligence Upgrade
 
 This release keeps the 1.14.8 seven-layer Data Fusion baseline and adds five hardening layers:
 - Knowledge Graph 1.1.0 with explicit verified/external edges.
