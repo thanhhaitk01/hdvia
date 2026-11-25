@@ -1,12 +1,56 @@
 {% extends 'base.html' %}
-{% block title %}Lập & phân tích hành trình – HDVIA{% endblock %}
+{% block title %}Hành Trình AI – HDVIA{% endblock %}
 {% block content %}
 <section class="journey-page journey-layout">
-<div class="page-hero"><span class="eyebrow">HÀNH TRÌNH</span><h1>Lập & phân tích hành trình</h1><p>Phân tích lịch trình, thời tiết, cảnh báo, lộ trình và phương án dự phòng cho chuyến đi của bạn.</p></div>
-<section class="journey-input card"><div class="eyebrow cyan">✎ NHẬP HÀNH TRÌNH</div><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><label>Tên hành trình</label><input name="title" value="{{request.form.get('title','Hành trình Đà Nẵng – Hội An – Huế')}}" maxlength="200" required><label>Lịch trình (theo ngày)</label><textarea name="itinerary" rows="5" required placeholder="Ngày 1: Đà Nẵng – Hội An&#10;Ngày 2: Hội An – Huế&#10;Ngày 3: Huế – Đà Nẵng">{{request.form.get('itinerary','')}}</textarea><button class="btn primary full" type="submit">⌕ &nbsp; Phân tích hành trình</button></form></section>
+<div class="page-hero">
+  <span class="eyebrow">HÀNH TRÌNH AI</span>
+  <h1>HÀNH TRÌNH AI</h1>
+  <p>Nhập địa điểm, điểm tham quan, câu hỏi hoặc cả lịch trình. HDVIA sẽ tự nhận diện yêu cầu và phân tích theo dữ liệu hiện có.</p>
+</div>
+
+<section class="journey-input card ai-query-card">
+  <div class="eyebrow cyan">⌕ HỎI HDVIA</div>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+    <label for="query">Bạn muốn biết gì về hành trình?</label>
+    <input id="query" name="query" value="{{query or request.form.get('query','')}}" maxlength="1000"
+           autocomplete="off"
+           placeholder="Ví dụ: Đà Nẵng mùa này có mưa không?">
+    <div class="ai-query-hints">
+      <button type="button" onclick="document.getElementById('query').value='Đà Nẵng mùa này có mưa không?'">🌧 Thời tiết Đà Nẵng</button>
+      <button type="button" onclick="document.getElementById('query').value='Đà Nẵng → Hội An → Huế 4 ngày'">🗺 Lịch trình 4 ngày</button>
+      <button type="button" onclick="document.getElementById('query').value='Lăng Khải Định'">📍 Điểm tham quan</button>
+    </div>
+    <button class="btn primary full" type="submit">⌕ &nbsp; Phân tích bằng Hành Trình AI</button>
+  </form>
+</section>
+
 {% if journey_error %}<div class="alert danger">{{journey_error}}</div>{% endif %}
 {% if result %}
 <section class="analysis-result">
+  {% if result.get('answer') %}
+  <article class="result-card ai-answer-card">
+    <div class="eyebrow cyan">✦ HDVIA HIỂU YÊU CẦU</div>
+    <h3>{{result.get('answer')}}</h3>
+    <p class="ai-intent">Ý định: {{result.get('intent','GENERAL_QA')}} · {{result.get('places',[])|map(attribute='name')|join(' · ') if result.get('places') else ''}}</p>
+    <div class="ai-confidence">Độ tin cậy: <b>{{result.get('confidence','LOW')}}</b>{% if result.get('sources') %} · Nguồn: {{result.get('sources')|join(' · ')}}{% endif %}</div>
+  </article>
+  {% if result.get('predicted_questions') %}
+  <article class="result-card ai-followup-card">
+    <div class="eyebrow cyan">✦ CÂU HỎI GỢI Ý</div>
+    <h3>HDVIA dự đoán sếp có thể muốn hỏi tiếp</h3>
+    <div class="ai-predicted-list">
+      {% for suggestion in result.get('predicted_questions',[]) %}
+      <form method="post" class="ai-predicted-form">
+        <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+        <input type="hidden" name="query" value="{{suggestion}}">
+        <button type="submit" class="ai-predicted-question">{{suggestion}}</button>
+      </form>
+      {% endfor %}
+    </div>
+  </article>
+  {% endif %}
+  {% endif %}
   <div class="section-head"><h2>▥ KẾT QUẢ PHÂN TÍCH</h2><small>Ngày phân tích: {{result.get('analyzed_at', result.get('generated_at',''))}}</small></div>
   <nav class="analysis-tabs" aria-label="Các phần phân tích hành trình">
     <a class="active" href="#tong-quan">🗺 Tổng quan</a>

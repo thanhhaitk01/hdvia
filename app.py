@@ -11,12 +11,15 @@ from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
+from conversation_engine import ConversationIntelligenceEngine
 from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
 from data_core import COLLECTIONS as CORE_COLLECTIONS, schema as core_schema, seed as core_seed, resolve_context
 from data_core_bridge import DataCoreBridge
 from copilot import CopilotEngine
 from agent import HDVIAAgent, ToolRegistry
 from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
+from external_world import build_external_world_from_env, SyncEngine, ExternalAIOrchestrator, AgentExecutor, AgentExecutionPolicy
+from public_apis import weather, geocode, air_quality, marine, search_place, route, wikipedia_search, wikidata_search, country
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from knowledge_learning import KnowledgeLearningPipeline
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
@@ -475,24 +478,21 @@ def knowledge_detail(post_id):
 def ai_assistant():
     answer=None
     question=""
+    predicted_questions=[]
+    confidence=""
     if request.method=="POST":
         if not require_csrf(): return "Yêu cầu không hợp lệ", 400
         question=request.form.get("question","").strip()[:2000]
-        q=question.lower()
         if not question:
             answer="Hãy nhập câu hỏi hoặc tình huống bạn muốn HDVIA hỗ trợ."
-        elif any(x in q for x in ["mưa","thời tiết","bão","gió"]):
-            answer="HDVIA khuyến nghị kiểm tra Thời tiết hành trình và Cảnh báo rủi ro theo từng điểm trước khi quyết định. Nếu điều kiện thay đổi, hãy dùng Phương án dự phòng để điều chỉnh lịch trình."
-        elif any(x in q for x in ["thuyết minh","giới thiệu","lịch sử","văn hóa"]):
-            answer="Bạn có thể đưa tên điểm đến hoặc chủ đề vào Phân tích hành trình. HDVIA sẽ tổng hợp các nội dung thuyết minh có sẵn để hỗ trợ chuẩn bị trước tour."
-        elif any(x in q for x in ["khoảng cách","lộ trình","đi bao lâu","quãng đường"]):
-            answer="Hãy nhập đầy đủ các chặng trong lịch trình. HDVIA sẽ nhận diện điểm đến và tổng hợp lộ trình, khoảng cách theo từng ngày."
-        elif any(x in q for x in ["kinh nghiệm","chia sẻ","viết bài"]):
-            answer="Bạn có thể chia sẻ kinh nghiệm thực tế tại Kho kinh nghiệm. Nội dung được dùng để xây dựng nguồn tri thức cộng đồng cho HDVIA."
         else:
-            kb_answer, _ = answer_from_knowledge(question)
-            answer = kb_answer or "HDVIA chưa có mục tri thức phù hợp cho câu hỏi này. Hãy thử thêm tên điểm đến hoặc chủ đề cụ thể để hệ thống tra cứu chính xác hơn."
-    return render_template("ai_assistant.html",answer=answer,question=question)
+            result=conversation_engine.answer(question)
+            answer=result.get("answer")
+            predicted_questions=result.get("predicted_questions",[])
+            confidence=result.get("confidence","")
+    return render_template("ai_assistant.html",answer=answer,question=question,
+                           predicted_questions=predicted_questions,confidence=confidence)
+
 
 def _normalize_journey_input(title, itinerary):
     title = (title or "Hành trình mới").strip()[:200]
@@ -532,18 +532,86 @@ def _safe_journey_analyze(title, itinerary):
         return None, f"Journey analysis failed: {type(exc).__name__}: {exc}"
 
 
+def _ai_query_analyze(query):
+    """Unified Hành Trình AI adapter with conversation understanding.
+
+    The conversation layer first identifies intent/place and predicts useful
+    follow-up questions. Journey Intelligence is then used when live weather,
+    risk, route or itinerary context is needed. Curated knowledge is used for
+    destination/history/culture/food/script questions.
+    """
+    q = " ".join((query or "").strip().split())
+    if not q:
+        return None, "Hãy nhập địa điểm, câu hỏi hoặc lịch trình."
+
+    intents = conversation_engine.detect_intents(q)
+    places = conversation_engine.resolve_places(q)
+    weather_intent = "WEATHER" in intents
+    journey_like = any(x in intents for x in ("ITINERARY", "ROUTE", "RISK", "PLAN_B"))
+
+    if weather_intent and places:
+        place = places[0]["name"]
+        result, error = _safe_journey_analyze(f"Thời tiết {place}", f"Ngày 1: {place}")
+        if result is not None:
+            result.update(conversation_engine.answer(q, journey=result))
+            result["intent"] = "WEATHER"
+        return result, error
+
+    if journey_like:
+        title = places[0]["name"] if places else "Phân tích Hành Trình AI"
+        result, error = _safe_journey_analyze(title, q)
+        if result is not None:
+            result.update(conversation_engine.answer(q, journey=result))
+        return result, error
+
+    # Knowledge / destination / natural-language question path. We still enrich
+    # the response with a small Journey result when a recognized place exists,
+    # so the same screen can show weather/risk context without forcing an itinerary.
+    journey_context = None
+    if places:
+        place = places[0]["name"]
+        journey_context, _ = _safe_journey_analyze(place, f"Ngày 1: {place}")
+    result = conversation_engine.answer(q, journey=journey_context)
+    if journey_context:
+        # Keep the existing result contract while replacing only conversation fields.
+        journey_context.update(result)
+        journey_context["title"] = journey_context.get("title") or places[0]["name"]
+        journey_context["query"] = q
+        return journey_context, None
+    result["title"] = "Hành Trình AI"
+    result["days"] = []
+    result["weather"] = {}
+    result["risk_map"] = {}
+    result["risks"] = []
+    result["recommendations"] = ["Chọn một câu hỏi gợi ý để HDVIA phân tích tiếp."]
+    result["confidence"] = result.get("confidence", "LOW")
+    return result, None
+
+
 @app.route("/journey",methods=["GET","POST"])
 @login_required
 @permission_required("journey.analyze")
 def journey():
     result=None
     error=None
+    query = request.args.get("q","").strip()
+    title="Hành trình mới"
+    itinerary=""
+    if request.method=="GET" and query:
+        result, error = _ai_query_analyze(query)
     if request.method=="POST":
         try:
             if not require_csrf(): return "Yêu cầu không hợp lệ", 400
-            title=request.form.get("title","Hành trình mới")
-            itinerary=request.form.get("itinerary","")
-            result, error = _safe_journey_analyze(title, itinerary)
+            query=request.form.get("query","").strip()
+            # Backward compatibility for older saved/bookmarked form submissions.
+            if not query:
+                title=request.form.get("title","Hành trình mới")
+                itinerary=request.form.get("itinerary","")
+                result, error = _safe_journey_analyze(title, itinerary)
+            else:
+                result, error = _ai_query_analyze(query)
+                title = result.get("title","Hành trình AI") if result else "Hành trình AI"
+                itinerary = query
             if result is not None:
                 try:
                     u=current_user()
@@ -648,6 +716,109 @@ def _open_api_required(f):
         return f(*a,**kw)
     return w
 
+
+
+@app.get("/api/v1/public-api/catalog")
+def public_api_catalog():
+    return jsonify({"ok": True, "version": "1.13.1-public-apis", "providers": [
+        {"name":"open_meteo","group":"weather","free":True,"auth":"none"},
+        {"name":"open_meteo_geocoding","group":"geocoding","free":True,"auth":"none"},
+        {"name":"open_meteo_air_quality","group":"air_quality","free":True,"auth":"none"},
+        {"name":"open_meteo_marine","group":"marine","free":True,"auth":"none"},
+        {"name":"osm_nominatim","group":"maps_geocoding","free":True,"auth":"none","rate_limit":"1 req/s on public server"},
+        {"name":"osrm","group":"routing","free":True,"auth":"none","note":"public demo server; cache/rate-limit required"},
+        {"name":"wikipedia","group":"knowledge","free":True,"auth":"none"},
+        {"name":"wikidata","group":"knowledge_graph","free":True,"auth":"none"},
+        {"name":"rest_countries","group":"countries","free":True,"auth":"bearer token"},
+    ]})
+
+@app.get("/api/v1/public-api/weather")
+def public_api_weather():
+    return jsonify(weather(float(request.args.get("lat")), float(request.args.get("lon")), int(request.args.get("days", 7))))
+
+@app.get("/api/v1/public-api/geocode")
+def public_api_geocode():
+    return jsonify(geocode(request.args.get("q", ""), int(request.args.get("count", 5))))
+
+@app.get("/api/v1/public-api/air-quality")
+def public_api_air_quality():
+    return jsonify(air_quality(float(request.args.get("lat")), float(request.args.get("lon"))))
+
+@app.get("/api/v1/public-api/marine")
+def public_api_marine():
+    return jsonify(marine(float(request.args.get("lat")), float(request.args.get("lon"))))
+
+@app.get("/api/v1/public-api/search-place")
+def public_api_search_place():
+    return jsonify(search_place(request.args.get("q", ""), int(request.args.get("limit", 5))))
+
+@app.get("/api/v1/public-api/route")
+def public_api_route():
+    return jsonify(route(request.args.get("coords", ""), request.args.get("profile", "driving")))
+
+@app.get("/api/v1/public-api/wikipedia")
+def public_api_wikipedia():
+    return jsonify(wikipedia_search(request.args.get("q", ""), request.args.get("lang", "en"), int(request.args.get("limit", 5))))
+
+@app.get("/api/v1/public-api/wikidata")
+def public_api_wikidata():
+    return jsonify(wikidata_search(request.args.get("q", ""), int(request.args.get("limit", 5))))
+
+@app.get("/api/v1/public-api/country")
+def public_api_country():
+    return jsonify(country(request.args.get("q", "")))
+
+@app.get("/api/v1/external-world/status")
+def external_world_status():
+    return jsonify({"ok": True, "version": "1.13.1-public-apis", "layers": {
+        "two_way_sync": True, "provider_integration": True, "external_ai_orchestration": True, "agent_execution": True
+    }, "providers": external_world.status(), "agent": {"dry_run_default": True}})
+
+@app.post("/api/v1/external-world/provider/<provider>/connect")
+def external_world_provider_connect(provider):
+    return jsonify(external_world.connect(provider))
+
+@app.post("/api/v1/external-world/provider/<provider>/disconnect")
+def external_world_provider_disconnect(provider):
+    return jsonify(external_world.disconnect(provider))
+
+@app.get("/api/v1/external-world/agent/audit")
+def external_world_agent_audit():
+    return jsonify({"ok": True, "count": len(external_agent.audit_log), "records": external_agent.audit_log[-100:]})
+
+@app.post("/api/v1/external-world/sync/pull")
+def external_world_pull():
+    body=request.get_json(silent=True) or {}
+    result=external_sync.pull((body.get("provider") or "").strip(), (body.get("resource") or "/").strip(), records_key=body.get("records_key", "records"))
+    return jsonify({"ok": result.ok, "provider": result.provider, "direction": result.direction, "records_read": result.records_read, "records_written": result.records_written, "skipped": result.skipped, "error": result.error, "trace_id": result.trace_id}), (200 if result.ok else 400)
+
+@app.post("/api/v1/external-world/sync/push")
+def external_world_push():
+    body=request.get_json(silent=True) or {}
+    records=body.get("records") or []
+    if not isinstance(records, list): return jsonify({"ok":False,"error":"records phải là list"}),400
+    result=external_sync.push((body.get("provider") or "").strip(), (body.get("resource") or "/").strip(), records)
+    return jsonify({"ok": result.ok, "provider": result.provider, "direction": result.direction, "records_written": result.records_written, "error": result.error, "trace_id": result.trace_id}), (200 if result.ok else 400)
+
+@app.post("/api/v1/external-world/ai/orchestrate")
+def external_world_ai_orchestrate():
+    body=request.get_json(silent=True) or {}
+    result=external_ai.run((body.get("task") or "").strip(), body.get("payload") or {}, providers=body.get("providers"))
+    return jsonify(result), (200 if result.get("ok") else 502)
+
+@app.post("/api/v1/external-world/agent/execute")
+def external_world_agent_execute():
+    body=request.get_json(silent=True) or {}
+    requested_dry=body.get("dry_run", True)
+    # Production execution is opt-in at both request and environment level.
+    dry_run=bool(requested_dry) or os.environ.get("HDVIA_AGENT_LIVE_EXECUTION", "0") != "1"
+    policy=AgentExecutionPolicy(allowed_tools=set(body.get("allowed_tools") or []), dry_run=dry_run)
+    try:
+        result=external_agent.execute(tool=(body.get("tool") or "").strip(), provider=(body.get("provider") or "").strip(), resource=(body.get("resource") or "/").strip(), payload=body.get("payload") or {}, policy=policy)
+    except Exception as exc:
+        return jsonify({"ok":False,"error":str(exc)}),403
+    return jsonify(result), (200 if result.get("ok") else 502)
+
 @app.get("/api/v1/openapi/status")
 @_open_api_required
 def openapi_status():
@@ -696,11 +867,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.10.9-data-core-integrated","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.13.1-public-apis","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.10.9-data-core-integrated","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.13.1-public-apis","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -922,9 +1093,14 @@ def audit():
     c=db(); rows=c.execute("SELECT a.*,u.email FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 300").fetchall(); c.close(); return render_template("audit.html",rows=rows)
 
 engine=JourneyIntelligenceEngine()
+conversation_engine=ConversationIntelligenceEngine()
 copilot_engine=CopilotEngine()
 data_core_bridge=DataCoreBridge(db)
 external_connect=ExternalConnectManager(DEFAULT_EXTERNAL_CONNECTORS)
+external_world=build_external_world_from_env()
+external_sync=SyncEngine(external_world)
+external_ai=ExternalAIOrchestrator({p.name:p for p in [external_world.get("external_ai")] if p}, default_order=("external_ai",))
+external_agent=AgentExecutor(external_world)
 learning_pipeline=KnowledgeLearningPipeline()
 agent_tools=ToolRegistry()
 agent_tools.register("journey.summary", lambda journey=None: {"title": (journey or {}).get("title",""), "days": len((journey or {}).get("days",[])), "risk_count": len((journey or {}).get("risks",[]))})
