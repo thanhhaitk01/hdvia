@@ -7,6 +7,7 @@ external data without coupling themselves to a vendor.
 from __future__ import annotations
 
 import json
+import os
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ class PublicProvider:
         base = self.base_url.rstrip("/") + "/" + path.lstrip("/")
         query = urllib.parse.urlencode({k: v for k, v in (params or {}).items() if v is not None}, doseq=True)
         url = base + ("?" + query if query else "")
-        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "HDVIA-PublicAPI/1.13"})
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.5")})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read(2_000_001)
@@ -99,3 +100,38 @@ def country(name_or_code: str) -> Dict[str, Any]:
     # REST Countries v5 currently requires a bearer token for API calls. The
     # public demo key is intentionally not baked into HDVIA; deployment can set it.
     return PROVIDERS["rest_countries"].get(f"/countries/v5/name/{urllib.parse.quote(name_or_code)}", {"pretty": "0"})
+
+
+def overpass_query(query: str) -> Dict[str, Any]:
+    return PROVIDERS["osm_nominatim"].get("https://overpass-api.de/api/interpreter" if False else "", {}) if False else _raw_post_json("https://overpass-api.de/api/interpreter", query, "overpass")
+
+
+def sun_times(lat: float, lon: float, date: Optional[str] = None) -> Dict[str, Any]:
+    return PublicProvider("sunrise_sunset", "https://api.sunrise-sunset.org", "Sunrise-Sunset.org").get("/json", {"lat": lat, "lng": lon, "date": date or "today", "formatted": 0})
+
+
+def opentripmap_places(lat: float, lon: float, radius: int = 5000, kinds: str = "interesting_places") -> Dict[str, Any]:
+    key = os.getenv("OPENTRIPMAP_API_KEY", "")
+    if not key:
+        return {"ok": False, "provider": "opentripmap", "disabled": True, "error": "OPENTRIPMAP_API_KEY not configured"}
+    return PublicProvider("opentripmap", "https://api.opentripmap.com", "OpenTripMap / ODbL").get("/0.1/en/places/radius", {"radius": min(max(int(radius), 100), 50000), "lon": lon, "lat": lat, "kinds": kinds, "format": "json", "apikey": key})
+
+
+def opentripmap_details(xid: str) -> Dict[str, Any]:
+    key = os.getenv("OPENTRIPMAP_API_KEY", "")
+    if not key:
+        return {"ok": False, "provider": "opentripmap", "disabled": True, "error": "OPENTRIPMAP_API_KEY not configured"}
+    return PublicProvider("opentripmap", "https://api.opentripmap.com", "OpenTripMap / ODbL").get(f"/0.1/en/places/xid/{urllib.parse.quote(xid)}", {"apikey": key})
+
+
+def _raw_post_json(url: str, body: str, provider: str) -> Dict[str, Any]:
+    encoded = urllib.parse.urlencode({"data": body}).encode("utf-8")
+    req = urllib.request.Request(url, data=encoded, headers={"Accept":"application/json", "Content-Type":"application/x-www-form-urlencoded", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.14.5")}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            raw = resp.read(2_000_001)
+            if len(raw) > 2_000_000:
+                raise PublicAPIError("Public API response vượt 2 MB")
+            return {"ok": True, "provider": provider, "status_code": getattr(resp, "status", 200), "data": json.loads(raw.decode("utf-8", errors="replace")), "attribution":"© OpenStreetMap contributors"}
+    except Exception as exc:
+        return {"ok": False, "provider": provider, "error": str(exc)[:300], "attribution":"© OpenStreetMap contributors"}
