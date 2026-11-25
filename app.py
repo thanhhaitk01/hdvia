@@ -618,7 +618,7 @@ def journey():
                     if not u:
                         return redirect(url_for("login", next=request.path))
                     c=db()
-                    c.execute("INSERT INTO journeys(user_id,title,itinerary,result_json,created_at) VALUES(?,?,?,?,?,?)",
+                    c.execute("INSERT INTO journeys(user_id,title,itinerary,result_json,created_at) VALUES(?,?,?,?,?)",
                               (u["id"], result.get("title",title), itinerary, json.dumps(result,ensure_ascii=False), now()))
                     c.commit()
                     c.close()
