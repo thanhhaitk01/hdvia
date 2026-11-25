@@ -111,19 +111,25 @@ def init_db():
     CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS api_keys(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,owner_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL,last_used_at TEXT,FOREIGN KEY(owner_id) REFERENCES users(id));
     """)
-    admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","admin@hdvia.local").strip().lower()
+    admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","").strip().lower()
     admin_password=os.environ.get("HDVIA_DEMO_ADMIN_PASSWORD","").strip()
-    if not admin_email or not admin_password:
-        raise RuntimeError("HDVIA_ADMIN_EMAIL and HDVIA_DEMO_ADMIN_PASSWORD must be configured before startup.")
-    if not c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone():
-        c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                  ("HDVIA Super Admin","0000000000",admin_email,generate_password_hash(admin_password),"SUPER_ADMIN","L4","ACTIVE",now()))
+    admin_id=None
+    # Production-safe bootstrap: missing admin credentials must not crash the
+    # Vercel function. Admin/warehouse seeding is deferred until credentials
+    # are configured in the deployment environment.
+    if admin_email and admin_password:
+        row=c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone()
+        if not row:
+            c.execute("INSERT INTO users(name,phone,email,password_hash,role,trust_level,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                      ("HDVIA Super Admin","0000000000",admin_email,generate_password_hash(admin_password),"SUPER_ADMIN","L4","ACTIVE",now()))
+            admin_id=c.execute("SELECT id FROM users WHERE email=?",(admin_email,)).fetchone()[0]
+        else:
+            admin_id=row[0]
     # Bootstrap the first curated warehouse seed once on a fresh runtime database.
     # Existing records are never overwritten. This keeps the demo data available
     # after deployment while preserving any data already entered by an admin.
-    if c.execute("SELECT COUNT(*) FROM warehouse_records").fetchone()[0] == 0:
+    if admin_id and c.execute("SELECT COUNT(*) FROM warehouse_records").fetchone()[0] == 0:
         seed = warehouse_seed()
-        admin_id = c.execute("SELECT id FROM users WHERE email=?", (admin_email,)).fetchone()[0]
         for kind in COLLECTIONS:
             for payload in seed.get(kind, []):
                 c.execute(
