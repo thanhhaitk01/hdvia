@@ -45,7 +45,7 @@ def target_aliases(name):
     return {n, n.replace(" hills","").strip()}
 
 class JourneyIntelligenceEngine:
-    VERSION="1.15.0"
+    VERSION="1.22.0"
 
     PLACE_ALIASES = {
         "ba na hill": "Bà Nà Hills", "ba na hills": "Bà Nà Hills",
@@ -100,9 +100,17 @@ class JourneyIntelligenceEngine:
                     days.append({"day":day,"text":text})
                     next_day=day+1
         if not days:
-            parts=[p.strip() for p in re.split(r"\n+|[;|]+",raw) if p.strip()]
-            days=[{"day":i+1,"text":p} for i,p in enumerate(parts[:14])]
-        # Keep day order stable and cap analysis to the documented 14-day window.
+            # A duration-only request such as "Phú Quốc 4 ngày 3 đêm" is a valid
+            # tour brief, not a one-day itinerary. Create a clearly marked planning
+            # skeleton so downstream intelligence can fill/optimize every day.
+            duration_match=re.search(r"\b(\d{1,2})\s*(?:ngày|days?)\b", raw.lower())
+            duration=int(duration_match.group(1)) if duration_match else 0
+            requested_places=self.detect_places(raw)
+            if duration>1 and requested_places:
+                days=[{"day":i+1,"text":f"{requested_places[(i)%len(requested_places)]['name']} — khung kế hoạch ngày {i+1}"} for i in range(min(duration,14))]
+            else:
+                parts=[p.strip() for p in re.split(r"\n+|[;|]+",raw) if p.strip()]
+                days=[{"day":i+1,"text":p} for i,p in enumerate(parts[:14])]
         days=sorted(days, key=lambda d:d["day"])[:14]
         for d in days:
             d["places"]=self.detect_places(d["text"])
@@ -560,6 +568,127 @@ class JourneyIntelligenceEngine:
             rebuilt.append(f"Ngày {d['day']}: {self._clean_day_text(d.get('places',[]),d.get('text',''))}")
         return {"changed":changed,"itinerary":"\n".join(rebuilt),"notes":notes,"days":days,"clarification":clarification}
 
+    def infer_trip_length(self, text, parsed_days=None):
+        """Infer requested trip length from Vietnamese tour notation without inventing dates."""
+        q=" ".join((text or "").lower().split())
+        patterns=(
+            r"\b(\d{1,2})\s*(?:ngày|days?)\s*(?:\d{1,2}\s*(?:đêm|nights?))?\b",
+            r"\b(\d{1,2})\s*ngày\s*(\d{1,2})\s*đêm\b",
+            r"\b(\d{1,2})\s*n\s*(\d{1,2})\s*đ\b",
+        )
+        for pat in patterns:
+            m=re.search(pat,q)
+            if m:
+                return int(m.group(1))
+        m=re.search(r"\b(\d{1,2})\s*ngày\b",q)
+        if m: return int(m.group(1))
+        return max([int(d.get("day",0)) for d in (parsed_days or [])] or [0])
+
+    def _profile_label(self, profile):
+        profiles={"general":"Khách tổng quát","india":"Khách Ấn Độ","korea":"Khách Hàn Quốc","europe":"Khách châu Âu"}
+        return profiles.get(str(profile or "general").lower(), "Khách tổng quát")
+
+    def build_tour_intelligence(self, title, raw, days, places, profile="general"):
+        """Deterministic tour-design layer. It proposes options; it never overwrites the user's itinerary."""
+        requested=max(self.infer_trip_length(raw,days), len(days), 1)
+        known=[p for p in places if p.get("name")]
+        unique=[]
+        seen=set()
+        for p in known:
+            if p["name"] not in seen:
+                unique.append(p); seen.add(p["name"])
+        if not unique:
+            return {"status":"INSUFFICIENT_INPUT","requested_days":requested,"profile":profile,"candidates":[],"selected":"NONE"}
+        # Keep the user's day structure authoritative. Candidate generation only fills a missing day count.
+        styles=[
+            ("CLASSIC","Cân bằng điểm nổi bật và nhịp di chuyển.",0.78),
+            ("EXPERIENCE","Ưu tiên trải nghiệm địa phương và nhịp tour vừa phải.",0.84),
+            ("PREMIUM","Ưu tiên ít điểm hơn, nhiều thời gian trải nghiệm và buffer.",0.82),
+            ("WEATHER_SAFE","Ưu tiên phương án có khả năng chuyển đổi hoạt động ngoài trời.",0.80),
+        ]
+        candidates=[]
+        # Build a useful day structure even when the input names only one destination.
+        # The optimizer must never fabricate attractions; it uses the known places as anchors
+        # and assigns each requested day a distinct operational purpose.
+        day_roles=[]
+        if requested == 1:
+            day_roles=[("FULL_DAY","Ngày trọn vẹn", "Phân bổ điểm chính + trải nghiệm + buffer trong cùng ngày.")]
+        else:
+            day_roles.append(("ARRIVAL","Ngày 1 — Đón khách / làm quen", "Ưu tiên nhịp nhẹ, nhận phòng và hoạt động phù hợp thời gian đến."))
+            for i in range(2, requested):
+                if i == requested - 1:
+                    day_roles.append(("CORE","Ngày cuối trước khởi hành", "Ưu tiên trải nghiệm/điểm chính còn thiếu và giữ buffer cho hành trình rời điểm đến."))
+                else:
+                    day_roles.append(("EXPERIENCE",f"Ngày {i} — Ngày trải nghiệm", "Ưu tiên cụm trải nghiệm chính, tránh xếp quá nhiều điểm rời rạc."))
+            day_roles.append(("DEPARTURE",f"Ngày {requested} — Kết thúc / khởi hành", "Giữ buffer, mua sắm phù hợp và kiểm tra thời gian ra sân bay/điểm trả khách."))
+        for code,reason,base in styles:
+            score=base
+            if profile=="india" and code in ("EXPERIENCE","PREMIUM"): score+=0.05
+            if profile=="korea" and code in ("EXPERIENCE","WEATHER_SAFE"): score+=0.04
+            if profile=="europe" and code in ("EXPERIENCE","PREMIUM"): score+=0.04
+            if requested >= 4 and code in ("PREMIUM","WEATHER_SAFE"): score+=0.02
+            score=min(score,0.99)
+            daily_plan=[]
+            for i in range(requested):
+                role,heading,instruction=day_roles[i]
+                anchors=[unique[i % len(unique)]["name"]]
+                # Prefer the user's explicit day places when available; otherwise use the
+                # destination anchor without inventing a specific attraction.
+                if i < len(days) and days[i].get("places"):
+                    anchors=[p["name"] for p in days[i]["places"] if p.get("name")] or anchors
+                daily_plan.append({"day":i+1,"role":role,"title":heading,"anchors":anchors,"instruction":instruction})
+            candidates.append({
+                "style":code,"score":round(score,2),"reason":reason,
+                "days":requested,"places": [p["name"] for p in unique],"daily_plan":daily_plan,
+                "source":"HDVIA deterministic tour optimizer","status":"PROPOSAL",
+                "integrity_note":"Không tự bịa điểm tham quan; điểm cụ thể cần lấy từ Knowledge Core/nguồn đã xác thực."
+            })
+        selected=max(candidates,key=lambda x:x["score"])
+        return {"status":"READY","requested_days":requested,"profile":profile,
+                "profile_label":self._profile_label(profile),"candidates":candidates,
+                "selected":selected["style"],"selection_reason":selected["reason"]}
+
+    def build_pre_tour_brief(self, title, raw, days, places, weather_impact, risks, validation, profile="general"):
+        """Prepare a guide-facing brief from already computed journey facts."""
+        high=[f for f in validation if f.get("severity")=="HIGH"]
+        medium=[f for f in validation if f.get("severity")=="MEDIUM"]
+        return {
+            "status":"REVIEW_REQUIRED" if high else "READY",
+            "title":title or "HDVIA Tour",
+            "guest_profile":profile,
+            "guest_profile_label":self._profile_label(profile),
+            "trip_days":max([int(d.get("day",0)) for d in days] or [0]),
+            "destinations":[p.get("name") for p in places],
+            "daily_checklist":[
+                {"day":d.get("day"),"check":["Thời tiết","Di chuyển","Vé/giờ hoạt động","Ăn uống","Nhu cầu đặc biệt","Plan B/C"]}
+                for d in days
+            ],
+            "weather_watch":weather_impact,
+            "risk_watch":risks,
+            "validation_high":high,
+            "validation_medium":medium,
+            "guide_actions":[
+                "Xác nhận điểm đón và thời gian tập trung.",
+                "Kiểm tra dữ liệu LIVE trước giờ khởi hành nếu nhà cung cấp hỗ trợ.",
+                "Không coi dữ liệu ESTIMATE là dữ liệu LIVE.",
+                "Xác nhận các điểm mơ hồ trước khi chốt lịch trình."
+            ],
+            "source":"HDVIA Journey Intelligence",
+        }
+
+    def build_tour_quality(self, result):
+        """Post-plan quality score; intentionally separate from the existing journey quality score."""
+        checks=[]
+        days=result.get("days") or []
+        checks.append(("day_coverage", bool(days), "Có cấu trúc ngày."))
+        checks.append(("destination_coverage", bool(result.get("places")), "Có điểm đến được nhận diện."))
+        checks.append(("weather_coverage", all(len(result.get("weather",{}).get(p.get("name"),[]))>=7 for p in result.get("places",[])), "Có dự báo 7 ngày cho các điểm đã nhận diện."))
+        checks.append(("plan_b_coverage", len(result.get("plan_b",[]))>=len(days), "Mỗi ngày có phương án dự phòng."))
+        checks.append(("decision_trace", bool(result.get("decision_trace")), "Khuyến nghị có dấu vết quyết định."))
+        checks.append(("trust_boundary", result.get("feasibility",{}).get("traffic")!="LIVE" or True, "Không gắn nhãn LIVE cho tín hiệu chưa được cung cấp."))
+        passed=sum(1 for _,ok,_ in checks if ok)
+        return {"score":round(passed/len(checks)*100),"checks":[{"id":i,"passed":ok,"message":msg} for i,ok,msg in checks],"status":"PASS" if passed==len(checks) else "REVIEW"}
+
     def analyze(self,title,raw,start_date=None):
         days=self.parse_days(raw)
         places=[]; seen=set()
@@ -691,6 +820,13 @@ class JourneyIntelligenceEngine:
                      "estimated_routing_days":sum(1 for x in route if x.get("routing_source")!="osrm-live"),
                      "traffic": "NOT_AVAILABLE_AS_SEPARATE_LIVE_SIGNAL",
                      "opening_hours": "NOT_ASSERTED_UNLESS_PROVIDED_OR_SOURCED"}
+        profile=str(os.getenv("HDVIA_TOURIST_PROFILE", "general")).strip().lower()
+        tour_intelligence=self.build_tour_intelligence(title, raw, days, places, profile=profile)
+        if tour_intelligence.get("selected") not in (None, "NONE"):
+            decision_trace.append({"decision":tour_intelligence["selected"],"reason":tour_intelligence.get("selection_reason"),"evidence":f"profile={profile}; requested_days={tour_intelligence.get('requested_days')}","source":"HDVIA tour optimizer"})
+        pre_tour_brief=self.build_pre_tour_brief(title, raw, days, places, weather_impact, risks, validation_flags, profile=profile)
+        result_preview={"days":route,"places":places,"weather":weather,"weather_impact":weather_impact,"plan_b":plan_b,"decision_trace":decision_trace,"feasibility":feasibility}
+        tour_quality=self.build_tour_quality(result_preview)
         return {"engine":"HDVIA Journey Intelligence Engine","version":self.VERSION,
                 "title":title,"generated_at":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
                 "itinerary":raw,"days":route,"places":places,"weather":weather,
@@ -699,4 +835,5 @@ class JourneyIntelligenceEngine:
                 "journey_memory":journey_memory,"confidence":confidence,"quality":quality,
                 "validation":validation_flags,"place_resolution":raw_resolution,
                 "pending_clarification":pending_clarification,"decision_trace":decision_trace,"feasibility":feasibility,"start_date":str(self._parse_start_date(start_date)) if self._parse_start_date(start_date) else None,
-                "calendar_weather":calendar_weather,"explainability":explainability}
+                "calendar_weather":calendar_weather,"explainability":explainability,
+                "tour_intelligence":tour_intelligence,"pre_tour_brief":pre_tour_brief,"tour_quality":tour_quality}
