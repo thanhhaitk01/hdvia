@@ -1,0 +1,10 @@
+{
+  "version":"1.0.0",
+  "profiles": {
+    "general":{"label":"Khách tổng quát","focus":["history","culture","food","tourism"]},
+    "india":{"label":"Khách Ấn Độ","focus":["culture","history","food","tourism"]},
+    "korea":{"label":"Khách Hàn Quốc","focus":["tourism","nature","food","culture"]},
+    "europe":{"label":"Khách châu Âu","focus":["history","culture","nature","tourism"]}
+  },
+  "policy":"Profile changes ranking and presentation priority; it does not change verified facts."
+}

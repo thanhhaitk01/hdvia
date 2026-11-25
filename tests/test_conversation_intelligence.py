@@ -28,3 +28,8 @@ def test_unknown_does_not_invent_facts():
     r=e.answer("Một địa điểm không có trong kho dữ liệu HDVIA")
     assert r["confidence"] == "LOW"
     assert "chưa có nguồn dữ liệu đủ tin cậy" in r["answer"]
+def test_high_frequency_landmark_aliases_resolve():
+    e = ConversationIntelligenceEngine()
+    assert [x["name"] for x in e.resolve_places("Bà Nà lịch sử")] == ["Bà Nà Hills"]
+    assert [x["name"] for x in e.resolve_places("Ba Na văn hóa")] == ["Bà Nà Hills"]
+    assert [x["name"] for x in e.resolve_places("Linh Ứng văn hóa")] == ["Chùa Linh Ứng Sơn Trà"]

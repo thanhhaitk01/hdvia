@@ -45,7 +45,7 @@ def target_aliases(name):
     return {n, n.replace(" hills","").strip()}
 
 class JourneyIntelligenceEngine:
-    VERSION="1.14.7"
+    VERSION="1.15.0"
 
     PLACE_ALIASES = {
         "ba na hill": "Bà Nà Hills", "ba na hills": "Bà Nà Hills",
@@ -607,6 +607,8 @@ class JourneyIntelligenceEngine:
                           "places":[p["name"] for p in d["places"]],
                           "distance_km":live_distance_km,
                           "routing_source":"osrm-live" if live_route else "hdvia-haversine-estimate",
+                          "routing_confidence":"LIVE" if live_route else "ESTIMATE",
+                          "traffic_status":"LIVE_TRAFFIC_NOT_AVAILABLE" if not live_route else "TRAFFIC_NOT_SEPARATELY_SOURCED",
                           "estimated_drive_minutes":drive_minutes,
                           "recommended_buffer_minutes":buffer_minutes,
                           "time_windows":d.get("time_windows",[]),
@@ -680,6 +682,15 @@ class JourneyIntelligenceEngine:
             validation_flags.append({"code":"AMBIGUOUS_DESTINATION","severity":"HIGH","message":"Có địa danh chưa đủ thông tin để xác định chính xác; HDV cần chọn điểm trước khi tối ưu tuyến."})
             quality_flags.append({"code":"AMBIGUOUS_DESTINATION","severity":"HIGH","message":"Không tự đoán địa điểm mơ hồ."})
         explainability=self.explain_recommendations(route, weather_impact, validation_flags)
+        # Explicit decision trace: every recommendation is linked to deterministic evidence.
+        decision_trace=[]
+        for item in explainability:
+            decision_trace.append({"decision":item.get("action"),"reason":item.get("reason"),"evidence":item.get("evidence"),"source":"deterministic_journey_engine"})
+        feasibility={"status":"PASS" if not any(f.get("severity")=="HIGH" for f in validation_flags) else "REVIEW_REQUIRED",
+                     "live_routing_days":sum(1 for x in route if x.get("routing_source")=="osrm-live"),
+                     "estimated_routing_days":sum(1 for x in route if x.get("routing_source")!="osrm-live"),
+                     "traffic": "NOT_AVAILABLE_AS_SEPARATE_LIVE_SIGNAL",
+                     "opening_hours": "NOT_ASSERTED_UNLESS_PROVIDED_OR_SOURCED"}
         return {"engine":"HDVIA Journey Intelligence Engine","version":self.VERSION,
                 "title":title,"generated_at":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
                 "itinerary":raw,"days":route,"places":places,"weather":weather,
@@ -687,5 +698,5 @@ class JourneyIntelligenceEngine:
                 "briefing":briefing,"plan_b":plan_b,"weather_impact":weather_impact,
                 "journey_memory":journey_memory,"confidence":confidence,"quality":quality,
                 "validation":validation_flags,"place_resolution":raw_resolution,
-                "pending_clarification":pending_clarification,"start_date":str(self._parse_start_date(start_date)) if self._parse_start_date(start_date) else None,
+                "pending_clarification":pending_clarification,"decision_trace":decision_trace,"feasibility":feasibility,"start_date":str(self._parse_start_date(start_date)) if self._parse_start_date(start_date) else None,
                 "calendar_weather":calendar_weather,"explainability":explainability}

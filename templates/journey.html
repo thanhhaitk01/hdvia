@@ -117,6 +117,17 @@
               <strong>{{day.get('text') or (day.get('places',[])|join(' → '))}}</strong>
               <span>{{day.get('estimated_drive_minutes','—')}} phút di chuyển{% if day.get('recommended_buffer_minutes') %} · +{{day.get('recommended_buffer_minutes')}} phút buffer{% endif %}</span>
             </div>
+            {% set jpkg = result.get('journey_data_package',{}).get('days',[]) %}
+            {% set daypkg = namespace(item=none) %}
+            {% for jp in jpkg %}{% if jp.get('day') == day.get('day') %}{% set daypkg.item = jp %}{% endif %}{% endfor %}
+            {% if daypkg.item %}
+            <div class="journey-knowledge-pulse">
+              <div><b>✦ KNOWLEDGE FUSION</b><span>4 tầng dữ liệu · 3 hệ thống</span></div>
+              {% for kc in daypkg.item.get('knowledge',[]) %}
+              <div class="journey-knowledge-mini"><strong>{{kc.get('name')}}</strong><span>{{kc.get('confidence')}} · {{kc.get('layer_counts',{}).get('geography',0)}} địa lý · {{kc.get('layer_counts',{}).get('culture_history',0)}} văn hóa/lịch sử · {{kc.get('layer_counts',{}).get('tourism',0)}} du lịch · {{kc.get('layer_counts',{}).get('nature_operations',0)}} tự nhiên/vận hành</span></div>
+              {% endfor %}
+            </div>
+            {% endif %}
             {% for place_name in day.get('places',[]) %}
               {% set ns = namespace(place_info=none) %}
               {% for d in destination_context %}{% if d.get('name') == place_name %}{% set ns.place_info = d %}{% endif %}{% endfor %}
@@ -137,6 +148,27 @@
                     {% if ns.place_info.get('best_for') %}<div><b>✓ Kinh nghiệm HDV</b><span>{{ns.place_info.get('best_for')}}</span></div>{% endif %}
                     <div><b>⚠ Dữ liệu rủi ro liên kết</b><span>{{result.get('risk_map',{}).get(place_name,{}).get('reason','Theo dõi điều kiện thực tế trước tour.')}}</span></div>
                   </div>
+                  {% set live = result.get('live_data_fusion',{}).get('destinations',{}).get(place_name,{}) %}
+                  {% if live %}
+                  <div class="journey-live-strip">
+                    <div class="journey-live-head"><b>◉ DỮ LIỆU LIVE</b><span>{{live.get('availability','—')}}</span></div>
+                    <div class="journey-live-grid">
+                      {% set aq = live.get('air_quality',{}).get('summary',{}) %}
+                      {% if aq %}<div><b>🌫 Không khí</b><span>{{aq.get('metric')}}: {{aq.get('value')}}</span></div>{% endif %}
+                      {% set sun = live.get('sun',{}).get('summary',{}) %}
+                      {% if sun.get('sunrise') or sun.get('sunset') %}<div><b>☀ Nắng</b><span>{{sun.get('sunrise','—')}} → {{sun.get('sunset','—')}}</span></div>{% endif %}
+                      {% set marine = live.get('marine',{}).get('summary',{}) %}
+                      {% if marine.get('wave_height') is not none %}<div><b>🌊 Biển</b><span>Sóng {{marine.get('wave_height')}} m{% if marine.get('wave_period') is not none %} · chu kỳ {{marine.get('wave_period')}} s{% endif %}</span></div>{% endif %}
+                      {% set wiki = live.get('wikipedia',{}).get('results',[]) %}
+                      {% if wiki %}<div><b>📚 Wikipedia</b><span>{{wiki[0].get('title') or wiki[0].get('name')}}</span></div>{% endif %}
+                      {% set wd = live.get('wikidata',{}).get('results',[]) %}
+                      {% if wd %}<div><b>🔗 Wikidata</b><span>{{wd[0].get('label') or wd[0].get('name') or wd[0].get('description','')}}</span></div>{% endif %}
+                      {% set osm = live.get('osm',{}).get('results',[]) %}
+                      {% if osm %}<div><b>🗺 OpenStreetMap</b><span>{{osm[0].get('display_name') or osm[0].get('name')}}</span></div>{% endif %}
+                    </div>
+                    {% if live.get('sources') %}<small>Nguồn live: {{live.get('sources')|join(' · ')}}</small>{% endif %}
+                  </div>
+                  {% endif %}
                   {% else %}
                   <p class="journey-place-overview">HDVIA đã nhận diện điểm đến nhưng chưa có đủ dữ liệu kiến thức để hiển thị chi tiết.</p>
                   {% endif %}
@@ -167,6 +199,17 @@
           {% if d.get('best_for') %}<div><b>Phù hợp:</b> {{d.get('best_for')}}</div>{% endif %}
         </article>
       {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if result.get('live_data_fusion',{}).get('enabled') %}
+    <section class="journey-live-section" aria-label="Dữ liệu live hợp nhất">
+      <div class="eyebrow cyan">◉ DATA FUSION</div>
+      <h3>HDVIA đã kết nối dữ liệu live cho hành trình</h3>
+      <p class="section-sub">Dữ liệu thời tiết, lộ trình và thông tin điểm đến được giữ chung trong một kết quả; nguồn nào lỗi sẽ không làm mất toàn bộ phân tích.</p>
+      <div class="journey-live-provider-row">
+        <span>Weather</span><span>Routing</span><span>Wikipedia</span><span>Wikidata</span><span>OpenStreetMap</span><span>AQI</span><span>Sun</span><span>Marine</span>
       </div>
     </section>
     {% endif %}

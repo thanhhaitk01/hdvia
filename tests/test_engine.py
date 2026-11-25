@@ -21,7 +21,7 @@ def test_analyze_returns_weather_for_every_detected_place():
 
 def test_engine_version_matches_v1_8():
     e=JourneyIntelligenceEngine(weather_provider=lambda p: [])
-    assert e.VERSION=='1.14.7'
+    assert e.VERSION=='1.15.0'
 
 def test_v18_builds_briefing_plan_b_and_quality():
     e=JourneyIntelligenceEngine(weather_provider=lambda p:[{"date":"2026-11-21","condition":"Trời quang","code":0,"tmin":20,"tmax":28,"rain":10,"wind":10}]*7)

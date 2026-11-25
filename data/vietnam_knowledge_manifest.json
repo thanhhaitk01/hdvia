@@ -1,5 +1,5 @@
 {
-  "version": "1.14.3",
+  "version": "1.15.0",
   "name": "Vietnam Tourism Knowledge Manifest",
   "status": "beta-release",
   "policy": "recognized_place_is_not_verified_fact",
@@ -7,5 +7,24 @@
   "destination_catalog_entries": 22,
   "coverage_registry": "province_catalog_2025.json",
   "provenance_required": true,
-  "note": "Catalog and registry metadata are not substitutes for verified historical/cultural facts."
+  "note": "Catalog and registry metadata are not substitutes for verified historical/cultural facts.",
+  "knowledge_expansion_engine": "1.1.0",
+  "knowledge_domains": [
+    "geography",
+    "history",
+    "culture",
+    "people",
+    "food",
+    "tourism",
+    "nature",
+    "operations",
+    "guide_experience"
+  ],
+  "tourist_profiles": "data/tourist_profiles.json",
+  "graph_and_gap_engine": true,
+  "knowledge_quality_engine": "1.0.0",
+  "journey_feasibility_engine": "1.0.0",
+  "explainable_decision_trace": true,
+  "live_routing_policy": "LIVE_WHEN_ENABLED_ELSE_ESTIMATE",
+  "guide_contribution_policy": "CANDIDATE_ONLY"
 }
