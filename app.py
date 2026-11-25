@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from oauth import init_oauth, provider_enabled
 from connect import init_connect_blueprint
 from journey_engine import JourneyIntelligenceEngine
-from destination_catalog import DESTINATIONS, BY_SLUG
+from destination_catalog import DESTINATIONS, BY_SLUG, BY_NAME
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge
 from conversation_engine import ConversationIntelligenceEngine
