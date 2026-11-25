@@ -35,6 +35,25 @@ for d in DESTINATIONS:
                 "region": d.get("region"), "kind": "destination" if raw == d.get("name") else "landmark",
                 "catalog": d}
 
+# High-frequency guide aliases that are commonly used without the full catalog name.
+# Recognition remains separate from detailed fact coverage.
+_LANDMARK_ALIASES = {
+    "bà nà": "Bà Nà Hills",
+    "ba na": "Bà Nà Hills",
+    "bana": "Bà Nà Hills",
+    "linh ứng": "Chùa Linh Ứng Sơn Trà",
+    "linh ung": "Chùa Linh Ứng Sơn Trà",
+    "chùa linh ứng": "Chùa Linh Ứng Sơn Trà",
+    "chua linh ung": "Chùa Linh Ứng Sơn Trà",
+}
+for _alias, _canonical in _LANDMARK_ALIASES.items():
+    _a = _norm(_alias); _c = _norm(_canonical)
+    _item = dict(RECOGNIZED_PLACES.get(_c, {
+        "name": _canonical, "province": "Đà Nẵng", "region": "Miền Trung", "kind": "landmark"
+    }))
+    RECOGNIZED_PLACES[_c] = _item
+    RECOGNIZED_PLACES[_a] = dict(_item)
+
 _FIRST_TOKEN_INDEX = {}
 for _key in RECOGNIZED_PLACES:
     _FIRST_TOKEN_INDEX.setdefault(_key.split()[0], []).append(_key)

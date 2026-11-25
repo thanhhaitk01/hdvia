@@ -1,8 +1,8 @@
-# HDVIA Beta 1.14.7 — Open API Orchestrator
+# HDVIA Beta 1.15.0 — Journey Data Fusion
 
-Release baseline: `1.14.7-integrated-journey-ai-ui`
+Release baseline: `1.15.0-knowledge-journey-intelligence`
 
-Beta 1.14.7 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
+Beta 1.15.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
 
 ## Open/Public providers
 - Open-Meteo: weather + geocoding
@@ -18,3 +18,27 @@ Beta 1.14.7 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và b�
 
 ## Environment
 See `.env.example` for `HDVIA_OPEN_API_TIMEOUT`, `HDVIA_OPEN_API_CACHE_TTL`, `HDVIA_LIVE_WEATHER`, `HDVIA_LIVE_GEOCODING`, `HDVIA_LIVE_ROUTING`.
+
+## Beta 1.15.0 Knowledge Expansion
+
+HDVIA 1.14.8 includes a controlled Knowledge Expansion Engine on top of Journey Data Fusion. It provides:
+- 9 knowledge domains: geography, history, culture, people, food, tourism, nature, operations, guide experience.
+- Destination coverage scoring and explicit knowledge-gap detection.
+- A lightweight destination knowledge graph derived from curated entries.
+- Tourist-profile-aware ranking for general, India, Korea and Europe profiles; profiles change presentation priority, not verified facts.
+- HDV contribution intake as `CANDIDATE` only; provenance and validation remain required before publication.
+- Existing live providers and 7-layer Journey Data Fusion remain intact.
+
+External data is never treated as verified merely because it was retrieved successfully.
+
+
+## Beta 1.15.0 — Knowledge & Journey Intelligence Upgrade
+
+This release keeps the 1.14.8 seven-layer Data Fusion baseline and adds five hardening layers:
+- Knowledge Graph 1.1.0 with explicit verified/external edges.
+- Knowledge Quality/Trust scoring with provenance and freshness signals.
+- Journey Feasibility output with live routing when enabled and explicit estimate/traffic limitations.
+- Explainable Decision Trace linking recommendations to deterministic evidence.
+- Expanded Knowledge Expansion integration without auto-publishing external or HDV contributions.
+
+External data remains `CANDIDATE_ONLY` until the validation pipeline promotes it.

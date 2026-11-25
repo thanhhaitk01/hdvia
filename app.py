@@ -14,6 +14,7 @@ from knowledge_layer import answer_from_knowledge
 from conversation_engine import ConversationIntelligenceEngine
 from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
 from data_core import COLLECTIONS as CORE_COLLECTIONS, schema as core_schema, seed as core_seed, resolve_context
+from journey_data_fusion import JOURNEY_DATA_FUSION
 from data_core_bridge import DataCoreBridge
 from copilot import CopilotEngine
 from agent import HDVIAAgent, ToolRegistry
@@ -522,6 +523,9 @@ def _safe_journey_analyze(title, itinerary, start_date=None):
         # Resolve the live Journey result against the same eight-domain Data Core.
         # This is additive: existing Journey fields remain unchanged.
         result = data_core_bridge.enrich_journey(result)
+        # 1.14.8: fuse bounded live API context into the same Journey response.
+        # Provider failures are isolated; curated Journey output remains usable.
+        result = JOURNEY_DATA_FUSION.enrich_result(result)
         if not isinstance(result, dict):
             raise RuntimeError("Journey engine returned an invalid result")
         # Keep the response/template contract stable even if a provider returns partial data.
@@ -1009,11 +1013,11 @@ def admin_learning_ingest():
     return jsonify(rec)
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.14.7-integrated-journey-ai-ui","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.15.0-knowledge-journey-intelligence","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.14.7-integrated-journey-ai-ui","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.15.0-knowledge-journey-intelligence","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
