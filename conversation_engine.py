@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Tuple
 from knowledge_layer import search_knowledge
 from province_data import PROVINCES_2025
 from destination_catalog import DESTINATIONS
+from coverage_registry import CATEGORIES, resolve_known_place
 
 INTENTS = {
     "WEATHER": ("thời tiết", "mưa", "nhiệt độ", "nắng", "gió", "bão", "dông", "weather"),
@@ -25,6 +26,7 @@ INTENTS = {
     "TOURIST_PROFILE": ("khách ấn", "khách hàn", "khách nhật", "khách trung", "khách quốc tế", "khách việt", "khách lớn tuổi", "trẻ em"),
     "EXPERIENCE": ("kinh nghiệm", "mẹo", "lưu ý", "nên làm gì", "gợi ý"),
     "DESTINATION": ("ở đâu", "có gì", "nổi tiếng", "điểm đến", "tham quan"),
+    "KNOWLEDGE_GAP": ("chưa có dữ liệu", "chưa biết", "có nguồn không", "nguồn chính thức", "kiểm chứng"),
 }
 
 FOLLOWUPS = {
@@ -47,6 +49,25 @@ def _norm(s: str) -> str:
     return " ".join(re.sub(r"[^\wÀ-ỹĐđ→>\- ]+", " ", (s or "").lower()).split())
 
 
+def _requires_verified_detail(query: str, intent: str) -> bool:
+    """Detect questions whose answer would require a specific verified fact.
+
+    Destination metadata (overview/history/culture) is useful for orientation, but
+    it must not be presented as an answer to a request for an exact event, year,
+    person, date, number, or other pinpoint fact when no curated source supports it.
+    """
+    q=_norm(query)
+    if intent not in ("HISTORY", "CULTURE", "GENERAL_QA", "GUIDE_SCRIPT"):
+        return False
+    patterns=(
+        r"\bnăm\s+\d{3,4}\b", r"\bngày\s+\d{1,2}[/-]\d{1,2}\b",
+        r"\bai\s+(là|đã|từng)\b", r"\bbao nhiêu\b", r"\bsố liệu\b",
+        r"\btrận\b", r"\bhiệp định\b", r"\bsự kiện\b", r"\bnhân vật\b",
+        r"\bchính xác\b", r"\btheo nguồn\b", r"\bnguồn chính thức\b"
+    )
+    return any(re.search(p, q) for p in patterns)
+
+
 class ConversationIntelligenceEngine:
     VERSION = "1.0.0-conversation"
 
@@ -66,24 +87,15 @@ class ConversationIntelligenceEngine:
     def resolve_places(self, query: str) -> List[Dict[str, Any]]:
         q = _norm(query)
         found=[]; seen=set()
-        for p in PROVINCES_2025:
-            names=[p.get("name"), *(p.get("aliases") or []), *(p.get("tourism_hubs") or [])]
-            for name in names:
-                n=_norm(name)
-                if n and n in q and n not in seen:
-                    catalog=next((d for d in DESTINATIONS if d.get("slug")==p.get("slug") or _norm(d.get("name"))==_norm(name)), None)
-                    found.append({"name": name, "province": p.get("name"), "region": p.get("region"), "slug": p.get("slug"), "kind":"province", "catalog":catalog})
-                    seen.add(n)
-                    break
-        for d in DESTINATIONS:
-            names=[d.get("name"), *(d.get("highlights") or [])]
-            for name in names:
-                n=_norm(name)
-                if n and n in q and n not in seen:
-                    found.append({"name": name, "province": d.get("name"), "region": d.get("region"), "slug": d.get("slug"), "kind":"destination", "catalog":d})
-                    seen.add(n)
-                    break
-        return found[:6]
+        # Longest-match registry covers all 34 current province records, tourism hubs
+        # and catalogued landmarks while preserving the distinction between a
+        # recognized name and a place for which detailed facts are actually curated.
+        for item in resolve_known_place(q):
+            key=_norm(item.get("name"))
+            if key in seen: continue
+            seen.add(key)
+            found.append(item)
+        return found[:8]
 
     def predict_questions(self, query: str, intents: List[str] | None = None, places: List[Dict[str, Any]] | None = None) -> List[str]:
         intents = intents or self.detect_intents(query)
@@ -133,13 +145,26 @@ class ConversationIntelligenceEngine:
             place_names={_norm(p.get("name")) for p in places}
             hits=[h for h in hits if _norm(h.get("destination")) in place_names or any(_norm(p.get("name")) in _norm(h.get("content","")) for p in places)]
         if hits and primary not in ("WEATHER", "ROUTE", "RISK", "PLAN_B", "GENERAL_QA"):
-            lines.append("Theo Kho tri thức HDVIA:")
+            lines.append("Theo dữ liệu du lịch đã được HDVIA kiểm duyệt/đăng ký:")
             for item in hits:
-                lines.append(f"• {item['title']}: {item['summary']}")
-                sources.append(item.get("title", "Kho tri thức"))
-            confidence="HIGH" if len(hits)>=2 else "MEDIUM"
+                catalog=item.get("catalog") or {}
+                if primary == "HISTORY" and catalog.get("history"):
+                    detail=catalog["history"]
+                elif primary == "CULTURE" and catalog.get("culture"):
+                    detail=catalog["culture"]
+                elif primary == "FOOD" and catalog.get("food"):
+                    detail=catalog["food"]
+                elif primary in ("DESTINATION","GUIDE_SCRIPT","GENERAL_QA") and catalog.get("overview"):
+                    detail=catalog["overview"]
+                else:
+                    detail=item.get("summary", "")
+                lines.append(f"• {item['title']}: {detail}")
+                if catalog.get("highlights") and primary in ("DESTINATION","GUIDE_SCRIPT"):
+                    lines.append("  Điểm nổi bật: " + ", ".join(catalog["highlights"][:5]) + ".")
+                sources.append(item.get("source") or item.get("title", "Kho tri thức"))
+            confidence="HIGH" if any(item.get("source") == "HDVIA Destination Catalog" for item in hits) else ("MEDIUM" if len(hits)>=2 else "LOW")
 
-        if not lines and places and places[0].get("catalog"):
+        if not lines and places and places[0].get("catalog") and not _requires_verified_detail(q, primary):
             d=places[0]["catalog"]
             if primary in ("FOOD",):
                 lines.append(f"{d['name']}: {d.get('food','Chưa có dữ liệu ẩm thực trong catalog.')}")
@@ -157,10 +182,11 @@ class ConversationIntelligenceEngine:
         if not lines:
             if places:
                 p=places[0]
-                lines.append(f"HDVIA đã nhận diện {p['name']} thuộc {p['province']} ({p['region']}).")
-                lines.append("Hiện dữ liệu tri thức đã kiểm duyệt cho truy vấn này chưa đủ để khẳng định thêm thông tin cụ thể. Sếp có thể chọn một câu hỏi gợi ý bên dưới để HDVIA phân tích tiếp.")
+                lines.append(f"HDVIA đã nhận diện {p['name']} thuộc {p.get('province','')} ({p.get('region','')}).")
+                lines.append("Tên địa điểm đã được nhận diện, nhưng HDVIA chưa có đủ tri thức đã kiểm duyệt để khẳng định chi tiết cho câu hỏi này; hệ thống không tự bịa thông tin.")
+                lines.append("Có thể tiếp tục bằng cách hỏi về lịch sử, văn hóa, ẩm thực, thuyết minh, thời tiết hoặc Plan B của chính địa điểm này.")
                 confidence="MEDIUM"
-                sources.append("Province Data 2025")
+                sources.append("HDVIA Coverage Registry")
             else:
                 lines.append("HDVIA đã hiểu câu hỏi nhưng chưa có nguồn dữ liệu đủ tin cậy để trả lời trực tiếp. Hãy thêm tên địa điểm, thời gian hoặc tình huống cụ thể để hệ thống phân tích chính xác hơn.")
                 confidence="LOW"
@@ -176,4 +202,6 @@ class ConversationIntelligenceEngine:
             "confidence": confidence,
             "sources": list(dict.fromkeys(sources))[:6],
             "predicted_questions": self.predict_questions(q, intents, places),
+            "coverage": {"categories": CATEGORIES, "recognized_place_count": len(places),
+                         "knowledge_mode": "verified-only; unknown facts are surfaced instead of invented"},
         }

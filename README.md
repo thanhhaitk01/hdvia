@@ -1,10 +1,13 @@
-# HDVIA Beta 1.9 — Connect Foundation
+# HDVIA Beta 1.14.3 — Vietnam Knowledge Hardening
+**Bạn Đồng Hành Du Lịch Việt Nam**
+
+Release baseline: `1.14.3-vietnam-knowledge-hardening`
 **Bạn Đồng Hành Du Lịch Việt Nam**
 
 Nền tảng trợ lý thông minh cho Hướng dẫn viên Việt Nam.
 
-## Beta 1.9
-Beta 1.9 kế thừa toàn bộ nền tảng Beta 1.8.5 và bổ sung **HDVIA Connect Foundation** — lớp trung tâm để HDVIA tích hợp các nền tảng bên ngoài mà không làm thay đổi Journey Intelligence, Knowledge Layer hoặc giao diện hiện tại.
+## Beta 1.14.3
+Beta 1.14.3 kế thừa nền tảng Connect/Journey/Conversation và bổ sung **Vietnam Knowledge Hardening** — lớp bảo vệ để phân biệt địa điểm được nhận diện với tri thức đã được kiểm duyệt, đồng thời mở rộng coverage điểm du lịch Việt Nam.
 
 ### Connect Foundation
 - `connect_core.py`: registry và metadata connector.
@@ -25,7 +28,7 @@ Người dùng đăng nhập bằng Google, Facebook hoặc Zalo được sử d
 ## Kiểm thử
 `pytest -q`
 
-Bản release phải đạt toàn bộ regression suite trước khi đưa lên GitHub/Vercel.
+Bản release phải đạt regression suite; stress suite được chạy riêng và ghi nhận kết quả trong release validation.
 
 ## Kho tri thức V1
 - Phạm vi khởi đầu: Đà Nẵng – Hội An – Huế.
