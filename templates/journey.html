@@ -1,32 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Hành Trình AI – HDVIA<script>
-(function(){
-  const nodes=[...document.querySelectorAll('[data-place-image]')];
-  if(!nodes.length) return;
-  nodes.forEach(async (node)=>{
-    const q=node.dataset.placeImage;
-    try{
-      const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
-      if(!r.ok){ node.dataset.imageStatus='error'; return; }
-      const data=await r.json();
-      if(!data.image_url){ node.dataset.imageStatus='empty'; return; }
-      const img=node.querySelector('img');
-      if(!img) return;
-      img.src=data.image_url;
-      img.addEventListener('error',()=>{img.hidden=true; node.dataset.imageStatus='broken';},{once:true});
-      img.hidden=false;
-      const ph=node.querySelector('.journey-image-placeholder');
-      if(ph) ph.hidden=true;
-      const icon=node.querySelector('.journey-place-icon');
-      if(icon) icon.hidden=true;
-      const source=node.querySelector('.journey-image-source');
-      if(source){ source.textContent='Ảnh: Wikimedia Commons'; source.hidden=false; }
-    }catch(_e){}
-  });
-})();
-</script>
-
-{% endblock %}
+{% block title %}Hành Trình AI – HDVIA{% endblock %}
+{% block content %}
 {% block content %}
 <section class="journey-page journey-layout">
 <div class="page-hero">
@@ -434,4 +408,32 @@
 </section>
 {% endif %}
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const nodes=[...document.querySelectorAll('[data-place-image]')];
+  if(!nodes.length) return;
+  nodes.forEach(async (node)=>{
+    const q=node.dataset.placeImage;
+    try{
+      const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
+      if(!r.ok){ node.dataset.imageStatus='error'; return; }
+      const data=await r.json();
+      if(!data.image_url){ node.dataset.imageStatus='empty'; return; }
+      const img=node.querySelector('img');
+      if(!img) return;
+      img.src=data.image_url;
+      img.addEventListener('error',()=>{img.hidden=true; node.dataset.imageStatus='broken';},{once:true});
+      img.hidden=false;
+      const ph=node.querySelector('.journey-image-placeholder');
+      if(ph) ph.hidden=true;
+      const icon=node.querySelector('.journey-place-icon');
+      if(icon) icon.hidden=true;
+      const source=node.querySelector('.journey-image-source');
+      if(source){ source.textContent='Ảnh: Wikimedia Commons'; source.hidden=false; }
+    }catch(_e){ node.dataset.imageStatus='error'; }
+  });
+})();
+</script>
 {% endblock %}
