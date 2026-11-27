@@ -33,7 +33,7 @@ def haversine_km(a_lat: float, a_lon: float, b_lat: float, b_lon: float) -> floa
 
 
 class VerifiedImageResolver:
-    VERSION = "1.25.4.4-world-qa-image-rendering"
+    VERSION = "1.30.1-hdv-giau-kinh-nghiem"
     MIN_CONFIDENCE = 78
     ACCEPT_CONFIDENCE = 88
 

@@ -1,4 +1,4 @@
-"""HDVIA 1.25.4 release contract checks.
+"""HDVIA 1.25.5 release contract checks.
 
 Fast, deterministic checks for the release bundle. Network calls are intentionally
 not made here; provider connectivity is covered by the existing smoke test.
@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-EXPECTED = "1.25.4.4-world-qa-image-rendering"
+EXPECTED = "1.30.1-hdv-giau-kinh-nghiem"
 
 
 def fail(msg: str) -> None:
@@ -27,7 +27,17 @@ def main() -> None:
         ROOT / "api_adapters.py",
         ROOT / "image_entity_resolution.py",
         ROOT / "world_acquisition_engine.py",
+        ROOT / "place_intelligence.py",
+        ROOT / "travel_intelligence_brain.py",
     ]
+    required_new_modules = [
+        ROOT / "travel_ontology.py", ROOT / "travel_story_graph.py", ROOT / "hdv_experience_brief.py",
+        ROOT / "guide_decision_engine.py", ROOT / "source_freshness.py", ROOT / "hdv_experience_memory.py", ROOT / "guide_route_decision.py", ROOT / "source_conflict_resolution.py",
+    ]
+    for path in required_new_modules:
+        if not path.exists():
+            fail(f"missing 1.30.1 module: {path.name}")
+
     for path in runtime_files:
         text = path.read_text(encoding="utf-8", errors="ignore")
         if EXPECTED not in text:

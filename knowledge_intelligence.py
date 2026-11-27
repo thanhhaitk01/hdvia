@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterable, List
 from knowledge_expansion import KnowledgeExpansionEngine
 from knowledge_graph import build as build_knowledge_graph
 from knowledge_quality import assess as assess_knowledge_quality
+from knowledge_self_healing import KnowledgeSelfHealingEngine, reference_lines
 
 BASE=os.path.dirname(__file__)
 KB_FILE=os.path.join(BASE,"data","knowledge_base.json")
@@ -43,6 +44,33 @@ def destination_card(name: str, *, live: Dict[str,Any]|None=None, guide_experien
         layer=_layer_for(item); layers[layer].append({"title":item.get("title"),"summary":item.get("summary"),"content":item.get("content"),"source":item.get("source","HDVIA curated KB")})
         sources.append(item.get("source","HDVIA curated KB"))
     live=live or {}
+
+    # Self-healing enrichment for Journey cards: if curated coverage is sparse,
+    # acquire bounded reference evidence and inject it into the existing layers.
+    # This does not modify the UI/module structure and never marks external data
+    # as VERIFIED/PUBLISHED automatically.
+    self_healing = None
+    auto_heal = os.environ.get("HDVIA_AUTO_KNOWLEDGE_ENRICH", "1").strip().lower() in {"1", "true", "yes", "on"}
+    if auto_heal:
+        try:
+            self_healing = KnowledgeSelfHealingEngine().ensure(name, profile=tourist_profile)
+            if self_healing.get("ok"):
+                profile = self_healing.get("profile") or {}
+                blocks = profile.get("knowledge_blocks") or []
+                for block in blocks[:6]:
+                    domain = str(block.get("domain") or "tourism")
+                    layer = "culture_history" if domain in {"history", "culture", "people"} else "tourism" if domain in {"food", "tourism", "economy"} else "nature_operations" if domain in {"nature"} else "geography"
+                    text = str(block.get("extract") or "").strip()
+                    if text:
+                        layers[layer].append({"title": block.get("title") or name, "summary": text[:1000], "source": block.get("source") or "HDVIA Smart Knowledge Acquisition", "status": "REFERENCE"})
+                img = profile.get("representative_image")
+                if img and not live.get("representative_image"):
+                    live["representative_image"] = img
+                if profile.get("sources"):
+                    live.setdefault("sources", []).extend(profile.get("sources") or [])
+        except Exception:
+            self_healing = None
+
     if live.get("coordinates"):
         layers["geography"].append({"title":"Tọa độ live","summary":str(live["coordinates"]),"source":"Live geocoding"})
         sources += live.get("sources",[])
@@ -66,7 +94,7 @@ def destination_card(name: str, *, live: Dict[str,Any]|None=None, guide_experien
     quality=assess_knowledge_quality({"source":"; ".join(list(dict.fromkeys([s for s in sources if s]))),"source_type":"mixed","updated_at":now()}, corroborating_sources=sources)
     quality["layer_coverage"]={k:(len(v)>0) for k,v in layers.items()}
     quality["verified_rule"]="External references remain unverified unless validated through the knowledge pipeline."
-    return {"name":name,"schema_version":"1.2.0","layers":layers,"layer_counts":counts,"confidence":confidence,"sources":list(dict.fromkeys([s for s in sources if s])),"knowledge_expansion":expansion,"knowledge_graph":graph,"knowledge_quality":quality,"tourist_profile":tourist_profile,"updated_at":now()}
+    return {"name":name,"schema_version":"1.3.0-self-healing","layers":layers,"layer_counts":counts,"confidence":confidence,"sources":list(dict.fromkeys([s for s in sources if s])),"knowledge_expansion":expansion,"knowledge_graph":graph,"knowledge_quality":quality,"tourist_profile":tourist_profile,"self_healing": self_healing, "updated_at":now()}
 
 def normalize_candidate(payload: Dict[str,Any], source: str, source_type: str="external") -> Dict[str,Any]:
     text=re.sub(r"\s+"," ",str(payload.get("content") or payload.get("summary") or "")).strip()[:12000]

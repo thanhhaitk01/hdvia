@@ -23,7 +23,7 @@ from typing import Any, Iterable, Mapping
 
 from source_registry import SOURCES, allowed_for_auto
 
-VERSION = "1.25.4.4-world-qa-image-rendering"
+VERSION = "1.30.1-hdv-giau-kinh-nghiem"
 
 
 def utcnow() -> str:

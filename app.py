@@ -10,6 +10,7 @@ from connect import init_connect_blueprint
 from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG, BY_NAME
 from media_defaults import media_for_slug
+from smart_knowledge_acquisition import SmartKnowledgeAcquirer
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge, load_reference_warehouse
 from conversation_engine import ConversationIntelligenceEngine
@@ -22,6 +23,8 @@ from agent import HDVIAAgent, ToolRegistry
 from external_connect import ExternalConnectManager, DEFAULT_EXTERNAL_CONNECTORS
 from external_world import build_external_world_from_env, SyncEngine, ExternalAIOrchestrator, AgentExecutor, AgentExecutionPolicy
 from public_apis import weather, geocode, air_quality, marine, search_place, route, wikipedia_search, wikidata_search, country
+from place_intelligence import build_place_intelligence
+from travel_intelligence_brain import build_travel_brain, VERSION as TRAVEL_BRAIN_VERSION
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from api_adapters import OPEN_API_ADAPTER, API_LAYER_VERSION
 from entity_resolution import EntityResolver
@@ -116,6 +119,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS knowledge_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,place TEXT,status TEXT NOT NULL DEFAULT 'PENDING_REVIEW',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS knowledge_update_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT,question TEXT NOT NULL,place TEXT,domain TEXT,status TEXT NOT NULL DEFAULT 'PENDING',attempts INTEGER NOT NULL DEFAULT 0,last_error TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS weather_watch_points(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,lat REAL NOT NULL,lon REAL NOT NULL,admin_json TEXT NOT NULL DEFAULT '{}',latest_weather_json TEXT NOT NULL DEFAULT '[]',last_checked_at TEXT,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(name,lat,lon));
     CREATE TABLE IF NOT EXISTS api_keys(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,owner_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL,last_used_at TEXT,FOREIGN KEY(owner_id) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","").strip().lower()
@@ -326,7 +330,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.25.4.4-world-qa-image-rendering","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":TRAVEL_BRAIN_VERSION,"csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -562,6 +566,37 @@ def _safe_journey_analyze(title, itinerary, start_date=None):
         # Destination intelligence is now part of the Journey result contract.
         # Keep it here so HTML, API and future clients receive the same unified payload.
         result["destination_context"] = _destination_context_for_places(result.get("places") or [])
+        # Deep World Research can resolve a newly typed point even when the local
+        # Journey parser had no catalog/geocoder match. Promote those coordinates
+        # into the live Journey result so weather and monitoring are still bound.
+        existing={str(p.get("name")):p for p in result.get("places") or [] if isinstance(p,dict)}
+        for card in result.get("destination_context") or []:
+            coords=card.get("coordinates") or {}
+            name=str(card.get("name") or "").strip()
+            if name and name not in existing and coords.get("lat") is not None and coords.get("lon") is not None:
+                p={"name":name,"lat":float(coords["lat"]),"lon":float(coords["lon"]),"source":"deep-world-research"}
+                result.setdefault("places",[]).append(p); existing[name]=p
+                if not result.get("days"):
+                    result["days"]=[{"day":1,"text":name,"places":[name],"time_windows":[],"activities":[]}]
+                try:
+                    result.setdefault("weather",{})[name]=engine._normalize_weather(engine.weather_provider(p))
+                    rr=engine.risk(result["weather"][name]); result.setdefault("risk_map",{})[name]=rr
+                    if rr.get("level") in ("HIGH","MEDIUM"):
+                        result.setdefault("risks",[]).append({"place":name,**rr})
+                except Exception:
+                    pass
+        # Bind every resolved Journey point to its local administrative context and
+        # current 7-day weather risk. The weather anchor is the exact point; the
+        # commune is retained as the administrative context/fallback label.
+        _register_weather_watch(result)
+        for card in result.get("destination_context") or []:
+            p=next((x for x in result.get("places") or [] if str(x.get("name")) == str(card.get("name"))), None)
+            if p:
+                try:
+                    card["place_intelligence"] = build_place_intelligence(p, result.get("weather",{}).get(p.get("name"),[]), result.get("itinerary", ""))
+                    card["travel_brain"] = build_travel_brain(card.get("name"), query=result.get("query", card.get("name")), profile=card, weather=result.get("weather",{}).get(p.get("name"),[]), admin=card.get("place_intelligence",{}).get("local_admin",{}))
+                except Exception:
+                    card["place_intelligence"] = {"version":TRAVEL_BRAIN_VERSION,"local_admin":{"confidence":"UNKNOWN"}}
         return result, None
     except Exception as exc:
         # Log the full traceback for Vercel Runtime Logs while keeping the public response safe.
@@ -573,55 +608,67 @@ def _safe_journey_analyze(title, itinerary, start_date=None):
 
 
 def _destination_context_for_places(places):
-    """Return curated destination knowledge for the Journey AI result.
-
-    The former destination module is now a data capability of Journey AI, not a
-    separate UI module. This keeps the destination catalog reusable while making
-    destination facts available in the same Journey Intelligence response.
-    """
+    """Resolve every Journey point and run Deep World Research on demand."""
     contexts=[]
+    smart_enabled=os.getenv("HDVIA_SMART_KNOWLEDGE", "1").strip().lower() in {"1","true","yes","on"}
+    smart_max=max(0, min(int(os.getenv("HDVIA_SMART_KNOWLEDGE_MAX_PLACES", "4")), 8))
+    smart=SmartKnowledgeAcquirer() if smart_enabled and smart_max else None
+    smart_used=0
     for place in places or []:
         name=(place.get("name") if isinstance(place, dict) else str(place)).strip()
-        if not name:
-            continue
+        if not name: continue
         d=BY_NAME.get(name.lower())
         if not d:
-            # Accept small naming differences from the conversation resolver.
             d=next((x for x in DESTINATIONS if x["name"].lower() in name.lower() or name.lower() in x["name"].lower()), None)
         if d:
-            contexts.append({
-                "slug":d["slug"], "name":d["name"], "region":d["region"],
-                "type":d["type"], "overview":d["overview"],
-                "highlights":d.get("highlights",[]), "culture":d.get("culture",""),
-                "history":d.get("history",""), "food":d.get("food",""),
-                "best_for":d.get("best_for",""),
-                "image_query":d["name"] + " Vietnam",
-                "image_url":media_for_slug(d["slug"]).get("image_url"),
-                "image_source_url":media_for_slug(d["slug"]).get("source_url"),
-                "image_license":media_for_slug(d["slug"]).get("license"),
-                "image_artist":media_for_slug(d["slug"]).get("artist"),
-            })
-    # 1.25.1: surface compact editorial point records already loaded in the
-    # knowledge warehouse. They remain reference-only and are not promoted to
-    # verified facts merely by being rendered with an image.
+            media=media_for_slug(d["slug"])
+            card={"slug":d["slug"],"name":d["name"],"region":d["region"],"type":d["type"],"overview":d["overview"],
+                  "highlights":d.get("highlights",[]),"culture":d.get("culture",""),"history":d.get("history",""),"food":d.get("food",""),
+                  "best_for":d.get("best_for",""),"image_query":d["name"]+" Vietnam","image_url":media_for_slug(d["slug"]).get("image_url"),
+                  "image_source_url":media_for_slug(d["slug"]).get("source_url"),"image_license":media_for_slug(d["slug"]).get("license"),"image_artist":media_for_slug(d["slug"]).get("artist"),
+                  "knowledge_status":"CURATED"}
+        else:
+            card={"slug":"","name":name,"region":"","type":"Điểm được nhập từ Hành Trình AI","overview":"","highlights":[],
+                  "culture":"","history":"","food":"","best_for":"","image_query":name+" Vietnam","image_url":None,
+                  "image_source_url":"","image_license":"","image_artist":"","knowledge_status":"PENDING_RESEARCH"}
+        deep_research=os.getenv("HDVIA_JOURNEY_DEEP_RESEARCH", "1").strip().lower() in {"1","true","yes","on"}
+        if deep_research and smart and smart_used < smart_max:
+            try:
+                live=smart.acquire(name, depth="deep", question=name)
+                prof=live.get("profile") if live.get("ok") else None
+                if prof:
+                    wiki=prof.get("wikipedia") or {}
+                    vi_extract=str(wiki.get("vi_extract") or "").strip()
+                    if vi_extract and len(vi_extract)>len(str(card.get("overview") or "")): card["overview"]=vi_extract
+                    img=prof.get("representative_image") or {}
+                    if img.get("image_url"):
+                        card["image_url"]=img.get("image_url"); card["image_source_url"]=img.get("source_url","")
+                        card["image_license"]=(img.get("provenance") or {}).get("license") or img.get("license","")
+                        card["image_artist"]=(img.get("provenance") or {}).get("artist","")
+                    card["knowledge_status"]=prof.get("status","REFERENCE")
+                    card["knowledge_confidence"]=prof.get("confidence","LOW")
+                    card["knowledge_sources"]=prof.get("sources",[])
+                    card["knowledge_domains"]=prof.get("domains_researched",[])
+                    card["knowledge_blocks"]=prof.get("knowledge_blocks",[])[:40]
+                    card["related_entities"]=prof.get("related_entities",[])[:40]
+                    card["web_sources"]=prof.get("web_sources",[])[:40]
+                    card["knowledge_acquired_at"]=prof.get("acquired_at")
+                    card["entity_resolution"]=prof.get("entity_resolution")
+                    card["coordinates"]=prof.get("coordinates")
+                    card["research_depth"]=prof.get("research_depth")
+                    smart_used += 1
+            except Exception:
+                pass
+        contexts.append(card)
     seen={c.get("name","").lower() for c in contexts}
     for item in load_reference_warehouse():
         place=str(item.get("place","")).strip()
-        if not place or place.lower() in seen:
-            continue
-        if any(place.lower() == str((p.get("name") if isinstance(p,dict) else p)).strip().lower() for p in places or []):
-            contexts.append({
-                "slug": item.get("destination_id", ""),
-                "name": place,
-                "region": "",
-                "type": item.get("topic", "Điểm du lịch"),
-                "overview": item.get("content", ""),
-                "highlights": [], "culture": "", "history": "", "food": "",
-                "best_for": "Tham khảo từ nguồn biên tập",
-                "image_query": place + " Vietnam",
-                "source": item.get("source", ""),
-                "source_status": item.get("status", "REFERENCE")
-            })
+        if not place or place.lower() in seen: continue
+        if any(place.lower()==str((p.get("name") if isinstance(p,dict) else p)).strip().lower() for p in places or []):
+            contexts.append({"slug":item.get("destination_id",""),"name":place,"region":"","type":item.get("topic","Điểm du lịch"),
+                             "overview":item.get("content",""),"highlights":[],"culture":"","history":"","food":"",
+                             "best_for":"Tham khảo từ nguồn biên tập","image_query":place+" Vietnam","source":item.get("source",""),
+                             "source_status":item.get("status","REFERENCE"),"knowledge_status":"REFERENCE"})
             seen.add(place.lower())
     return contexts
 
@@ -674,6 +721,22 @@ def _merge_conversation_result(journey_result, conversation_result):
     merged["confidence_label"]=confidence_labels.get(merged.get("confidence"),merged.get("confidence","CHƯA XÁC ĐỊNH"))
     return merged
 
+
+def _register_weather_watch(result):
+    """Persist every resolved Journey point for round-the-clock weather refresh."""
+    rows=[]
+    for p in (result or {}).get("places") or []:
+        if not isinstance(p,dict) or p.get("lat") is None or p.get("lon") is None: continue
+        rows.append(p)
+    if not rows: return
+    c=db()
+    for p in rows:
+        try:
+            admin=(next((x.get("place_intelligence",{}).get("local_admin") for x in (result.get("destination_context") or []) if x.get("name")==p.get("name")), None) or {})
+            c.execute("INSERT INTO weather_watch_points(name,lat,lon,admin_json,last_checked_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(name,lat,lon) DO UPDATE SET active=1,admin_json=excluded.admin_json,updated_at=excluded.updated_at",
+                      (str(p.get("name")),float(p.get("lat")),float(p.get("lon")),json.dumps(admin,ensure_ascii=False),now(),now(),now()))
+        except Exception: pass
+    c.commit(); c.close()
 
 def _queue_knowledge_update(result):
     enr=(result or {}).get("knowledge_enrichment") or {}
@@ -808,6 +871,7 @@ def _ai_query_analyze(query):
     result["risks"] = []
     result["recommendations"] = ["Chọn một câu hỏi gợi ý để HDVIA phân tích tiếp."]
     result["destination_context"] = _destination_context_for_places(result.get("places") or [])
+    result["travel_brain"] = build_travel_brain(q, query=q, profile={"sources": result.get("sources",[]), "confidence": result.get("confidence","UNKNOWN"), "status": result.get("data_status","UNKNOWN")}, weather=result.get("weather",{}))
     result["confidence"] = result.get("confidence", "LOW")
     return result, None
 
@@ -898,6 +962,41 @@ def weather_api():
         lat,lon=p[0]["lat"],p[0]["lon"]; name=p[0]["name"]
     p={"name":name,"lat":float(lat),"lon":float(lon)}
     return jsonify({"place":p,"weather":engine.weather_provider(p),"updated_at":now()})
+
+@app.post("/api/v1/weather-watch/refresh")
+def weather_watch_refresh():
+    token=os.environ.get("HDVIA_WEATHER_WATCH_TOKEN", "").strip()
+    auth=request.headers.get("Authorization", "")
+    cron_ok=bool(token and auth == "Bearer " + token)
+    u=current_user() if not cron_ok else None
+    if not cron_ok and (not u or u.get("role") not in ("ADMIN","SUPER_ADMIN")):
+        return jsonify({"ok":False,"error":"Không có quyền refresh weather watch."}),403
+    body=request.get_json(silent=True) or {}
+    limit=max(1,min(50,int(body.get("limit",25))))
+    c=db(); rows=c.execute("SELECT * FROM weather_watch_points WHERE active=1 ORDER BY updated_at LIMIT ?",(limit,)).fetchall(); c.close()
+    updated=[]
+    for row in rows:
+        try:
+            p={"name":row["name"],"lat":float(row["lat"]),"lon":float(row["lon"])}
+            w=engine._normalize_weather(engine.weather_provider(p))
+            c=db(); c.execute("UPDATE weather_watch_points SET latest_weather_json=?,last_checked_at=?,updated_at=? WHERE id=?",(json.dumps(w,ensure_ascii=False),now(),now(),row["id"])); c.commit(); c.close()
+            updated.append({"name":p["name"],"updated_at":now(),"days":len(w)})
+        except Exception as exc:
+            updated.append({"name":row["name"],"error":str(exc)[:160]})
+    return jsonify({"ok":True,"count":len(updated),"updated":updated,"server_time":now()})
+
+@app.get("/api/v1/knowledge/enrich")
+def knowledge_enrich_api():
+    """Bounded read-only destination knowledge acquisition endpoint."""
+    name=request.args.get("q", "").strip()
+    if not name:
+        return jsonify({"ok":False,"error":"missing q"}),400
+    try:
+        result=SmartKnowledgeAcquirer().acquire(name)
+        return jsonify(result), 200 if result.get("ok") else 502
+    except Exception as exc:
+        return jsonify({"ok":False,"error":"knowledge_acquisition_error","detail":str(exc)[:180]}),502
+
 
 @app.get("/api/v1/place-image")
 def place_image_api():
@@ -1194,11 +1293,11 @@ def self_update_run():
     return jsonify({"ok":True,"processed":processed,"count":len(processed)})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.4.4-world-qa-image-rendering","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.30.1-hdv-giau-kinh-nghiem","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.25.4.4-world-qa-image-rendering","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.30.1-hdv-giau-kinh-nghiem","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

@@ -11,12 +11,12 @@ from public_apis import (
     weather as open_meteo_weather, geocode as open_meteo_geocode,
     route as osrm_route, air_quality as open_meteo_air_quality,
     marine as open_meteo_marine, search_place as osm_search_place,
-    wikipedia_search, wikidata_search, overpass_query, sun_times,
+    wikipedia_search, wikipedia_page, wikidata_search, overpass_query, sun_times,
     opentripmap_places, opentripmap_details,
     wikimedia_image_search, wikidata_entity, wikimedia_image_exact, wikimedia_image_geosearch, openverse_image_search,
 )
 
-API_LAYER_VERSION = "1.25.4.4-world-qa-image-rendering"
+API_LAYER_VERSION = "1.30.1-hdv-giau-kinh-nghiem"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -116,6 +116,11 @@ class OpenAPIAdapter:
         if not self.live_wikidata:
             return {"ok": False, "disabled": True, "provider": "wikidata"}
         return self._cached(_cache_key("wikidata", [q, limit]), lambda: wikidata_search(q, limit), ttl=self.cache_ttls["wikidata"])
+
+    def wikipedia_page(self, title: str, lang: str = "vi") -> Dict[str, Any]:
+        if not self.live_wikipedia:
+            return {"ok": False, "disabled": True, "provider": "wikipedia"}
+        return self._cached(_cache_key("wikipedia_page", [title, lang]), lambda: wikipedia_page(title, lang), ttl=self.cache_ttls["wikipedia"])
 
     def wikipedia(self, q: str, lang: str = "vi", limit: int = 5) -> Dict[str, Any]:
         if not self.live_wikipedia:

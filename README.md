@@ -73,3 +73,27 @@ External data remains `CANDIDATE_ONLY` until the validation pipeline promotes it
 
 ## Beta 1.25.4.4 — Destination Image Rendering
 Representative destination images now use verified Wikimedia Commons source metadata before attempting the live image resolver. Live resolution remains the fallback for destinations without a curated image.
+
+## Beta 1.25.6 — Self-Healing Knowledge Loop
+
+- Detects sparse destination knowledge at answer/journey time and identifies missing domains.
+- Automatically acquires bounded reference evidence for the missing domains instead of returning an empty/weak answer.
+- Topic-aware acquisition for history, culture, food, tourism, nature, people, economy and geography.
+- Persists reference evidence in `data/warehouse/smart_knowledge_cache.json` with provenance and `REFERENCE_ONLY` publication policy.
+- Existing Journey/Knowledge layers consume the newly acquired reference evidence immediately without changing the UI/module structure.
+- External evidence remains reference/candidate data until governed validation promotes it.
+- Acquisition is cached and scheduled sync can advance through the target queue instead of repeatedly refreshing only the first destinations.
+
+## Beta 1.25.5 — Smart Knowledge Acquisition
+
+HDVIA now has a bounded Smart Knowledge Acquisition path for sparse/unknown destination cards. It can retrieve reference evidence from Wikidata, Wikipedia VI/EN and OpenStreetMap, and route representative images through the existing verified-image resolver. External evidence is explicitly marked REFERENCE/CANDIDATE and is not silently promoted to verified knowledge. The scheduled open-data workflow refreshes `data/warehouse/smart_knowledge_cache.json` on a bounded target set.
+
+
+## Beta 1.25.7 — Deep World Research
+
+- Hành Trình AI deep-researches newly encountered points instead of only enriching sparse cards.
+- Parallel public-source research across Wikipedia VI/EN, Wikidata, OpenStreetMap, verified image resolution, and optional Google CSE discovery.
+- Topic coverage includes geography, history, culture, people/notable figures, food/specialties, tourism, landmarks, nature, economy and festivals.
+- First-seen points receive a full reference profile; repeated requests reuse the deep cache.
+- External evidence remains REFERENCE/CANDIDATE and is never silently promoted to VERIFIED.
+- No UI/module layout changes.

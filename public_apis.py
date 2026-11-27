@@ -88,6 +88,18 @@ def route(coords: str, profile: str = "driving") -> Dict[str, Any]:
     return PROVIDERS["osrm"].get(f"/route/v1/{profile}/{coords}", {"overview": "false", "steps": "false"})
 
 
+def wikipedia_page(title: str, lang: str = "en") -> Dict[str, Any]:
+    """Fetch one Wikipedia page extract and canonical metadata."""
+    title = str(title or "").strip()
+    if not title:
+        return {"ok": False, "provider": "wikipedia", "error": "missing_title"}
+    p = PublicProvider("wikipedia", f"https://{lang}.wikipedia.org", "Wikipedia / Wikimedia Foundation")
+    return p.get("/w/api.php", {
+        "action": "query", "prop": "extracts|info", "explaintext": 1,
+        "inprop": "url", "titles": title, "format": "json", "redirects": 1, "origin": "*"
+    })
+
+
 def wikipedia_search(q: str, lang: str = "en", limit: int = 5) -> Dict[str, Any]:
     p = PublicProvider("wikipedia", f"https://{lang}.wikipedia.org", "Wikipedia / Wikimedia Foundation")
     return p.get("/w/api.php", {"action": "query", "list": "search", "srsearch": q, "srlimit": min(max(int(limit), 1), 10), "format": "json", "origin": "*"})

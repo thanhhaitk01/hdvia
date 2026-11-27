@@ -9,6 +9,7 @@ import os, re
 from typing import Any, Dict, List, Tuple
 
 from knowledge_layer import search_knowledge
+from knowledge_self_healing import KnowledgeSelfHealingEngine, reference_lines
 from province_data import PROVINCES_2025
 from destination_catalog import DESTINATIONS
 from coverage_registry import CATEGORIES, resolve_known_place
@@ -490,6 +491,28 @@ class ConversationIntelligenceEngine:
             confidence="HIGH" if any(self._source_class(item) == "CURATED_CATALOG" for item in hits) else ("MEDIUM" if len(hits)>=2 else "LOW")
             data_status="VERIFIED" if any(self._source_class(item) == "CURATED_CATALOG" for item in hits) else "REFERENCE"
 
+        # Self-healing knowledge loop: when the curated warehouse is sparse,
+        # HDVIA automatically acquires reference evidence for the detected place
+        # and uses it in this answer immediately. It never promotes it to
+        # VERIFIED/PUBLISHED automatically.
+        auto_heal = os.environ.get("HDVIA_AUTO_KNOWLEDGE_ENRICH", "1").strip().lower() in {"1", "true", "yes", "on"}
+        self_heal = None
+        if auto_heal and places and primary in ("HISTORY", "CULTURE", "FOOD", "GUIDE_SCRIPT", "DESTINATION", "GENERAL_QA", "NATURE", "PEOPLE", "ECONOMY", "FESTIVAL", "SHOPPING", "RELIGION") and not _requires_verified_detail(q, primary):
+            try:
+                target_place = places[0].get("name") or ""
+                self_heal = KnowledgeSelfHealingEngine().ensure(target_place, question=q, domain=primary)
+                if self_heal.get("ok"):
+                    acquired_lines = reference_lines(self_heal.get("profile") or {}, domain=primary)
+                    if acquired_lines:
+                        lines.append("HDVIA vừa tự bổ sung dữ liệu tham khảo cho điểm đến:")
+                        lines.extend(acquired_lines)
+                        sources.append("HDVIA Smart Knowledge Acquisition")
+                        if self_heal.get("status") == "ACQUIRED":
+                            data_status = "REFERENCE"
+                            confidence = "MEDIUM" if confidence == "LOW" else confidence
+            except Exception:
+                self_heal = None
+
         if not lines and places and primary in ("HISTORY", "CULTURE", "FOOD", "GUIDE_SCRIPT", "DESTINATION", "GENERAL_QA") and not _requires_verified_detail(q, primary):
             # Preserve every resolved place in a multi-destination question.
             answered=0
@@ -559,7 +582,9 @@ class ConversationIntelligenceEngine:
             "predicted_questions": self.predict_questions(q, intents, places),
             "routing": scope,
             "knowledge_enrichment": enrichment,
+            "self_healing": self_heal,
             "coverage": {"categories": CATEGORIES, "recognized_place_count": len(places),
+
                          "knowledge_mode": "verified-first; editorial reference is labeled and unknown facts are surfaced instead of invented",
                          "retrieval": "intent-aware multi-signal ranking",
                          "point_intelligence": "enabled"},
