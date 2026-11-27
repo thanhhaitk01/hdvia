@@ -39,7 +39,7 @@ CROSS_LANGUAGE_ALIASES = {
 
 
 class EntityResolver:
-    VERSION = "1.25.2.3-entity-resolution"
+    VERSION = "1.25.2.4-entity-resolution"
 
     def __init__(self, adapter):
         self.adapter = adapter

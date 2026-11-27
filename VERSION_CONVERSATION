@@ -1,6 +1,6 @@
 HDVIA BETA 1.25.2 - API CONNECTIVITY & LIVE DATA HARDENING
 
-HDVIA BETA 1.25.2.3 - ENTITY RESOLUTION + KNOWLEDGE FUSION HARDENING
+HDVIA BETA 1.25.2.4 - ENTITY RESOLUTION + KNOWLEDGE FUSION HARDENING
 - Added bounded cross-language entity resolution for Vietnamese landmark names.
 - Bridges Chùa Cầu Hội An -> Japanese Bridge -> Wikidata Q1091054 via aliases/Wikipedia titles.
 - Preserves canonical Journey place names; no UI/module changes.
