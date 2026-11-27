@@ -614,13 +614,13 @@ class JourneyIntelligenceEngine:
         if requested == 1:
             day_roles=[("FULL_DAY","Ngày trọn vẹn", "Phân bổ điểm chính + trải nghiệm + buffer trong cùng ngày.")]
         else:
-            day_roles.append(("ARRIVAL","Ngày 1 — Đón khách / làm quen", "Ưu tiên nhịp nhẹ, nhận phòng và hoạt động phù hợp thời gian đến."))
+            day_roles.append(("START","Ngày 1 — Bắt đầu hành trình", "Ưu tiên nhịp hợp lý, xác nhận điểm đón và phân bổ thời gian theo lịch trình thực tế."))
             for i in range(2, requested):
                 if i == requested - 1:
-                    day_roles.append(("CORE","Ngày cuối trước khởi hành", "Ưu tiên trải nghiệm/điểm chính còn thiếu và giữ buffer cho hành trình rời điểm đến."))
+                    day_roles.append(("CORE",f"Ngày {i} — Trọng tâm hành trình", "Ưu tiên trải nghiệm/điểm chính còn thiếu và giữ buffer cho chặng tiếp theo."))
                 else:
                     day_roles.append(("EXPERIENCE",f"Ngày {i} — Ngày trải nghiệm", "Ưu tiên cụm trải nghiệm chính, tránh xếp quá nhiều điểm rời rạc."))
-            day_roles.append(("DEPARTURE",f"Ngày {requested} — Kết thúc / khởi hành", "Giữ buffer, mua sắm phù hợp và kiểm tra thời gian ra sân bay/điểm trả khách."))
+            day_roles.append(("END",f"Ngày {requested} — Kết thúc hành trình", "Giữ buffer và xác nhận điểm kết thúc theo lịch trình thực tế; không tự giả định sân bay hoặc giờ khởi hành."))
         for code,reason,base in styles:
             score=base
             if profile=="india" and code in ("EXPERIENCE","PREMIUM"): score+=0.05
@@ -757,17 +757,32 @@ class JourneyIntelligenceEngine:
                 # Destination risk is a 7-day watchlist; day impact must use only
                 # the forecast that belongs to this journey day.
                 day_forecasts={p["name"]:self._forecast_for_day(p["name"],d["day"],weather,calendar_weather) for p in day_places}
-                affected=[]; max_rain=0; max_wind=0
+                affected=[]; max_rain=None; max_wind=None; has_metrics=False
                 for name,forecast in day_forecasts.items():
-                    rain=max((x.get("rain") or 0) for x in forecast) if forecast else 0
-                    wind=max((x.get("wind") or 0) for x in forecast) if forecast else 0
-                    max_rain=max(max_rain,rain); max_wind=max(max_wind,wind)
-                    if rain>=70 or wind>=45: affected.append(name)
-                impact="HIGH" if (max_rain>=70 or max_wind>=45) else ("MEDIUM" if (max_rain>=45 or max_wind>=30) else "LOW")
+                    valid=[x for x in (forecast or []) if isinstance(x,dict)]
+                    rain_values=[x.get("rain") for x in valid if isinstance(x.get("rain"),(int,float))]
+                    wind_values=[x.get("wind") for x in valid if isinstance(x.get("wind"),(int,float))]
+                    if rain_values or wind_values:
+                        has_metrics=True
+                    rain=max(rain_values) if rain_values else None
+                    wind=max(wind_values) if wind_values else None
+                    if rain is not None:
+                        max_rain=rain if max_rain is None else max(max_rain,rain)
+                    if wind is not None:
+                        max_wind=wind if max_wind is None else max(max_wind,wind)
+                    if (rain is not None and rain>=70) or (wind is not None and wind>=45):
+                        affected.append(name)
+                if not has_metrics:
+                    impact="UNKNOWN"
+                    action="Chưa có dữ liệu thời tiết định lượng cho ngày này; không tự đánh giá là rủi ro thấp."
+                else:
+                    rain_for_level=max_rain or 0
+                    wind_for_level=max_wind or 0
+                    impact="HIGH" if (rain_for_level>=70 or wind_for_level>=45) else ("MEDIUM" if (rain_for_level>=45 or wind_for_level>=30) else "LOW")
+                    action=("Ưu tiên hoạt động trong nhà hoặc dời hoạt động ngoài trời sang khung giờ an toàn hơn." if impact=="HIGH" else
+                            ("Theo dõi sát và chừa buffer; chuẩn bị phương án thay thế." if impact=="MEDIUM" else "Chưa cần thay đổi lớn theo dữ liệu hiện có."))
                 weather_impact.append({"day":d["day"],"level":impact,"max_rain_probability":max_rain,"max_wind_kmh":max_wind,
-                    "forecast_basis":"calendar_date" if calendar_weather else "forecast_slot",
-                    "action":"Ưu tiên hoạt động trong nhà hoặc dời hoạt động ngoài trời sang khung giờ an toàn hơn." if impact=="HIGH" else
-                             ("Theo dõi sát và chừa buffer; chuẩn bị phương án thay thế." if impact=="MEDIUM" else "Chưa cần thay đổi lớn theo dữ liệu hiện có.")})
+                    "forecast_basis":"calendar_date" if calendar_weather else "forecast_slot","action":action})
                 briefing.append({"day":d["day"],"title":f"Ngày {d['day']} — {day_places[0]['name']}",
                     "talking_points":[f"Giới thiệu bối cảnh và điểm nổi bật của {p['name']}." for p in day_places[:3]],
                     "hdv_check":"Kiểm tra thời tiết, thời gian di chuyển và nhu cầu khách trước khi khởi hành."})

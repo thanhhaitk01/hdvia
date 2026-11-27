@@ -1,0 +1,216 @@
+{
+  "version": "1.24.0",
+  "source": "Khám Phá Di Sản",
+  "policy": "compact_structured_reference_only",
+  "records": [
+    {
+      "knowledge_id": "kpd-da-nang-3d2n-20260525",
+      "destination_id": "dest-da-nang",
+      "admin_id": "adm:48",
+      "title": "Đà Nẵng 3 ngày 2 đêm – khung trải nghiệm biển, Bà Nà, Sơn Trà",
+      "place": "Đà Nẵng",
+      "topic": "itinerary_experience",
+      "content": "Bài viết gợi ý một khung 3 ngày 2 đêm gồm biển Mỹ Khê và khu vực sông Hàn/cầu Rồng, một ngày Bà Nà Hills, và ngày cuối Sơn Trà – chợ Hàn. Đây là dữ liệu tham khảo để HDVIA gợi ý lịch trình, không phải lịch trình bắt buộc.",
+      "source": "https://khamphadisan.com.vn/da-nang-3-ngay-2-dem-nen-di-dau/",
+      "confidence": 0.86,
+      "status": "REFERENCE",
+      "updated_at": "2026-05-25T00:00:00Z",
+      "keywords": [
+        "Đà Nẵng",
+        "Mỹ Khê",
+        "cầu Rồng",
+        "Bà Nà Hills",
+        "Sơn Trà",
+        "chợ Hàn"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-hoi-an-ky-uc-20260417",
+      "destination_id": "dest-hoi-an",
+      "admin_id": "adm:48",
+      "title": "Ký Ức Hội An – trải nghiệm văn hóa, lịch sử và nghệ thuật thực cảnh",
+      "place": "Hội An",
+      "topic": "culture_experience",
+      "content": "Nguồn mô tả Công viên Ấn Tượng Hội An và show Ký Ức Hội An như một trải nghiệm kể lịch sử Hội An bằng sân khấu, âm nhạc và trình diễn. Bài viết nhấn mạnh năm màn trình diễn và khả năng kết hợp với trải nghiệm sông Hoài, hoa đăng và Vinpearl Nam Hội An.",
+      "source": "https://khamphadisan.com.vn/ky-uc-hoi-an-tai-hien-lich-su-400-nam-giua-long-dem-pho-co/",
+      "confidence": 0.86,
+      "status": "REFERENCE",
+      "updated_at": "2026-04-17T00:00:00Z",
+      "keywords": [
+        "Hội An",
+        "Ký Ức Hội An",
+        "Công viên Ấn Tượng Hội An",
+        "sông Hoài",
+        "hoa đăng",
+        "Vinpearl Nam Hội An"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-tra-que-2026",
+      "destination_id": "dest-tra-que",
+      "admin_id": "adm:48",
+      "title": "Trà Quế – trải nghiệm làng quê và làng rau gần Hội An",
+      "place": "Làng rau Trà Quế",
+      "topic": "community_experience",
+      "content": "Khám Phá Di Sản giới thiệu trải nghiệm làng quê Hội An kết hợp đi thuyền thúng và tham quan làng rau Trà Quế. Dữ liệu phù hợp để HDVIA nhận diện Trà Quế như một điểm trải nghiệm cộng đồng có thể ghép vào hành trình Hội An.",
+      "source": "https://khamphadisan.com.vn/trai-nghiem-lang-que-hoi-an/",
+      "confidence": 0.84,
+      "status": "REFERENCE",
+      "updated_at": "2026-11-27T00:00:00Z",
+      "keywords": [
+        "Trà Quế",
+        "Hội An",
+        "làng rau",
+        "thuyền thúng",
+        "trải nghiệm cộng đồng"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-phuoc-tich",
+      "destination_id": "dest-phuoc-tich",
+      "admin_id": "adm:46",
+      "title": "Làng gốm Phước Tích – tài liệu thuyết minh tham khảo",
+      "place": "Làng gốm Phước Tích",
+      "topic": "heritage_guide_script",
+      "content": "Nguồn có chuyên mục tài liệu thuyết minh du lịch về làng gốm Phước Tích. HDVIA dùng bản ghi này làm điểm nối để tìm và gợi ý nội dung thuyết minh chuyên sâu về di sản/làng nghề, đồng thời giữ trạng thái tham khảo theo nguồn.",
+      "source": "https://khamphadisan.com.vn/tai-lieu-thuyet-minh-du-lich-hue-gioi-thieu-ve-lang-gom-phuoc-tich/",
+      "confidence": 0.82,
+      "status": "REFERENCE",
+      "updated_at": "2026-11-27T00:00:00Z",
+      "keywords": [
+        "Phước Tích",
+        "Huế",
+        "làng gốm",
+        "làng nghề",
+        "thuyết minh"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-thanh-toan",
+      "destination_id": "dest-thanh-toan",
+      "admin_id": "adm:46",
+      "title": "Cầu ngói Thanh Toàn – kiến trúc Thượng gia, hạ kiều",
+      "place": "Cầu ngói Thanh Toàn",
+      "topic": "heritage_architecture",
+      "content": "Nguồn có tài liệu thuyết minh về Cầu ngói Thanh Toàn và nhấn mạnh đặc trưng kiến trúc “Thượng gia, hạ kiều”. Bản ghi giúp Hành Trình AI có điểm neo cho câu hỏi về kiến trúc, di sản và thuyết minh tại điểm.",
+      "source": "https://khamphadisan.com.vn/cau-ngoi-thanh-toan-doc-dao-kien-truc-thuong-gia-ha-kieu/",
+      "confidence": 0.84,
+      "status": "REFERENCE",
+      "updated_at": "2026-11-27T00:00:00Z",
+      "keywords": [
+        "Cầu ngói Thanh Toàn",
+        "Huế",
+        "Thượng gia hạ kiều",
+        "kiến trúc",
+        "thuyết minh"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-hue-di-san-20261003",
+      "destination_id": "dest-hue",
+      "admin_id": "adm:46",
+      "title": "Các địa điểm Huế nổi tiếng – điểm neo cho truy vấn điểm đến",
+      "place": "Huế",
+      "topic": "destination_discovery",
+      "content": "Trang điểm đến Huế hiện liệt kê nhiều nội dung về địa điểm nổi tiếng, trải nghiệm và cập nhật du lịch. HDVIA dùng trang này như nguồn khám phá để phát hiện các điểm cần kiểm chứng thêm, không coi toàn bộ danh sách là dữ liệu chính thức.",
+      "source": "https://khamphadisan.com.vn/dia-diem-du-lich/du-lich-hue/",
+      "confidence": 0.78,
+      "status": "DISCOVERY_SOURCE",
+      "updated_at": "2026-10-03T00:00:00Z",
+      "keywords": [
+        "Huế",
+        "điểm đến",
+        "di tích",
+        "trải nghiệm",
+        "check-in"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-unesco-vietnam",
+      "destination_id": "vietnam-unesco",
+      "admin_id": "",
+      "title": "Danh mục di sản thế giới Việt Nam trên Khám Phá Di Sản",
+      "place": "Việt Nam",
+      "topic": "unesco",
+      "content": "Trang chủ của Khám Phá Di Sản có mục tổng hợp các di sản thế giới tại Việt Nam và liên kết tới hồ sơ Huế, Hạ Long, Hội An, Mỹ Sơn, Phong Nha – Kẻ Bàng, Hoàng thành Thăng Long, Thành nhà Hồ và Tràng An. Đây là lớp discovery/đối chiếu nguồn cho kho di sản.",
+      "source": "https://khamphadisan.com.vn/",
+      "confidence": 0.82,
+      "status": "REFERENCE",
+      "updated_at": "2026-11-27T00:00:00Z",
+      "keywords": [
+        "UNESCO",
+        "Huế",
+        "Hạ Long",
+        "Hội An",
+        "Mỹ Sơn",
+        "Phong Nha",
+        "Thăng Long",
+        "Thành nhà Hồ",
+        "Tràng An"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-food-hue-20261027",
+      "destination_id": "dest-hue",
+      "admin_id": "adm:46",
+      "title": "Ẩm thực Huế – cơm niêu và món ăn kèm",
+      "place": "Huế",
+      "topic": "food",
+      "content": "Trang chủ cập nhật nội dung về cơm niêu Huế và các món ăn kèm, cho thấy nguồn có thể bổ sung lớp ẩm thực hiện hành bên cạnh dữ liệu di sản. Nội dung cần được HDVIA giữ dưới dạng tham khảo và đối chiếu với nguồn địa phương khi dùng cho giá/nhà hàng.",
+      "source": "https://khamphadisan.com.vn/",
+      "confidence": 0.76,
+      "status": "DISCOVERY_SOURCE",
+      "updated_at": "2026-10-27T00:00:00Z",
+      "keywords": [
+        "Huế",
+        "cơm niêu",
+        "ẩm thực",
+        "nhà hàng"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-current-events-hue-2026",
+      "destination_id": "dest-hue",
+      "admin_id": "adm:46",
+      "title": "Sự kiện và trải nghiệm mới tại Huế – tín hiệu cập nhật",
+      "place": "Huế",
+      "topic": "events",
+      "content": "Nguồn liệt kê các nội dung năm 2026 về Ngày Hội Sen Huế, Vỹ Dạ Chào Hè, Thức Thủy Show và các hoạt động ẩm thực. Đây là tín hiệu discovery để HDVIA biết những chủ đề mới cần kiểm tra trước khi tư vấn lịch trình.",
+      "source": "https://khamphadisan.com.vn/dia-diem-du-lich/du-lich-hue/",
+      "confidence": 0.75,
+      "status": "DISCOVERY_SOURCE",
+      "updated_at": "2026-06-28T00:00:00Z",
+      "keywords": [
+        "Huế",
+        "Ngày Hội Sen",
+        "Vỹ Dạ Chào Hè",
+        "Thức Thủy Show",
+        "sự kiện"
+      ]
+    },
+    {
+      "knowledge_id": "kpd-destinations-index",
+      "destination_id": "vietnam-destinations",
+      "admin_id": "",
+      "title": "Chỉ mục điểm đến Khám Phá Di Sản",
+      "place": "Việt Nam",
+      "topic": "destination_index",
+      "content": "Khám Phá Di Sản công bố hơn 3000 bài viết và danh mục điểm đến theo vùng. Chỉ mục hiện thể hiện nhiều cụm nội dung cho Huế, Đà Nẵng, Hội An, Đà Lạt, Phú Quốc, Hà Nội, Hạ Long, Hà Giang, Nha Trang và nhiều địa phương khác. HDVIA dùng đây như nguồn discovery, không sao chép toàn văn bài viết.",
+      "source": "https://khamphadisan.com.vn/cam-nang/",
+      "confidence": 0.9,
+      "status": "SOURCE_INDEX",
+      "updated_at": "2026-11-27T00:00:00Z",
+      "keywords": [
+        "điểm đến",
+        "cẩm nang",
+        "du lịch Việt Nam",
+        "Huế",
+        "Đà Nẵng",
+        "Hội An",
+        "Đà Lạt",
+        "Phú Quốc",
+        "Hà Nội"
+      ]
+    }
+  ]
+}

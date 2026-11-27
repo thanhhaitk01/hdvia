@@ -1,5 +1,31 @@
 {% extends 'base.html' %}
-{% block title %}Hành Trình AI – HDVIA{% endblock %}
+{% block title %}Hành Trình AI – HDVIA<script>
+(function(){
+  const nodes=[...document.querySelectorAll('[data-place-image]')];
+  if(!nodes.length) return;
+  nodes.forEach(async (node)=>{
+    const q=node.dataset.placeImage;
+    try{
+      const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
+      if(!r.ok) return;
+      const data=await r.json();
+      if(!data.image_url) return;
+      const img=node.querySelector('img');
+      if(!img) return;
+      img.src=data.image_url;
+      img.hidden=false;
+      const ph=node.querySelector('.journey-image-placeholder');
+      if(ph) ph.hidden=true;
+      const icon=node.querySelector('.journey-place-icon');
+      if(icon) icon.hidden=true;
+      const source=node.querySelector('.journey-image-source');
+      if(source){ source.textContent='Ảnh: Wikimedia Commons'; source.hidden=false; }
+    }catch(_e){}
+  });
+})();
+</script>
+
+{% endblock %}
 {% block content %}
 <section class="journey-page journey-layout">
 <div class="page-hero">
@@ -132,9 +158,11 @@
               {% set ns = namespace(place_info=none) %}
               {% for d in destination_context %}{% if d.get('name') == place_name %}{% set ns.place_info = d %}{% endif %}{% endfor %}
               <div class="journey-place-intel">
-                <div class="journey-place-visual">
+                <div class="journey-place-visual journey-place-image-wrap" data-place-image="{{ (ns.place_info.get('image_query') if ns.place_info else place_name ~ ' Vietnam')|e }}">
                   <div class="journey-place-icon">📍</div>
+                  <img class="journey-place-image" alt="Ảnh đại diện {{place_name}}" loading="lazy" hidden>
                   <span>{{place_name}}</span>
+                  <small class="journey-image-source" hidden></small>
                 </div>
                 <div class="journey-place-main">
                   <div class="journey-place-title"><h4>{{place_name}}</h4>{% if ns.place_info %}<span>{{ns.place_info.get('region','')}}</span>{% endif %}</div>
@@ -190,6 +218,11 @@
       <div class="journey-destination-grid">
       {% for d in result.get('destination_context',[]) %}
         <article class="journey-destination-card">
+          <div class="destination-card-image-wrap" data-place-image="{{ (d.get('image_query') or d.get('name') ~ ' Vietnam')|e }}">
+            <img class="journey-destination-image" alt="Ảnh đại diện {{d.get('name')}}" loading="lazy" hidden>
+            <div class="journey-image-placeholder">📍 {{d.get('name')}}</div>
+            <small class="journey-image-source" hidden></small>
+          </div>
           <div class="destination-card-head"><strong>{{d.get('name')}}</strong><span>{{d.get('region')}}</span></div>
           <p>{{d.get('overview')}}</p>
           {% if d.get('highlights') %}<div><b>Điểm nổi bật:</b> {{d.get('highlights')|join(' · ')}}</div>{% endif %}

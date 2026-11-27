@@ -1,30 +1,49 @@
 {
-  "version": "1.22.0",
-  "name": "Vietnam Tourism Knowledge Manifest",
-  "status": "beta-release",
-  "policy": "recognized_place_is_not_verified_fact",
-  "curated_entries": 8,
-  "destination_catalog_entries": 22,
-  "coverage_registry": "province_catalog_2025.json",
-  "provenance_required": true,
-  "note": "Catalog and registry metadata are not substitutes for verified historical/cultural facts.",
-  "knowledge_expansion_engine": "1.1.0",
-  "knowledge_domains": [
-    "geography",
-    "history",
-    "culture",
-    "people",
+  "version": "1.25.0",
+  "name": "HDVIA Vietnam Deep Knowledge & Live Point Intelligence – Smart Reasoning",
+  "status": "pre-release",
+  "administrative_scope": {
+    "province_level": 34,
+    "commune_level_reference": 3321
+  },
+  "point_scope": [
+    "destinations",
+    "landmarks",
+    "heritage",
     "food",
-    "tourism",
-    "nature",
-    "operations",
-    "guide_experience"
+    "experiences",
+    "guide_scripts",
+    "check_in_discovery"
   ],
-  "tourist_profiles": "data/tourist_profiles.json",
-  "graph_and_gap_engine": true,
-  "knowledge_quality_engine": "1.0.0",
-  "journey_feasibility_engine": "1.0.0",
-  "explainable_decision_trace": true,
-  "live_routing_policy": "LIVE_WHEN_ENABLED_ELSE_ESTIMATE",
-  "guide_contribution_policy": "CANDIDATE_ONLY"
+  "live_scope": [
+    "weather_7_day",
+    "geocoding",
+    "routing",
+    "air_quality",
+    "sun",
+    "marine",
+    "osm",
+    "wikipedia",
+    "wikidata"
+  ],
+  "editorial_sources": [
+    "Khám Phá Di Sản"
+  ],
+  "khamphadisan_policy": "compact_metadata_and_summary_only; manual_review_before_publish",
+  "warehouse_reference_file": "data/warehouse/khamphadisan_seed_2026.json",
+  "retrieval_layers": [
+    "curated_kb",
+    "editorial_reference",
+    "destination_catalog",
+    "live_fusion",
+    "intent_aware_ranking"
+  ],
+  "quality_rule": "verified-first; editorial discovery/reference is labeled separately; unknown facts are surfaced instead of invented",
+  "smart_reasoning_scope": [
+    "query_contract",
+    "intent_aware_retrieval",
+    "multi_place_preservation",
+    "source_classification",
+    "point_level_context"
+  ]
 }
