@@ -16,7 +16,7 @@ from knowledge_intelligence import destination_card
 from entity_resolution import EntityResolver
 
 
-FUSION_VERSION = "1.22.0-journey-data-fusion"
+FUSION_VERSION = "1.25.4.4-world-qa-image-rendering"
 
 
 def _enabled(name: str, default: bool = True) -> bool:

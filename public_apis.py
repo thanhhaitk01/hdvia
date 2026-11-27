@@ -181,3 +181,9 @@ def _raw_post_json(url: str, body: str, provider: str) -> Dict[str, Any]:
             return {"ok": True, "provider": provider, "status_code": getattr(resp, "status", 200), "data": json.loads(raw.decode("utf-8", errors="replace")), "attribution":"© OpenStreetMap contributors"}
     except Exception as exc:
         return {"ok": False, "provider": provider, "error": str(exc)[:300], "attribution":"© OpenStreetMap contributors"}
+
+
+def openverse_image_search(q: str, limit: int = 5) -> Dict[str, Any]:
+    """Search Openverse for openly licensed image candidates."""
+    provider = PublicProvider("openverse", "https://api.openverse.org", "Openverse / per-asset licenses")
+    return provider.get("/v1/images/", {"q": str(q or "").strip(), "page_size": min(max(int(limit), 1), 10)})

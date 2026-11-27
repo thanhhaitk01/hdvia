@@ -9,6 +9,7 @@ from oauth import init_oauth, provider_enabled
 from connect import init_connect_blueprint
 from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG, BY_NAME
+from media_defaults import media_for_slug
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
 from knowledge_layer import answer_from_knowledge, load_reference_warehouse
 from conversation_engine import ConversationIntelligenceEngine
@@ -325,7 +326,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.25.2.4-api-audit-entity-knowledge-fusion","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.25.4.4-world-qa-image-rendering","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -594,7 +595,11 @@ def _destination_context_for_places(places):
                 "highlights":d.get("highlights",[]), "culture":d.get("culture",""),
                 "history":d.get("history",""), "food":d.get("food",""),
                 "best_for":d.get("best_for",""),
-                "image_query":d["name"] + " Vietnam"
+                "image_query":d["name"] + " Vietnam",
+                "image_url":media_for_slug(d["slug"]).get("image_url"),
+                "image_source_url":media_for_slug(d["slug"]).get("source_url"),
+                "image_license":media_for_slug(d["slug"]).get("license"),
+                "image_artist":media_for_slug(d["slug"]).get("artist"),
             })
     # 1.25.1: surface compact editorial point records already loaded in the
     # knowledge warehouse. They remain reference-only and are not promoted to
@@ -1189,11 +1194,11 @@ def self_update_run():
     return jsonify({"ok":True,"processed":processed,"count":len(processed)})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.2.4-api-connectivity-live-data-hardened","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.4.4-world-qa-image-rendering","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.25.2.4-api-connectivity-live-data-hardened","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.25.4.4-world-qa-image-rendering","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

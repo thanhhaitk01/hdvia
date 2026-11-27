@@ -13,10 +13,10 @@ from public_apis import (
     marine as open_meteo_marine, search_place as osm_search_place,
     wikipedia_search, wikidata_search, overpass_query, sun_times,
     opentripmap_places, opentripmap_details,
-    wikimedia_image_search, wikidata_entity, wikimedia_image_exact, wikimedia_image_geosearch,
+    wikimedia_image_search, wikidata_entity, wikimedia_image_exact, wikimedia_image_geosearch, openverse_image_search,
 )
 
-API_LAYER_VERSION = "1.25.2.5-image-entity-resolution-verified"
+API_LAYER_VERSION = "1.25.4.4-world-qa-image-rendering"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -53,6 +53,7 @@ class OpenAPIAdapter:
             "marine": max(0, int(os.getenv("HDVIA_CACHE_TTL_MARINE", "300"))),
             "aqi": max(0, int(os.getenv("HDVIA_CACHE_TTL_AIR_QUALITY", "600"))),
             "image": max(0, int(os.getenv("HDVIA_CACHE_TTL_IMAGE", "21600"))),
+            "openverse": max(0, int(os.getenv("HDVIA_CACHE_TTL_OPENVERSE", "21600"))),
             "geocode": max(0, int(os.getenv("HDVIA_CACHE_TTL_GEOCODE", "86400"))),
             "osm": max(0, int(os.getenv("HDVIA_CACHE_TTL_OSM", "86400"))),
             "wikidata": max(0, int(os.getenv("HDVIA_CACHE_TTL_WIKIDATA", "86400"))),
@@ -149,6 +150,9 @@ class OpenAPIAdapter:
 
     def image_exact(self, title: str) -> Dict[str, Any]:
         return self._cached(_cache_key("image_exact", title), lambda: wikimedia_image_exact(title), ttl=self.cache_ttls["image"])
+
+    def openverse_image(self, name: str, limit: int = 5) -> Dict[str, Any]:
+        return self._cached(_cache_key("openverse", [name, limit]), lambda: openverse_image_search(name, limit), ttl=self.cache_ttls["openverse"])
 
     def image_geosearch(self, lat: float, lon: float, radius_m: int = 5000, limit: int = 10) -> Dict[str, Any]:
         key=_cache_key("image_geo", [lat, lon, radius_m, limit])

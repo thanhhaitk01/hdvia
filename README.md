@@ -1,6 +1,6 @@
-# HDVIA Beta 1.22.0 — Journey Data Fusion
+# HDVIA Beta 1.25.4.4 — Destination Image Rendering Hardened
 
-Release baseline: `1.22.0-tour-intelligence`
+Release baseline: `1.25.4.4-world-qa-image-rendering`
 
 Beta 1.22.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và bổ sung lớp **Open/Public API Adapter** tách biệt khỏi lõi HDVIA.
 
@@ -42,3 +42,34 @@ This release keeps the 1.14.8 seven-layer Data Fusion baseline and adds five har
 - Expanded Knowledge Expansion integration without auto-publishing external or HDV contributions.
 
 External data remains `CANDIDATE_ONLY` until the validation pipeline promotes it.
+
+## Beta 1.25.4.0-six-layer-data-fusion-qa-hardened — 6 Layer Data Fusion
+- Unified Source Registry → Data Acquisition → Entity Resolution → Visual Resolution → Knowledge Governance → Knowledge Warehouse.
+- Added verified media warehouse metadata and Openverse fallback.
+- Added optional official/local tourism source discovery through Google CSE; discovered pages remain review-gated.
+- Added scheduled media acquisition to the existing open-data workflow.
+- No UI or module layout changes.
+
+## Beta 1.25.4.0 — QA Hardened
+- Runtime/API/image-resolver versions are synchronized.
+- Release QA checks stale runtime versions, forbidden build artefacts and bundled secrets.
+- UI and module layout remain unchanged.
+
+## Beta 1.25.4.2 — QA + Real-World Hardened
+- Added an explicit six-layer fusion contract without UI/module changes.
+- Added freshness states: `FRESH`, `AGING`, `STALE`, `UNKNOWN`.
+- Added governed promotion guard: external discovery stays `CANDIDATE` until verified.
+- Added real-world entity-resolution regression cases for Vietnamese/English landmark aliases.
+- Added release QA and artifact cleanup for GitHub-ready packaging.
+
+## Beta 1.25.4.4 — Destination Image Rendering + World Data & Media Acquisition
+- Global source discovery and trust ranking across registered open/official sources.
+- Multilingual entity aliases and normalized identity keys.
+- Media asset provenance, license/attribution and freshness tracking.
+- Incremental NEW/UNCHANGED/CHANGED detection and claim conflict detection.
+- World Collector packages external knowledge/media as `CANDIDATE` for governance; no auto-publish.
+- No UI or module layout changes.
+
+
+## Beta 1.25.4.4 — Destination Image Rendering
+Representative destination images now use verified Wikimedia Commons source metadata before attempting the live image resolver. Live resolution remains the fallback for destinations without a curated image.

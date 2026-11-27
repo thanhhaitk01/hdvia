@@ -33,7 +33,7 @@ def haversine_km(a_lat: float, a_lon: float, b_lat: float, b_lon: float) -> floa
 
 
 class VerifiedImageResolver:
-    VERSION = "1.25.2.5-verified-image-resolution"
+    VERSION = "1.25.4.4-world-qa-image-rendering"
     MIN_CONFIDENCE = 78
     ACCEPT_CONFIDENCE = 88
 
@@ -126,18 +126,24 @@ class VerifiedImageResolver:
             candidate.get("categories", "")
         ]))
         alias_norm = [normalize(x) for x in aliases if normalize(x)]
-        q_tokens = tokens(" ".join(aliases))
         title_tokens = tokens(hay_title)
         text_tokens = tokens(hay_text)
-        exact_alias = any(a == hay_title or a in hay_title for a in alias_norm)
-        token_overlap = len(q_tokens & title_tokens) / max(1, len(q_tokens))
-        text_overlap = len(q_tokens & text_tokens) / max(1, len(q_tokens))
+        alias_title_overlaps = [len(tokens(a) & title_tokens) / max(1, len(tokens(a))) for a in alias_norm]
+        alias_text_overlaps = [len(tokens(a) & text_tokens) / max(1, len(tokens(a))) for a in alias_norm]
+        best_alias_title = max(alias_title_overlaps or [0.0])
+        best_alias_text = max(alias_text_overlaps or [0.0])
+        exact_alias = any(a == hay_title for a in alias_norm)
+        token_overlap = best_alias_title
+        text_overlap = best_alias_text
 
         score = 0.0
         reasons = []
         if exact_alias:
             score += 45
             reasons.append("exact_alias_title")
+        elif token_overlap >= 0.75:
+            score += 35
+            reasons.append("strong_alias_title_match")
         score += min(25, 25 * token_overlap)
         if token_overlap:
             reasons.append("title_token_match")
@@ -150,6 +156,23 @@ class VerifiedImageResolver:
         if geo_source:
             score += 5
             reasons.append("commons_geosearch")
+
+        source = str(candidate.get("_source") or "")
+        source_bonus = {
+            "wikidata_p18": 25,
+            "official_source": 18,
+            "open_data_tourism": 16,
+            "openverse": 15,
+            "commons_search": 6,
+            "commons_geosearch": 4,
+        }.get(source, 0)
+        if source_bonus:
+            score += source_bonus
+            reasons.append(f"source_trust_{source}")
+
+        if candidate.get("license"):
+            score += 4
+            reasons.append("license_metadata_present")
 
         c_lat = self._parse_coord(candidate.get("lat"))
         c_lon = self._parse_coord(candidate.get("lon"))
@@ -242,7 +265,36 @@ class VerifiedImageResolver:
                         candidates.append({**item, "_direct_entity": False, "_source": "commons_search"})
                         seen_titles.add(title)
 
-        # 3) Geographic candidates are a secondary fallback, used only when
+        # 3) Open-license media is an independent fallback layer. It broadens
+        # coverage without weakening the entity lock because every candidate is
+        # still scored against the canonical entity and coordinates.
+        if not candidates or max(self._candidate_score(c, original, aliases, lat, lon, entity_id,
+                                                       direct_entity=bool(c.get("_direct_entity")),
+                                                       geo_source=c.get("_source") == "commons_geosearch")[0] for c in candidates) < self.ACCEPT_CONFIDENCE:
+            for alias in aliases[:2]:
+                try:
+                    result = self.adapter.openverse_image(alias, 5)
+                except Exception:
+                    continue
+                rows = ((result.get("data") or {}).get("results") or []) if isinstance(result, dict) else []
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    item = {
+                        "url": row.get("thumbnail") or row.get("url"),
+                        "title": row.get("title"),
+                        "description": row.get("description") or row.get("title"),
+                        "caption": row.get("title"),
+                        "artist": row.get("creator"),
+                        "license": row.get("license"),
+                        "source_url": row.get("foreign_landing_url") or row.get("url"),
+                    }
+                    title = str(item.get("title") or item.get("url") or "")
+                    if item.get("url") and title not in seen_titles:
+                        candidates.append({**item, "_direct_entity": False, "_source": "openverse"})
+                        seen_titles.add(title)
+
+        # 4) Geographic candidates are a secondary fallback, used only when
         # text/entity evidence has not produced a sufficiently strong candidate.
         need_geo = not candidates
         if candidates:
@@ -305,4 +357,9 @@ class VerifiedImageResolver:
             "entity_id": entity_id, "evidence": evidence,
             "resolver_version": self.VERSION,
             "candidates_considered": len(scored),
+            "provenance": {
+                "source": best.get("_source"),
+                "license": best.get("license") or "",
+                "retrieved_at": best.get("retrieved_at"),
+            },
         }
