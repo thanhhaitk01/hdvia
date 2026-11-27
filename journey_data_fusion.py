@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, Optional
 
 from api_adapters import OPEN_API_ADAPTER
 from knowledge_intelligence import destination_card
+from entity_resolution import EntityResolver
 
 
 FUSION_VERSION = "1.22.0-journey-data-fusion"
@@ -47,6 +48,7 @@ class JourneyDataFusion:
         self.adapter = adapter or OPEN_API_ADAPTER
         self.max_places = max(1, min(int(os.getenv("HDVIA_JOURNEY_FUSION_MAX_PLACES", "4")), 8))
         self.enabled = _enabled("HDVIA_JOURNEY_LIVE_FUSION", True)
+        self.entity_resolver = EntityResolver(self.adapter)
 
     def _provider(self, name: str, fn) -> Dict[str, Any]:
         try:
@@ -107,7 +109,7 @@ class JourneyDataFusion:
             if not isinstance(row, dict):
                 continue
             item={}
-            for key in ("name", "display_name", "title", "description", "snippet", "summary", "type", "lat", "lon", "wikibase_item", "pageid", "xid"):
+            for key in ("name", "display_name", "title", "label", "description", "snippet", "summary", "type", "lat", "lon", "wikibase_item", "id", "pageid", "xid", "match"):
                 if row.get(key) is not None:
                     item[key]=row[key]
             if item:
@@ -148,6 +150,7 @@ class JourneyDataFusion:
             "marine": lambda: self.adapter.marine(float(lat), float(lon)),
             "osm": lambda: self.adapter.osm_search(name, 5),
             "wikipedia": lambda: self.adapter.wikipedia(name, "vi", 5),
+            "wikipedia_en": lambda: self.adapter.wikipedia(name, "en", 5),
             "wikidata": lambda: self.adapter.wikidata(name, 5),
         }
         results: Dict[str, Dict[str, Any]]={}
@@ -171,7 +174,19 @@ class JourneyDataFusion:
         out["marine"]={"summary":self._marine_summary(results.get("marine",{})),"raw_status":provider_status.get("marine")}
         out["osm"]={"results":self._search_summary(results.get("osm",{})),"raw_status":provider_status.get("osm")}
         out["wikipedia"]={"results":self._search_summary(results.get("wikipedia",{})),"raw_status":provider_status.get("wikipedia")}
+        out["wikipedia_en"]={"results":self._search_summary(results.get("wikipedia_en",{})),"raw_status":provider_status.get("wikipedia_en")}
         out["wikidata"]={"results":self._search_summary(results.get("wikidata",{})),"raw_status":provider_status.get("wikidata")}
+        entity=self.entity_resolver.resolve(name, wikipedia_vi=results.get("wikipedia",{}), wikipedia_en=results.get("wikipedia_en",{}), wikidata_direct=results.get("wikidata",{}))
+        out["entity_resolution"]=entity
+        # If the resolver found a Wikidata entity through a cross-language alias
+        # or Wikipedia title, expose that resolved entity as the authoritative
+        # Wikidata result while preserving the raw provider result above.
+        if entity.get("wikidata"):
+            resolved=entity["wikidata"]
+            out["wikidata"]["resolved"] = resolved
+            if not out["wikidata"].get("results"):
+                out["wikidata"]["results"]=[resolved]
+            sources.append("Wikidata entity resolution")
         out["availability"]="LIVE_PARTIAL" if sources else "CURATED_ONLY"
         out["sources"] = list(dict.fromkeys(sources))
         profile=str(os.getenv("HDVIA_TOURIST_PROFILE", "general")).strip().lower()
