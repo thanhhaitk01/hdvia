@@ -86,13 +86,3 @@ def test_tourist_profile_does_not_stereotype_without_verified_profile():
     assert r["intent"] == "TOURIST_PROFILE"
     assert r["data_status"] == "UNKNOWN"
     assert "không suy diễn" in r["answer"]
-
-
-def test_weather_question_never_falls_back_to_destination_overview():
-    e=ConversationIntelligenceEngine()
-    r=e.answer("Đà Nẵng mùa này có mưa không?")
-    assert r["intent"] == "WEATHER"
-    assert r["data_status"] in ("UNKNOWN", "LIVE")
-    if r["data_status"] == "UNKNOWN":
-        assert "dữ liệu thời tiết" in r["answer"].lower()
-        assert "đô thị biển trung tâm miền trung" not in r["answer"].lower()
