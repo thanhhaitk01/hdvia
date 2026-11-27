@@ -23,6 +23,8 @@ from external_world import build_external_world_from_env, SyncEngine, ExternalAI
 from public_apis import weather, geocode, air_quality, marine, search_place, route, wikipedia_search, wikidata_search, country
 from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, utcnow
 from api_adapters import OPEN_API_ADAPTER, API_LAYER_VERSION
+from entity_resolution import EntityResolver
+from image_entity_resolution import VerifiedImageResolver
 from knowledge_learning import KnowledgeLearningPipeline
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
 from ai_gateway import build_ai_gateway_from_env
@@ -894,18 +896,53 @@ def weather_api():
 
 @app.get("/api/v1/place-image")
 def place_image_api():
-    name=request.args.get("name"," ").strip()
-    if not name:return jsonify({"ok":False,"error":"missing name"}),400
-    result=OPEN_API_ADAPTER.image(name)
-    if not result.get("ok"):
-        return jsonify({"ok":False,"name":name,"error":result.get("error","image_provider_unreachable"),"source":"Wikimedia Commons","freshness":result.get("freshness")}),502
-    pages=result.get("data",{}).get("query",{}).get("pages",{})
-    for page in pages.values():
-        info=(page.get("imageinfo") or [{}])[0]
-        image_url=info.get("thumburl") or info.get("url")
-        if image_url:
-            return jsonify({"ok":True,"name":name,"image_url":image_url,"title":page.get("title"),"source":"Wikimedia Commons","source_url":"https://commons.wikimedia.org/wiki/"+urllib.parse.quote(page.get("title","").replace(" ","_")),"freshness":result.get("freshness"),"cache":result.get("cache")})
-    return jsonify({"ok":False,"name":name,"error":"no_image_result","source":"Wikimedia Commons","freshness":result.get("freshness")}),404
+    name=request.args.get("name","").strip()
+    if not name:
+        return jsonify({"ok":False,"error":"missing name"}),400
+
+    # 1. Resolve the place first. Image search is never allowed to choose an
+    # unrelated Commons result merely because the provider returned HTTP 200.
+    try:
+        resolver=EntityResolver(OPEN_API_ADAPTER)
+        entity=resolver.resolve(name)
+    except Exception:
+        entity={"input":name,"canonical_name":name,"confidence":"UNRESOLVED","wikidata":None}
+
+    lat=request.args.get("lat", type=float)
+    lon=request.args.get("lon", type=float)
+    if lat is None or lon is None:
+        try:
+            geo=OPEN_API_ADAPTER.geocode(name)
+            rows=(geo.get("data",{}).get("results",[]) if geo.get("ok") else [])
+            if rows:
+                lat=rows[0].get("latitude"); lon=rows[0].get("longitude")
+        except Exception:
+            pass
+
+    try:
+        verified=VerifiedImageResolver(OPEN_API_ADAPTER).resolve(
+            name, entity=entity, lat=lat, lon=lon
+        )
+    except Exception as exc:
+        return jsonify({
+            "ok":False, "name":name, "error":"image_resolution_error",
+            "detail":str(exc)[:180], "resolver_version":VerifiedImageResolver.VERSION
+        }), 502
+
+    verified["entity_resolution"]={
+        "canonical_name":entity.get("canonical_name",name),
+        "confidence":entity.get("confidence"),
+        "wikidata":entity.get("wikidata"),
+        "resolved_by":entity.get("resolved_by"),
+    }
+    verified["coordinates"]={"lat":lat,"lon":lon} if lat is not None and lon is not None else None
+
+    if verified.get("ok"):
+        return jsonify(verified)
+    # 404 is intentional: fail closed rather than displaying a potentially
+    # wrong tourist image.
+    verified.setdefault("source","Wikimedia Commons")
+    return jsonify(verified),404
 
 @app.get("/api/v1/route")
 def route_api():

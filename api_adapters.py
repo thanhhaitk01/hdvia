@@ -13,10 +13,10 @@ from public_apis import (
     marine as open_meteo_marine, search_place as osm_search_place,
     wikipedia_search, wikidata_search, overpass_query, sun_times,
     opentripmap_places, opentripmap_details,
-    wikimedia_image_search,
+    wikimedia_image_search, wikidata_entity, wikimedia_image_exact, wikimedia_image_geosearch,
 )
 
-API_LAYER_VERSION = "1.25.2.4-api-connectivity-live-data-hardened"
+API_LAYER_VERSION = "1.25.2.5-image-entity-resolution-verified"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -143,6 +143,16 @@ class OpenAPIAdapter:
 
     def image(self, name: str) -> Dict[str, Any]:
         return self._cached(_cache_key("image", name), lambda: wikimedia_image_search(name), ttl=self.cache_ttls["image"])
+
+    def wikidata_entity(self, entity_id: str) -> Dict[str, Any]:
+        return self._cached(_cache_key("wikidata_entity", entity_id), lambda: wikidata_entity(entity_id), ttl=self.cache_ttls["wikidata"])
+
+    def image_exact(self, title: str) -> Dict[str, Any]:
+        return self._cached(_cache_key("image_exact", title), lambda: wikimedia_image_exact(title), ttl=self.cache_ttls["image"])
+
+    def image_geosearch(self, lat: float, lon: float, radius_m: int = 5000, limit: int = 10) -> Dict[str, Any]:
+        key=_cache_key("image_geo", [lat, lon, radius_m, limit])
+        return self._cached(key, lambda: wikimedia_image_geosearch(lat, lon, radius_m, limit), ttl=self.cache_ttls["image"])
 
     def enrich_destination(self, name: str, lat: Optional[float] = None, lon: Optional[float] = None) -> Dict[str, Any]:
         """Read-only enrichment; does not claim external data is verified knowledge."""

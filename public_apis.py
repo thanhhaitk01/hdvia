@@ -10,6 +10,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
@@ -94,6 +95,41 @@ def wikipedia_search(q: str, lang: str = "en", limit: int = 5) -> Dict[str, Any]
 
 def wikidata_search(q: str, limit: int = 5) -> Dict[str, Any]:
     return PROVIDERS["wikidata"].get("/w/api.php", {"action": "wbsearchentities", "search": q, "language": "en", "format": "json", "limit": min(max(int(limit), 1), 10), "origin": "*"})
+
+def wikidata_entity(entity_id: str) -> Dict[str, Any]:
+    """Fetch a small, read-only Wikidata entity envelope including P18."""
+    entity_id = str(entity_id or "").strip().upper()
+    if not re.fullmatch(r"Q\\d+", entity_id):
+        return {"ok": False, "provider": "wikidata", "error": "invalid_entity_id"}
+    return PROVIDERS["wikidata"].get("/w/api.php", {
+        "action": "wbgetentities", "ids": entity_id, "props": "claims|labels|descriptions|sitelinks",
+        "languages": "vi|en", "format": "json", "origin": "*"
+    })
+
+
+def wikimedia_image_exact(title: str) -> Dict[str, Any]:
+    """Fetch one exact Commons file by title; never performs fuzzy selection."""
+    title = str(title or "").strip()
+    if not title:
+        return {"ok": False, "provider": "wikimedia_commons", "error": "missing_title"}
+    if not title.lower().startswith("file:"):
+        title = "File:" + title
+    provider = PublicProvider("wikimedia_commons", "https://commons.wikimedia.org", "Wikimedia Commons / Wikimedia Foundation")
+    return provider.get("/w/api.php", {
+        "action": "query", "format": "json", "titles": title,
+        "prop": "imageinfo", "iiprop": "url|extmetadata", "iiurlwidth": 1200, "origin": "*"
+    })
+
+
+def wikimedia_image_geosearch(lat: float, lon: float, radius_m: int = 5000, limit: int = 10) -> Dict[str, Any]:
+    """Search Commons media around an entity coordinate."""
+    provider = PublicProvider("wikimedia_commons", "https://commons.wikimedia.org", "Wikimedia Commons / Wikimedia Foundation")
+    return provider.get("/w/api.php", {
+        "action": "query", "format": "json", "generator": "geosearch",
+        "ggsnamespace": 6, "ggsradius": min(max(int(radius_m), 50), 10000),
+        "ggscoord": f"{float(lat)}|{float(lon)}", "ggslimit": min(max(int(limit), 1), 20),
+        "prop": "imageinfo", "iiprop": "url|extmetadata", "iiurlwidth": 1200, "origin": "*"
+    })
 
 
 
