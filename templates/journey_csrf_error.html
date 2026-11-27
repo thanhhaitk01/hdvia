@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Phiên phân tích đã hết hạn – HDVIA{% endblock %}
+{% block content %}
+<section class="journey-page journey-layout">
+  <section class="journey-input card ai-query-card">
+    <div class="eyebrow cyan">⚠ PHIÊN PHÂN TÍCH</div>
+    <h2>Phiên phân tích đã hết hạn</h2>
+    <p>HDVIA đã nhận được yêu cầu nhưng mã bảo vệ của biểu mẫu không còn hợp lệ. Lịch trình của sếp chưa được xử lý.</p>
+    <form method="post" action="/journey">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="query">Gửi lại yêu cầu</label>
+      <input id="query" name="query" value="{{ request.form.get('query','')|e }}" maxlength="1000" autocomplete="off">
+      <button class="btn primary full" type="submit">Phân tích lại</button>
+    </form>
+  </section>
+</section>
+{% endblock %}
