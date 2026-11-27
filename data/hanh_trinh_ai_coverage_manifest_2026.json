@@ -1,0 +1,19 @@
+{
+  "name": "HDVIA Hành Trình AI coverage contract",
+  "version": "2026-11",
+  "administrative_reference": {
+    "province_count": 34,
+    "commune_level_count": 3321,
+    "types": ["xã", "phường", "đặc khu"],
+    "source": "Cổng Thông tin điện tử Chính phủ / Quyết định 19/2025/QĐ-TTg",
+    "source_url": "https://xaydungchinhsach.chinhphu.vn/bang-danh-muc-va-ma-so-cua-34-tinh-thanh-moi-cac-don-vi-hanh-chinh-cap-xa-moi-11925070418263625.htm"
+  },
+  "routing_rule": "Recognize the administrative name first; then route tourism questions to the correct existing Hành Trình AI function. Never substitute a province-level destination answer for a commune-level administrative question.",
+  "tourism_domains": [
+    "WEATHER", "CURRENT_STATUS", "HISTORY", "CULTURE", "FOOD", "GUIDE_SCRIPT",
+    "ROUTE", "ITINERARY", "RISK", "PLAN_B", "TOURIST_PROFILE", "DESTINATION",
+    "ECONOMY", "PEOPLE", "ADMIN", "RELIGION", "NATURE", "TRANSPORT", "SHOPPING",
+    "FESTIVAL", "SUSTAINABILITY", "ACCOMMODATION", "PRICE", "OPENING_HOURS",
+    "ACCESSIBILITY", "ENTRY", "SERVICE", "TOURISM_MANAGEMENT", "CURRENT_EVENTS"
+  ]
+}
