@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List
 BASE=os.path.dirname(__file__)
 KB_FILE=os.path.join(BASE,"data","knowledge_base.json")
 PROFILE_FILE=os.path.join(BASE,"data","tourist_profiles.json")
+WAREHOUSE_KPD_FILE=os.path.join(BASE,"data","warehouse","khamphadisan_seed_2026.json")
 
 KNOWLEDGE_DOMAINS=("geography","history","culture","people","food","tourism","nature","operations","guide_experience")
 PROFILE_WEIGHTS={

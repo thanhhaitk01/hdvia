@@ -1,4 +1,4 @@
-import os, sqlite3, uuid, json, re, urllib.parse, urllib.request, traceback
+import os, sqlite3, uuid, json, re, time, urllib.parse, urllib.request, traceback
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import Flask, request, redirect, url_for, session, render_template, render_template_string, flash, send_from_directory, jsonify
@@ -10,7 +10,7 @@ from connect import init_connect_blueprint
 from journey_engine import JourneyIntelligenceEngine
 from destination_catalog import DESTINATIONS, BY_SLUG, BY_NAME
 from province_data import PROVINCES_2025, BY_PROVINCE_SLUG, resolve_province
-from knowledge_layer import answer_from_knowledge
+from knowledge_layer import answer_from_knowledge, load_reference_warehouse
 from conversation_engine import ConversationIntelligenceEngine
 from warehouse import COLLECTIONS, warehouse_schema, warehouse_seed, normalize_record
 from data_core import COLLECTIONS as CORE_COLLECTIONS, schema as core_schema, seed as core_seed, resolve_context
@@ -25,6 +25,8 @@ from open_api import OPEN_API_VERSION, OPEN_API_CATALOG, issue_key, hash_key, ut
 from api_adapters import OPEN_API_ADAPTER, API_LAYER_VERSION
 from knowledge_learning import KnowledgeLearningPipeline
 from data_acquisition import candidate_from_web, google_cse_search, source_manifest
+from ai_gateway import build_ai_gateway_from_env
+from self_update_engine import SelfUpdateEngine
 
 BASE=os.path.dirname(__file__)
 # Vercel serverless filesystem is read-only outside /tmp.
@@ -110,6 +112,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS journey_feedback(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,journey_id INTEGER,score INTEGER NOT NULL,comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(journey_id) REFERENCES journeys(id));
     CREATE TABLE IF NOT EXISTS knowledge_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,place TEXT,status TEXT NOT NULL DEFAULT 'PENDING_REVIEW',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS warehouse_records(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,payload_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'DRAFT',created_by INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(created_by) REFERENCES users(id));
+    CREATE TABLE IF NOT EXISTS knowledge_update_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT,question TEXT NOT NULL,place TEXT,domain TEXT,status TEXT NOT NULL DEFAULT 'PENDING',attempts INTEGER NOT NULL DEFAULT 0,last_error TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS api_keys(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,owner_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',created_at TEXT NOT NULL,last_used_at TEXT,FOREIGN KEY(owner_id) REFERENCES users(id));
     """)
     admin_email=os.environ.get("HDVIA_ADMIN_EMAIL","").strip().lower()
@@ -196,6 +199,23 @@ def role_required(*roles):
             return f(*a,**kw)
         return w
     return deco
+
+AI_CONNECT_RATE={}
+
+def ai_connect_guard(f):
+    """Authenticated, permissioned, bounded AI-provider access."""
+    @wraps(f)
+    def w(*a,**kw):
+        u=current_user()
+        if not u: return jsonify({"ok":False,"error":"Cần đăng nhập để dùng AI Connect."}),401
+        p=PERMISSIONS.get(u["role"],set())
+        if "*" not in p and "ai.assistant.use" not in p: return jsonify({"ok":False,"error":"Bạn chưa có quyền dùng AI Connect."}),403
+        key=f"{u['id']}:{request.remote_addr or 'unknown'}"
+        now_ts=time.time(); bucket=AI_CONNECT_RATE.get(key,[]); bucket=[x for x in bucket if now_ts-x<60]
+        if len(bucket)>=20: return jsonify({"ok":False,"error":"AI Connect đang giới hạn 20 yêu cầu/phút."}),429
+        bucket.append(now_ts); AI_CONNECT_RATE[key]=bucket
+        return f(*a,**kw)
+    return w
 
 def permission_required(permission):
     def deco(f):
@@ -571,10 +591,52 @@ def _destination_context_for_places(places):
                 "type":d["type"], "overview":d["overview"],
                 "highlights":d.get("highlights",[]), "culture":d.get("culture",""),
                 "history":d.get("history",""), "food":d.get("food",""),
-                "best_for":d.get("best_for","")
+                "best_for":d.get("best_for",""),
+                "image_query":d["name"] + " Vietnam"
             })
+    # 1.25.1: surface compact editorial point records already loaded in the
+    # knowledge warehouse. They remain reference-only and are not promoted to
+    # verified facts merely by being rendered with an image.
+    seen={c.get("name","").lower() for c in contexts}
+    for item in load_reference_warehouse():
+        place=str(item.get("place","")).strip()
+        if not place or place.lower() in seen:
+            continue
+        if any(place.lower() == str((p.get("name") if isinstance(p,dict) else p)).strip().lower() for p in places or []):
+            contexts.append({
+                "slug": item.get("destination_id", ""),
+                "name": place,
+                "region": "",
+                "type": item.get("topic", "Điểm du lịch"),
+                "overview": item.get("content", ""),
+                "highlights": [], "culture": "", "history": "", "food": "",
+                "best_for": "Tham khảo từ nguồn biên tập",
+                "image_query": place + " Vietnam",
+                "source": item.get("source", ""),
+                "source_status": item.get("status", "REFERENCE")
+            })
+            seen.add(place.lower())
     return contexts
 
+
+def _journey_ui_labels(result):
+    """Attach Vietnamese display labels without changing internal routing contracts."""
+    r=result or {}
+    intent_labels={
+        "WEATHER":"Thời tiết","CURRENT_STATUS":"Tình hình hiện tại","HISTORY":"Lịch sử",
+        "CULTURE":"Văn hóa","FOOD":"Ẩm thực","GUIDE_SCRIPT":"Thuyết minh","ROUTE":"Lộ trình",
+        "ITINERARY":"Lập & phân tích hành trình","RISK":"Cảnh báo rủi ro","PLAN_B":"Phương án dự phòng",
+        "DESTINATION":"Điểm đến","TOURIST_PROFILE":"Hồ sơ khách","ECONOMY":"Kinh tế","PEOPLE":"Con người",
+        "ADMIN":"Hành chính","RELIGION":"Tín ngưỡng & tôn giáo","NATURE":"Thiên nhiên",
+        "TRANSPORT":"Giao thông","SHOPPING":"Mua sắm","FESTIVAL":"Lễ hội","SUSTAINABILITY":"Du lịch bền vững",
+        "ACCOMMODATION":"Lưu trú","PRICE":"Giá & chi phí","OPENING_HOURS":"Giờ mở cửa","ACCESSIBILITY":"Khả năng tiếp cận",
+        "ENTRY":"Nhập cảnh","SERVICE":"Dịch vụ","TOURISM_MANAGEMENT":"Quản lý du lịch","CURRENT_EVENTS":"Sự kiện",
+        "KNOWLEDGE_GAP":"Khoảng trống tri thức","GENERAL_QA":"Câu hỏi chung",
+    }
+    confidence_labels={"HIGH":"CAO","MEDIUM":"TRUNG BÌNH","LOW":"THẤP","UNKNOWN":"CHƯA XÁC ĐỊNH"}
+    r["intent_label"]=intent_labels.get(r.get("intent"),r.get("intent","Câu hỏi chung"))
+    r["confidence_label"]=confidence_labels.get(r.get("confidence"),r.get("confidence","CHƯA XÁC ĐỊNH"))
+    return r
 
 def _merge_conversation_result(journey_result, conversation_result):
     """Overlay conversational fields without destroying Journey Intelligence data.
@@ -589,7 +651,39 @@ def _merge_conversation_result(journey_result, conversation_result):
                 "confidence", "sources", "predicted_questions"):
         if key in conv and conv[key] not in (None, ""):
             merged[key] = conv[key]
+    intent_labels={
+        "WEATHER":"Thời tiết","CURRENT_STATUS":"Tình hình hiện tại","HISTORY":"Lịch sử",
+        "CULTURE":"Văn hóa","FOOD":"Ẩm thực","GUIDE_SCRIPT":"Thuyết minh","ROUTE":"Lộ trình",
+        "ITINERARY":"Lập & phân tích hành trình","RISK":"Cảnh báo rủi ro","PLAN_B":"Phương án dự phòng",
+        "DESTINATION":"Điểm đến","TOURIST_PROFILE":"Hồ sơ khách","ECONOMY":"Kinh tế","PEOPLE":"Con người",
+        "ADMIN":"Hành chính","RELIGION":"Tín ngưỡng & tôn giáo","NATURE":"Thiên nhiên",
+        "TRANSPORT":"Giao thông","SHOPPING":"Mua sắm","FESTIVAL":"Lễ hội","SUSTAINABILITY":"Du lịch bền vững",
+        "ACCOMMODATION":"Lưu trú","PRICE":"Giá & chi phí","OPENING_HOURS":"Giờ mở cửa","ACCESSIBILITY":"Khả năng tiếp cận",
+        "ENTRY":"Nhập cảnh","SERVICE":"Dịch vụ","TOURISM_MANAGEMENT":"Quản lý du lịch","CURRENT_EVENTS":"Sự kiện",
+        "KNOWLEDGE_GAP":"Khoảng trống tri thức","GENERAL_QA":"Câu hỏi chung",
+    }
+    confidence_labels={"HIGH":"CAO","MEDIUM":"TRUNG BÌNH","LOW":"THẤP","UNKNOWN":"CHƯA XÁC ĐỊNH"}
+    merged["intent_label"]=intent_labels.get(merged.get("intent"),merged.get("intent","Câu hỏi chung"))
+    merged["confidence_label"]=confidence_labels.get(merged.get("confidence"),merged.get("confidence","CHƯA XÁC ĐỊNH"))
     return merged
+
+
+def _queue_knowledge_update(result):
+    enr=(result or {}).get("knowledge_enrichment") or {}
+    if not enr or not enr.get("ok"): return
+    q=str((result or {}).get("query") or "").strip()
+    if not q: return
+    raw_places=(result or {}).get("places") or []
+    place_names=[]
+    for p in raw_places:
+        if isinstance(p, dict):
+            name=str(p.get("name") or "").strip()
+        else:
+            name=str(p or "").strip()
+        if name:
+            place_names.append(name)
+    c=db(); c.execute("INSERT INTO knowledge_update_jobs(question,place,domain,status,created_at,updated_at) VALUES(?,?,?,?,?,?)",
+        (q, " – ".join(place_names), str((result or {}).get("intent") or "GENERAL_QA"), "PENDING", now(), now())); c.commit(); c.close()
 
 
 def _ai_query_analyze(query):
@@ -613,7 +707,7 @@ def _ai_query_analyze(query):
         if _m:
             start_date = _m.group(1)
             break
-    weather_intent = "WEATHER" in intents
+    weather_intent = "WEATHER" in intents or "CURRENT_STATUS" in intents
     journey_like = any(x in intents for x in ("ITINERARY", "ROUTE", "RISK", "PLAN_B"))
     mutation_like = bool(re.search(r"\b(?:thêm|them|bỏ|bo|xóa|xoa|chuyển|chuyen|đổi|doi|sang|qua)\b", q.lower())) and bool(re.search(r"\bngày\s*\d+\b", q.lower()))
 
@@ -629,8 +723,11 @@ def _ai_query_analyze(query):
             remembered_journey = None
 
     if weather_intent and places:
-        place = places[0]["name"]
-        result, error = _safe_journey_analyze(f"Thời tiết {place}", f"Ngày 1: {place}", start_date=start_date)
+        # Weather is a multi-destination request when the user names several places.
+        # Preserve every resolved place instead of silently collapsing to places[0].
+        weather_itinerary = "\n".join(f"Ngày {i+1}: {p['name']}" for i, p in enumerate(places))
+        place_title = " – ".join(p["name"] for p in places[:3])
+        result, error = _safe_journey_analyze(f"Thời tiết {place_title}", weather_itinerary, start_date=start_date)
         if result is not None:
             result = _merge_conversation_result(
                 result, conversation_engine.answer(q, journey=result)
@@ -682,8 +779,9 @@ def _ai_query_analyze(query):
     # so the same screen can show weather/risk context without forcing an itinerary.
     journey_context = None
     if places:
-        place = places[0]["name"]
-        journey_context, _ = _safe_journey_analyze(place, f"Ngày 1: {place}")
+        context_itinerary = "\n".join(f"Ngày {i+1}: {p['name']}" for i, p in enumerate(places))
+        place_title = " – ".join(p["name"] for p in places[:3])
+        journey_context, _ = _safe_journey_analyze(place_title, context_itinerary)
     result = conversation_engine.answer(q, journey=journey_context)
     if journey_context:
         # Keep the existing Journey Intelligence contract while replacing only
@@ -692,7 +790,10 @@ def _ai_query_analyze(query):
         journey_context["title"] = journey_context.get("title") or places[0]["name"]
         journey_context["query"] = q
         journey_context["destination_context"] = _destination_context_for_places(journey_context.get("places") or places)
+        _queue_knowledge_update(journey_context)
         return journey_context, None
+    _queue_knowledge_update(result)
+    result = _journey_ui_labels(result)
     result["title"] = "Hành Trình AI"
     result["days"] = []
     result["weather"] = {}
@@ -1012,12 +1113,38 @@ def admin_learning_ingest():
     rec["validation"]=learning_pipeline.validate(rec)
     return jsonify(rec)
 
+@app.post("/api/v1/self-update/run")
+def self_update_run():
+    # Supports both an authenticated admin and a tightly scoped scheduled runner.
+    # The scheduler uses a deployment secret, never a user session cookie.
+    cron_token=os.environ.get("HDVIA_SELF_UPDATE_CRON_TOKEN", "").strip()
+    auth=request.headers.get("Authorization", "")
+    cron_ok=bool(cron_token and auth == "Bearer " + cron_token)
+    u=current_user() if not cron_ok else None
+    if not cron_ok and (not u or u.get("role") not in ("ADMIN","SUPER_ADMIN")):
+        return jsonify({"ok":False,"error":"Chỉ ADMIN/SUPER_ADMIN hoặc scheduler đã xác thực được chạy Self-Update."}),403
+    body=request.get_json(silent=True) or {}
+    limit=max(1,min(10,int(body.get("limit",5))))
+    c=db(); rows=c.execute("SELECT * FROM knowledge_update_jobs WHERE status='PENDING' ORDER BY id LIMIT ?",(limit,)).fetchall(); c.close()
+    processed=[]
+    for row in rows:
+        c=db(); c.execute("UPDATE knowledge_update_jobs SET status='RUNNING',attempts=attempts+1,updated_at=? WHERE id=?",(now(),row["id"])); c.commit(); c.close()
+        try:
+            result=self_update_engine.enrich(question=row["question"],place=row["place"] or "",domain=row["domain"] or "GENERAL_QA")
+            status="CANDIDATE" if result.get("ok") else "FAILED"
+            c=db(); c.execute("UPDATE knowledge_update_jobs SET status=?,last_error=?,updated_at=? WHERE id=?",(status,"" if result.get("ok") else str(result.get("status","AI_UNAVAILABLE")),now(),row["id"])); c.commit(); c.close()
+            processed.append({"id":row["id"],"status":status})
+        except Exception as exc:
+            c=db(); c.execute("UPDATE knowledge_update_jobs SET status='FAILED',last_error=?,updated_at=? WHERE id=?",(str(exc)[:300],now(),row["id"])); c.commit(); c.close()
+            processed.append({"id":row["id"],"status":"FAILED","error":str(exc)[:300]})
+    return jsonify({"ok":True,"processed":processed,"count":len(processed)})
+
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.22.0-tour-intelligence","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.1-hdv-smart-reasoning-point-intelligence","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.22.0-tour-intelligence","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.25.1-hdv-smart-reasoning-point-intelligence","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")
@@ -1238,6 +1365,28 @@ def data_deletion():
 def audit():
     c=db(); rows=c.execute("SELECT a.*,u.email FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 300").fetchall(); c.close(); return render_template("audit.html",rows=rows)
 
+@app.get("/api/v1/ai-connect/status")
+def ai_connect_status():
+    return jsonify({"ok":True,"ai":ai_gateway.status(),"self_update":self_update_engine.health()})
+
+@app.post("/api/v1/ai-connect/ask")
+@ai_connect_guard
+def ai_connect_ask():
+    payload=request.get_json(silent=True) or {}
+    question=str(payload.get("question","")).strip()[:2000]
+    if not question: return jsonify({"ok":False,"error":"Thiếu câu hỏi"}),400
+    # External AI is an optional enrichment layer. It does not replace the local
+    # Hành Trình AI routing or publish directly into the knowledge warehouse.
+    return jsonify(ai_gateway.ask(question, system="Bạn là AI hỗ trợ HDVIA. Trả lời ngắn, có cấu trúc, chỉ nêu điều có căn cứ."))
+
+@app.post("/api/v1/ai-connect/knowledge-gap")
+@ai_connect_guard
+def ai_connect_knowledge_gap():
+    payload=request.get_json(silent=True) or {}
+    question=str(payload.get("question","")).strip()[:2000]
+    if not question: return jsonify({"ok":False,"error":"Thiếu câu hỏi"}),400
+    return jsonify(self_update_engine.discover(question, place=str(payload.get("place","")), domain=str(payload.get("domain",""))))
+
 engine=JourneyIntelligenceEngine()
 conversation_engine=ConversationIntelligenceEngine()
 copilot_engine=CopilotEngine()
@@ -1248,6 +1397,9 @@ external_sync=SyncEngine(external_world)
 external_ai=ExternalAIOrchestrator({p.name:p for p in [external_world.get("external_ai")] if p}, default_order=("external_ai",))
 external_agent=AgentExecutor(external_world)
 learning_pipeline=KnowledgeLearningPipeline()
+ai_gateway=build_ai_gateway_from_env()
+self_update_engine=SelfUpdateEngine(ai_gateway, learning_pipeline)
+conversation_engine.set_external_enricher(self_update_engine.enrich)
 agent_tools=ToolRegistry()
 agent_tools.register("journey.summary", lambda journey=None: {"title": (journey or {}).get("title",""), "days": len((journey or {}).get("days",[])), "risk_count": len((journey or {}).get("risks",[]))})
 agent_tools.register("weather.summary", lambda journey=None: {"risk_count": len([x for x in ((journey or {}).get("risks") or []) if x.get("level") in ("HIGH","MEDIUM")]), "risk_levels": [x.get("level") for x in ((journey or {}).get("risks") or [])]})

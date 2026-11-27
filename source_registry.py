@@ -25,6 +25,18 @@ SOURCES = {
         "rate_limit_seconds": 1.1,
         "max_requests_per_run": 3,
     },
+    "khamphadisan": {
+        "id": "khamphadisan",
+        "kind": "EDITORIAL_DISCOVERY",
+        "base_url": "https://khamphadisan.com.vn",
+        "policy": "MANUAL_REVIEW_ONLY",
+        "license": "Website terms / copyright applies",
+        "attribution": "Khám Phá Di Sản",
+        "rate_limit_seconds": 2.0,
+        "max_requests_per_run": 20,
+        "ingest_mode": "metadata_and_compact_summary",
+        "note": "Không tự động sao chép toàn văn bài viết; chỉ lưu metadata/tóm tắt ngắn và liên kết nguồn để kiểm chứng."
+    },
 }
 
 BLOCKED_AUTO_HOSTS = {
