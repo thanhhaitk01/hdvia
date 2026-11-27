@@ -14,7 +14,7 @@ class TestAPIConnectivity(unittest.TestCase):
         self.a = OpenAPIAdapter()
 
     def test_version(self):
-        self.assertEqual(API_LAYER_VERSION, "1.25.4.4-world-qa-image-rendering")
+        self.assertEqual(API_LAYER_VERSION, "1.30.1-hdv-giau-kinh-nghiem")
 
     def test_cache_policy_present(self):
         self.assertGreaterEqual(self.a.cache_ttls["weather"], 0)

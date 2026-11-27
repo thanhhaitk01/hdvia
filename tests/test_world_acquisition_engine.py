@@ -5,7 +5,7 @@ from world_acquisition_engine import (
 
 
 def test_version_and_sources():
-    assert VERSION.startswith("1.25.4.4-")
+    assert VERSION == "1.30.1-hdv-giau-kinh-nghiem"
     sources = discover_sources("image")
     assert any(x["source_id"] == "wikimedia_commons" for x in sources)
     assert any(x["source_id"] == "openverse" for x in sources)

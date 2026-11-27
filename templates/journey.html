@@ -142,6 +142,20 @@
                   <div class="journey-place-title"><h4>{{place_name}}</h4>{% if ns.place_info %}<span>{{ns.place_info.get('region','')}}</span>{% endif %}</div>
                   {% if ns.place_info %}
                   <p class="journey-place-overview">{{ns.place_info.get('overview','')}}</p>
+                  {% set pi = ns.place_info.get('place_intelligence',{}) if ns.place_info else {} %}
+                  {% set admin = pi.get('local_admin',{}) %}
+                  {% if admin.get('commune') %}<div class="journey-place-admin"><b>📍 Vị trí hành chính</b><span>{{admin.get('commune')}}{% if admin.get('province') %} · {{admin.get('province')}}{% endif %}</span></div>{% endif %}
+                  {% if pi.get('guide_actions') %}<div class="journey-place-admin"><b>🎒 Chuẩn bị cho HDV</b><span>{{pi.get('guide_actions')|join(' · ')}}</span></div>{% endif %}
+                  {% set brain = ns.place_info.get('travel_brain',{}) %}
+                  {% if brain %}
+                  <div class="journey-brain-strip">
+                    <div class="journey-live-head"><b>🧠 BỘ NÃO DU LỊCH HDVIA</b><span>{{brain.get('object',{}).get('type','UNKNOWN')}} · {{brain.get('object',{}).get('confidence','UNKNOWN')}}</span></div>
+                    {% if brain.get('guest_value') %}<div><b>Khách cần biết:</b> {{brain.get('guest_value')|join(' · ')}}</div>{% endif %}
+                    {% if brain.get('operational_actions') %}<div><b>Xử lý thực tế:</b> {{brain.get('operational_actions')|join(' · ')}}</div>{% endif %}
+                    {% if brain.get('knowledge_gaps') %}<div><b>Cần kiểm tra thêm:</b> {{brain.get('knowledge_gaps')|map(attribute='message')|join(' · ')}}</div>{% endif %}
+                  </div>
+                  {% endif %}
+                  {% if pi.get('weather_anchor') %}<div class="journey-place-admin"><b>⟳ Cập nhật thời tiết</b><span>{{pi.get('weather_anchor',{}).get('label',place_name)}} · kiểm tra khi truy vấn + theo dõi định kỳ</span></div>{% endif %}
                   <div class="journey-fact-grid">
                     {% if ns.place_info.get('highlights') %}<div><b>★ Điểm nổi bật</b><span>{{ns.place_info.get('highlights')|join(' · ')}}</span></div>{% endif %}
                     {% if ns.place_info.get('culture') %}<div><b>◉ Văn hóa</b><span>{{ns.place_info.get('culture')}}</span></div>{% endif %}
