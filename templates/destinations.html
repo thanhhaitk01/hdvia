@@ -4,7 +4,9 @@
 <section class="dest-hero location-hero"><div><span class="eyebrow">📍 ĐIỂM ĐẾN & THÔNG TIN</span><h1>Khám phá điểm đến <em>Việt Nam</em></h1><p>Tra cứu thông tin văn hóa, lịch sử, kinh tế và nội dung thuyết minh chuẩn cho HDV.</p></div></section>
 <div class="destination-search"><span>⌕</span><input id="q" placeholder="Tìm điểm đến, di tích, danh thắng... (VD: Hội An, Huế, Hạ Long)" oninput="filterDest()"><button onclick="filterDest()">⌕ Tra cứu</button></div>
 <section class="dest-section"><div class="section-head"><h2>★ ĐIỂM ĐẾN NỔI BẬT</h2><a href="/destinations">Xem tất cả →</a></div>
-<div class="featured-dest">{% for d in destinations[:4] %}<a class="dest-tile" data-name="{{d.name|lower}}" href="{{url_for('destination_detail',slug=d.slug)}}"><div class="dest-photo">{{d.name}}</div><div><b>{{d.name}}</b><small>📍 {{d.region}}</small></div></a>{% endfor %}</div></section>
+<div class="featured-dest">{% for d in destinations[:4] %}<a class="dest-tile" data-name="{{d.name|lower}}" href="{{url_for('destination_detail',slug=d.slug)}}"><div class="dest-photo" data-place-image="{{ d.name ~ ' Vietnam'|e }}"{% if d.get('image_url') %} data-image-url="{{ d.get('image_url')|e }}" data-image-source="{{ d.get('image_source_url','')|e }}" data-image-license="{{ d.get('image_license','')|e }}" data-image-artist="{{ d.get('image_artist','')|e }}"{% endif %}>
+{% if d.get('image_url') %}<img class="destination-representative-image" src="{{ d.get('image_url') }}" alt="Ảnh đại diện {{d.name}}" loading="lazy">{% else %}<div class="journey-image-placeholder">📍 {{d.name}}</div>{% endif %}
+</div><div><b>{{d.name}}</b><small>📍 {{d.region}}</small></div></a>{% endfor %}</div></section>
 <section class="dest-section"><h2>▦ THÔNG TIN ĐIỂM ĐẾN</h2><div class="info-grid">
 <div class="info-card"><span>🏛️</span><h3>Văn hóa</h3><p>Phong tục, lễ hội, ẩm thực, đời sống và bản sắc địa phương.</p>›</div>
 <div class="info-card"><span>📜</span><h3>Lịch sử</h3><p>Dấu mốc, nhân vật, sự kiện và giá trị di sản.</p>›</div>

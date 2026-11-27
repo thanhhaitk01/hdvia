@@ -132,7 +132,7 @@
               {% set ns = namespace(place_info=none) %}
               {% for d in destination_context %}{% if d.get('name') == place_name %}{% set ns.place_info = d %}{% endif %}{% endfor %}
               <div class="journey-place-intel">
-                <div class="journey-place-visual journey-place-image-wrap" data-place-image="{{ (ns.place_info.get('image_query') if ns.place_info else place_name ~ ' Vietnam')|e }}">
+                <div class="journey-place-visual journey-place-image-wrap" data-place-image="{{ (ns.place_info.get('image_query') if ns.place_info else place_name ~ ' Vietnam')|e }}"{% if ns.place_info and ns.place_info.get('image_url') %} data-image-url="{{ ns.place_info.get('image_url')|e }}" data-image-source="{{ ns.place_info.get('image_source_url','')|e }}" data-image-license="{{ ns.place_info.get('image_license','')|e }}" data-image-artist="{{ ns.place_info.get('image_artist','')|e }}"{% endif %}>
                   <div class="journey-place-icon">📍</div>
                   <img class="journey-place-image" alt="Ảnh đại diện {{place_name}}" loading="lazy" hidden>
                   <span>{{place_name}}</span>
@@ -192,7 +192,7 @@
       <div class="journey-destination-grid">
       {% for d in result.get('destination_context',[]) %}
         <article class="journey-destination-card">
-          <div class="destination-card-image-wrap" data-place-image="{{ (d.get('image_query') or d.get('name') ~ ' Vietnam')|e }}">
+          <div class="destination-card-image-wrap" data-place-image="{{ (d.get('image_query') or d.get('name') ~ ' Vietnam')|e }}"{% if d.get('image_url') %} data-image-url="{{ d.get('image_url')|e }}" data-image-source="{{ d.get('image_source_url','')|e }}" data-image-license="{{ d.get('image_license','')|e }}" data-image-artist="{{ d.get('image_artist','')|e }}"{% endif %}>
             <img class="journey-destination-image" alt="Ảnh đại diện {{d.get('name')}}" loading="lazy" hidden>
             <div class="journey-image-placeholder">📍 {{d.get('name')}}</div>
             <small class="journey-image-source" hidden></small>
@@ -415,23 +415,42 @@
   if(!nodes.length) return;
   nodes.forEach(async (node)=>{
     const q=node.dataset.placeImage;
-    try{
-      const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
-      if(!r.ok){ node.dataset.imageStatus='error'; return; }
-      const data=await r.json();
-      if(!data.image_url){ node.dataset.imageStatus='empty'; return; }
+    const applyImage=(data)=>{
+      if(!data || !data.image_url){ node.dataset.imageStatus='empty'; return false; }
       const img=node.querySelector('img');
-      if(!img) return;
+      if(!img) return false;
       img.src=data.image_url;
-      img.addEventListener('error',()=>{img.hidden=true; node.dataset.imageStatus='broken';},{once:true});
+      img.addEventListener('error',()=>{
+        node.dataset.imageStatus='broken';
+        // A curated image failing to load must still get a live resolver chance.
+        if(!node.dataset.liveFallbackTried){ node.dataset.liveFallbackTried='1'; fetchLive(); }
+      },{once:true});
       img.hidden=false;
-      const ph=node.querySelector('.journey-image-placeholder');
-      if(ph) ph.hidden=true;
-      const icon=node.querySelector('.journey-place-icon');
-      if(icon) icon.hidden=true;
+      const ph=node.querySelector('.journey-image-placeholder'); if(ph) ph.hidden=true;
+      const icon=node.querySelector('.journey-place-icon'); if(icon) icon.hidden=true;
       const source=node.querySelector('.journey-image-source');
-      if(source){ source.textContent='Ảnh: Wikimedia Commons'; source.hidden=false; }
-    }catch(_e){ node.dataset.imageStatus='error'; }
+      if(source){
+        const artist=data.artist || node.dataset.imageArtist;
+        const license=data.license || node.dataset.imageLicense;
+        source.textContent='Ảnh: Wikimedia Commons' + (artist ? ' · ' + artist : '') + (license ? ' · ' + license : '');
+        source.hidden=false;
+      }
+      node.dataset.imageStatus='loaded';
+      return true;
+    };
+    const fetchLive=async()=>{
+      try{
+        const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
+        if(!r.ok){ node.dataset.imageStatus='error'; return; }
+        applyImage(await r.json());
+      }catch(_e){ node.dataset.imageStatus='error'; }
+    };
+    if(node.dataset.imageUrl){
+      const ok=applyImage({image_url:node.dataset.imageUrl,artist:node.dataset.imageArtist,license:node.dataset.imageLicense});
+      if(!ok) fetchLive();
+    }else{
+      fetchLive();
+    }
   });
 })();
 </script>
