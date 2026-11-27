@@ -21,7 +21,7 @@ def test_beta_all_logged_in_user_permissions_include_core_features():
 
 def test_release_version_and_unified_destination_contract():
     root=Path(__file__).resolve().parents[1]
-    assert (root/'VERSION').read_text(encoding='utf-8').strip() == '1.25.2-api-connectivity-live-data-hardened'
+    assert (root/'VERSION').read_text(encoding='utf-8').strip() == '1.25.2.1-api-connectivity-live-data-hardened'
     html=(root/'templates/base.html').read_text(encoding='utf-8')
     assert 'href="/journey"' in html
     assert 'Điểm đến & thông tin' not in html

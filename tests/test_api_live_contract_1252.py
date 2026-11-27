@@ -6,7 +6,7 @@ sys.path.insert(0, str(ROOT))
 
 def test_health_version_and_connectivity_endpoint_contract():
     src=(ROOT/'app.py').read_text(encoding='utf-8')
-    assert '1.25.2-api-connectivity-live-data-hardened' in src
+    assert '1.25.2.1-api-connectivity-live-data-hardened' in src
     assert '/api/v1/public-api/connectivity' in src
 
 
