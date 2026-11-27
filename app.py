@@ -323,7 +323,7 @@ def require_csrf():
     return bool(expected and supplied and supplied==expected)
 
 @app.context_processor
-def inject(): return {"user":current_user(),"version":"1.9.3-beta-data-warehouse","csrf_token":csrf_token()}
+def inject(): return {"user":current_user(),"version":"1.25.2.4-api-audit-entity-knowledge-fusion","csrf_token":csrf_token()}
 
 @app.get("/")
 def home(): return render_template("home.html")
@@ -818,7 +818,10 @@ def journey():
         result, error = _ai_query_analyze(query)
     if request.method=="POST":
         try:
-            if not require_csrf(): return "Yêu cầu không hợp lệ", 400
+            if not require_csrf():
+                # A stale/rotated browser session can invalidate an older form token.
+                # Return a fresh form instead of a bare 400 so the user can retry safely.
+                return render_template("journey_csrf_error.html", csrf_token=csrf_token()), 400
             query=request.form.get("query","").strip()
             # Backward compatibility for older saved/bookmarked form submissions.
             if not query:
@@ -891,24 +894,18 @@ def weather_api():
 
 @app.get("/api/v1/place-image")
 def place_image_api():
-    name=request.args.get("name","").strip()
+    name=request.args.get("name"," ").strip()
     if not name:return jsonify({"ok":False,"error":"missing name"}),400
-    try:
-        q=urllib.parse.urlencode({"action":"query","format":"json","generator":"search","gsrsearch":name+" Vietnam","gsrnamespace":6,"gsrlimit":3,"prop":"imageinfo","iiprop":"url|extmetadata","iiurlwidth":1000})
-        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":os.getenv("HDVIA_API_USER_AGENT","HDVIA/1.25.2 (travel AI; contact configured by deployment)"),"Accept":"application/json"})
-        with urllib.request.urlopen(req,timeout=8) as r:
-            data=json.loads(r.read().decode("utf-8"))
-        pages=data.get("query",{}).get("pages",{})
-        for page in pages.values():
-            info=(page.get("imageinfo") or [{}])[0]
-            image_url=info.get("thumburl") or info.get("url")
-            if image_url:
-                return jsonify({"ok":True,"name":name,"image_url":image_url,"title":page.get("title"),"source":"Wikimedia Commons","source_url":"https://commons.wikimedia.org/wiki/"+urllib.parse.quote(page.get("title","").replace(" ","_"))})
-        return jsonify({"ok":False,"name":name,"error":"no_image_result","source":"Wikimedia Commons"}),404
-    except urllib.error.HTTPError as exc:
-        return jsonify({"ok":False,"name":name,"error":"image_provider_http_error","http_status":exc.code,"source":"Wikimedia Commons"}),502
-    except Exception as exc:
-        return jsonify({"ok":False,"name":name,"error":"image_provider_unreachable","detail":str(exc)[:180],"source":"Wikimedia Commons"}),502
+    result=OPEN_API_ADAPTER.image(name)
+    if not result.get("ok"):
+        return jsonify({"ok":False,"name":name,"error":result.get("error","image_provider_unreachable"),"source":"Wikimedia Commons","freshness":result.get("freshness")}),502
+    pages=result.get("data",{}).get("query",{}).get("pages",{})
+    for page in pages.values():
+        info=(page.get("imageinfo") or [{}])[0]
+        image_url=info.get("thumburl") or info.get("url")
+        if image_url:
+            return jsonify({"ok":True,"name":name,"image_url":image_url,"title":page.get("title"),"source":"Wikimedia Commons","source_url":"https://commons.wikimedia.org/wiki/"+urllib.parse.quote(page.get("title","").replace(" ","_")),"freshness":result.get("freshness"),"cache":result.get("cache")})
+    return jsonify({"ok":False,"name":name,"error":"no_image_result","source":"Wikimedia Commons","freshness":result.get("freshness")}),404
 
 @app.get("/api/v1/route")
 def route_api():
@@ -960,6 +957,7 @@ def public_api_connectivity():
 def public_api_catalog():
     return jsonify({"ok": True, "version": API_LAYER_VERSION, "providers": [
         {"name":"open_meteo","group":"weather","free":True,"auth":"none"},
+        {"name":"wikimedia_commons","group":"images","free":True,"auth":"none"},
         {"name":"open_meteo_geocoding","group":"geocoding","free":True,"auth":"none"},
         {"name":"open_meteo_air_quality","group":"air_quality","free":True,"auth":"none"},
         {"name":"open_meteo_marine","group":"marine","free":True,"auth":"none"},
@@ -1154,11 +1152,11 @@ def self_update_run():
     return jsonify({"ok":True,"processed":processed,"count":len(processed)})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.2.1-api-connectivity-live-data-hardened","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.2.4-api-connectivity-live-data-hardened","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.25.2.1-api-connectivity-live-data-hardened","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.25.2.4-api-connectivity-live-data-hardened","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

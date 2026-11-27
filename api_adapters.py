@@ -13,9 +13,10 @@ from public_apis import (
     marine as open_meteo_marine, search_place as osm_search_place,
     wikipedia_search, wikidata_search, overpass_query, sun_times,
     opentripmap_places, opentripmap_details,
+    wikimedia_image_search,
 )
 
-API_LAYER_VERSION = "1.25.2.1-api-connectivity-live-data-hardened"
+API_LAYER_VERSION = "1.25.2.4-api-connectivity-live-data-hardened"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -47,59 +48,78 @@ class OpenAPIAdapter:
         self.live_sun = _enabled("HDVIA_LIVE_SUN", True)
         self.live_opentripmap = _enabled("HDVIA_LIVE_OPENTRIPMAP", False)
         self.cache_ttl = max(0, int(os.getenv("HDVIA_OPEN_API_CACHE_TTL", "900")))
+        self.cache_ttls = {
+            "weather": max(0, int(os.getenv("HDVIA_CACHE_TTL_WEATHER", "300"))),
+            "marine": max(0, int(os.getenv("HDVIA_CACHE_TTL_MARINE", "300"))),
+            "aqi": max(0, int(os.getenv("HDVIA_CACHE_TTL_AIR_QUALITY", "600"))),
+            "image": max(0, int(os.getenv("HDVIA_CACHE_TTL_IMAGE", "21600"))),
+            "geocode": max(0, int(os.getenv("HDVIA_CACHE_TTL_GEOCODE", "86400"))),
+            "osm": max(0, int(os.getenv("HDVIA_CACHE_TTL_OSM", "86400"))),
+            "wikidata": max(0, int(os.getenv("HDVIA_CACHE_TTL_WIKIDATA", "86400"))),
+            "wikipedia": max(0, int(os.getenv("HDVIA_CACHE_TTL_WIKIPEDIA", "86400"))),
+            "sun": max(0, int(os.getenv("HDVIA_CACHE_TTL_SUN", "21600"))),
+            "route": max(0, int(os.getenv("HDVIA_CACHE_TTL_ROUTE", "900"))),
+        }
         self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
 
-    def _cached(self, key: str, fn):
+    def _cached(self, key: str, fn, *, ttl: Optional[int] = None):
         now = time.time(); hit = self._cache.get(key)
-        if hit and (self.cache_ttl == 0 or now - hit[0] < self.cache_ttl):
-            out = dict(hit[1]); out["cache"] = "hit"; return out
+        effective_ttl = self.cache_ttl if ttl is None else ttl
+        if hit and (effective_ttl == 0 or now - hit[0] < effective_ttl):
+            out = dict(hit[1]); out["cache"] = "hit"; out["freshness"] = {
+                "state": "CACHE", "fetched_at": hit[0], "age_seconds": round(now-hit[0], 1), "ttl_seconds": effective_ttl
+            }; return out
         try:
             out = fn()
         except Exception as exc:
             out = {"ok": False, "error": str(exc)[:300]}
         if out.get("ok"):
             self._cache[key] = (now, out)
-        out = dict(out); out["cache"] = "miss"; return out
+            out = dict(out); out["freshness"] = {"state":"LIVE", "fetched_at":now, "age_seconds":0, "ttl_seconds":effective_ttl}
+        else:
+            out = dict(out); out["freshness"] = {"state":"ERROR", "fetched_at":None, "age_seconds":None, "ttl_seconds":effective_ttl}
+        out["cache"] = "miss"
+        return out
 
     def weather(self, lat: float, lon: float, days: int = 7) -> Dict[str, Any]:
         if not self.live_weather:
             return {"ok": False, "disabled": True, "provider": "open_meteo"}
-        return self._cached(_cache_key("weather", [lat, lon, days]), lambda: open_meteo_weather(lat, lon, days))
+        return self._cached(_cache_key("weather", [lat, lon, days]), lambda: open_meteo_weather(lat, lon, days), ttl=self.cache_ttls["weather"])
 
     def geocode(self, name: str) -> Dict[str, Any]:
         if not self.live_geocoding:
             return {"ok": False, "disabled": True, "provider": "open_meteo_geocoding"}
-        return self._cached(_cache_key("geocode", [name]), lambda: open_meteo_geocode(name, 5, "vi"))
+        return self._cached(_cache_key("geocode", [name]), lambda: open_meteo_geocode(name, 5, "vi"), ttl=self.cache_ttls["geocode"])
 
     def route(self, coords: str, profile: str = "driving") -> Dict[str, Any]:
         if not self.live_routing:
             return {"ok": False, "disabled": True, "provider": "osrm"}
-        return self._cached(_cache_key("route", [coords, profile]), lambda: osrm_route(coords, profile))
+        return self._cached(_cache_key("route", [coords, profile]), lambda: osrm_route(coords, profile), ttl=self.cache_ttls["route"])
 
     def air_quality(self, lat: float, lon: float) -> Dict[str, Any]:
         if not self.live_air_quality:
             return {"ok": False, "disabled": True, "provider": "open_meteo_air_quality"}
-        return self._cached(_cache_key("aqi", [lat, lon]), lambda: open_meteo_air_quality(lat, lon))
+        return self._cached(_cache_key("aqi", [lat, lon]), lambda: open_meteo_air_quality(lat, lon), ttl=self.cache_ttls["aqi"])
 
     def marine(self, lat: float, lon: float) -> Dict[str, Any]:
         if not self.live_marine:
             return {"ok": False, "disabled": True, "provider": "open_meteo_marine"}
-        return self._cached(_cache_key("marine", [lat, lon]), lambda: open_meteo_marine(lat, lon))
+        return self._cached(_cache_key("marine", [lat, lon]), lambda: open_meteo_marine(lat, lon), ttl=self.cache_ttls["marine"])
 
     def osm_search(self, q: str, limit: int = 5) -> Dict[str, Any]:
         if not self.live_osm:
             return {"ok": False, "disabled": True, "provider": "osm_nominatim"}
-        return self._cached(_cache_key("osm", [q, limit]), lambda: osm_search_place(q, limit))
+        return self._cached(_cache_key("osm", [q, limit]), lambda: osm_search_place(q, limit), ttl=self.cache_ttls["osm"])
 
     def wikidata(self, q: str, limit: int = 5) -> Dict[str, Any]:
         if not self.live_wikidata:
             return {"ok": False, "disabled": True, "provider": "wikidata"}
-        return self._cached(_cache_key("wikidata", [q, limit]), lambda: wikidata_search(q, limit))
+        return self._cached(_cache_key("wikidata", [q, limit]), lambda: wikidata_search(q, limit), ttl=self.cache_ttls["wikidata"])
 
     def wikipedia(self, q: str, lang: str = "vi", limit: int = 5) -> Dict[str, Any]:
         if not self.live_wikipedia:
             return {"ok": False, "disabled": True, "provider": "wikipedia"}
-        return self._cached(_cache_key("wikipedia", [q, lang, limit]), lambda: wikipedia_search(q, lang, limit))
+        return self._cached(_cache_key("wikipedia", [q, lang, limit]), lambda: wikipedia_search(q, lang, limit), ttl=self.cache_ttls["wikipedia"])
 
     def overpass(self, query: str) -> Dict[str, Any]:
         if not self.live_osm:
@@ -109,17 +129,20 @@ class OpenAPIAdapter:
     def sun(self, lat: float, lon: float, date: Optional[str] = None) -> Dict[str, Any]:
         if not self.live_sun:
             return {"ok": False, "disabled": True, "provider": "sunrise_sunset"}
-        return self._cached(_cache_key("sun", [lat, lon, date]), lambda: sun_times(lat, lon, date))
+        return self._cached(_cache_key("sun", [lat, lon, date]), lambda: sun_times(lat, lon, date), ttl=self.cache_ttls["sun"])
 
     def opentripmap_places(self, lat: float, lon: float, radius: int = 5000, kinds: str = "interesting_places") -> Dict[str, Any]:
         if not self.live_opentripmap:
             return {"ok": False, "disabled": True, "provider": "opentripmap"}
-        return self._cached(_cache_key("otm_places", [lat, lon, radius, kinds]), lambda: opentripmap_places(lat, lon, radius, kinds))
+        return self._cached(_cache_key("otm_places", [lat, lon, radius, kinds]), lambda: opentripmap_places(lat, lon, radius, kinds), ttl=self.cache_ttl)
 
     def opentripmap_details(self, xid: str) -> Dict[str, Any]:
         if not self.live_opentripmap:
             return {"ok": False, "disabled": True, "provider": "opentripmap"}
-        return self._cached(_cache_key("otm_detail", xid), lambda: opentripmap_details(xid))
+        return self._cached(_cache_key("otm_detail", xid), lambda: opentripmap_details(xid), ttl=self.cache_ttl)
+
+    def image(self, name: str) -> Dict[str, Any]:
+        return self._cached(_cache_key("image", name), lambda: wikimedia_image_search(name), ttl=self.cache_ttls["image"])
 
     def enrich_destination(self, name: str, lat: Optional[float] = None, lon: Optional[float] = None) -> Dict[str, Any]:
         """Read-only enrichment; does not claim external data is verified knowledge."""
@@ -162,6 +185,7 @@ class OpenAPIAdapter:
             "wikipedia": lambda: wikipedia_search(place, "vi", 3),
             "wikidata": lambda: wikidata_search(place, 3),
             "sun": lambda: sun_times(lat, lon),
+            "image": lambda: wikimedia_image_search(place),
         }
         out: Dict[str, Any] = {}
         with ThreadPoolExecutor(max_workers=len(checks)) as ex:
@@ -180,6 +204,7 @@ class OpenAPIAdapter:
                         "status_code": r.get("status_code") if isinstance(r, dict) else None,
                         "response_ms": elapsed_ms,
                         "cache": r.get("cache") if isinstance(r, dict) else None,
+                        "freshness": r.get("freshness") if isinstance(r, dict) else None,
                         "error": r.get("error") if isinstance(r, dict) else None,
                     }
                 except Exception as exc:
@@ -210,8 +235,9 @@ class OpenAPIAdapter:
             "wikidata": {"provider":"wikidata", "enabled": self.live_wikidata},
             "wikipedia": {"provider":"wikipedia", "enabled": self.live_wikipedia},
             "sun": {"provider":"sunrise_sunset", "enabled": self.live_sun},
+            "image": {"provider":"wikimedia_commons", "enabled": True},
             "opentripmap": {"provider":"opentripmap", "enabled": self.live_opentripmap, "requires_key": True},
-        }, "cache_ttl_seconds": self.cache_ttl}
+        }, "cache_ttl_seconds": self.cache_ttl, "cache_ttls_seconds": self.cache_ttls}
 
 
 OPEN_API_ADAPTER = OpenAPIAdapter()

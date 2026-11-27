@@ -29,7 +29,7 @@ class PublicProvider:
         base = self.base_url.rstrip("/") + "/" + path.lstrip("/")
         query = urllib.parse.urlencode({k: v for k, v in (params or {}).items() if v is not None}, doseq=True)
         url = base + ("?" + query if query else "")
-        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.22.0")})
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.25.2.4")})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read(2_000_001)
@@ -96,6 +96,16 @@ def wikidata_search(q: str, limit: int = 5) -> Dict[str, Any]:
     return PROVIDERS["wikidata"].get("/w/api.php", {"action": "wbsearchentities", "search": q, "language": "en", "format": "json", "limit": min(max(int(limit), 1), 10), "origin": "*"})
 
 
+
+def wikimedia_image_search(q: str, limit: int = 3) -> Dict[str, Any]:
+    """Search Wikimedia Commons for a representative image of a place."""
+    provider = PublicProvider("wikimedia_commons", "https://commons.wikimedia.org", "Wikimedia Commons / Wikimedia Foundation")
+    return provider.get("/w/api.php", {
+        "action": "query", "format": "json", "generator": "search",
+        "gsrsearch": f"{q} Vietnam", "gsrnamespace": 6, "gsrlimit": min(max(int(limit),1),10),
+        "prop": "imageinfo", "iiprop": "url|extmetadata", "iiurlwidth": 1000, "origin": "*"
+    })
+
 def country(name_or_code: str) -> Dict[str, Any]:
     # REST Countries v5 currently requires a bearer token for API calls. The
     # public demo key is intentionally not baked into HDVIA; deployment can set it.
@@ -126,7 +136,7 @@ def opentripmap_details(xid: str) -> Dict[str, Any]:
 
 def _raw_post_json(url: str, body: str, provider: str) -> Dict[str, Any]:
     encoded = urllib.parse.urlencode({"data": body}).encode("utf-8")
-    req = urllib.request.Request(url, data=encoded, headers={"Accept":"application/json", "Content-Type":"application/x-www-form-urlencoded", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.22.0")}, method="POST")
+    req = urllib.request.Request(url, data=encoded, headers={"Accept":"application/json", "Content-Type":"application/x-www-form-urlencoded", "User-Agent": os.getenv("HDVIA_API_USER_AGENT", "HDVIA-PublicAPI/1.25.2.4")}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
             raw = resp.read(2_000_001)

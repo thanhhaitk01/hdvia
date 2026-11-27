@@ -16,6 +16,8 @@ OPEN_API_CATALOG={
     "/api/v1/openapi/agent/inspect-tour":"POST",
     "/api/v1/openapi/connect/status":"GET",
     "/api/v1/public-api/health":"GET",
+    "/api/v1/public-api/connectivity":"GET",
+    "/api/v1/public-api/catalog":"GET",
     "/api/v1/public-api/weather":"GET",
     "/api/v1/public-api/geocode":"GET",
     "/api/v1/public-api/route":"GET",

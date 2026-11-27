@@ -4,3 +4,10 @@ __pycache__/
 data/*.db
 private_uploads/*
 .env
+
+# Test/runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/__pycache__/
+.DS_Store
