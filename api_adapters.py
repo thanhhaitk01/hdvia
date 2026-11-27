@@ -33,7 +33,10 @@ def _cache_key(prefix: str, payload: Any) -> str:
 class OpenAPIAdapter:
     def __init__(self):
         self.timeout = max(2, min(int(os.getenv("HDVIA_OPEN_API_TIMEOUT", "10")), 30))
-        self.live_routing = _enabled("HDVIA_LIVE_ROUTING", False)
+        self.live_routing = _enabled(
+            "HDVIA_ENABLE_LIVE_ROUTING",
+            _enabled("HDVIA_LIVE_ROUTING", False),
+        )
         self.live_geocoding = _enabled("HDVIA_LIVE_GEOCODING", True)
         self.live_weather = _enabled("HDVIA_LIVE_WEATHER", True)
         self.live_air_quality = _enabled("HDVIA_LIVE_AIR_QUALITY", True)

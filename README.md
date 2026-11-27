@@ -17,7 +17,7 @@ Beta 1.22.0 kế thừa Journey/Conversation/Vietnam Knowledge Hardening và b�
 - Khi live routing không khả dụng, Journey AI giữ fallback Haversine estimate.
 
 ## Environment
-See `.env.example` for `HDVIA_OPEN_API_TIMEOUT`, `HDVIA_OPEN_API_CACHE_TTL`, `HDVIA_LIVE_WEATHER`, `HDVIA_LIVE_GEOCODING`, `HDVIA_LIVE_ROUTING`.
+See `.env.example` for `HDVIA_OPEN_API_TIMEOUT`, `HDVIA_OPEN_API_CACHE_TTL`, `HDVIA_LIVE_WEATHER`, `HDVIA_LIVE_GEOCODING`, `HDVIA_LIVE_ROUTING`. For routing, `HDVIA_ENABLE_LIVE_ROUTING=true` can override the legacy `HDVIA_LIVE_ROUTING` flag without changing existing deployments.
 
 ## Beta 1.22.0 Knowledge Expansion
 
