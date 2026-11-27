@@ -7,12 +7,13 @@
     const q=node.dataset.placeImage;
     try{
       const r=await fetch('/api/v1/place-image?name='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
-      if(!r.ok) return;
+      if(!r.ok){ node.dataset.imageStatus='error'; return; }
       const data=await r.json();
-      if(!data.image_url) return;
+      if(!data.image_url){ node.dataset.imageStatus='empty'; return; }
       const img=node.querySelector('img');
       if(!img) return;
       img.src=data.image_url;
+      img.addEventListener('error',()=>{img.hidden=true; node.dataset.imageStatus='broken';},{once:true});
       img.hidden=false;
       const ph=node.querySelector('.journey-image-placeholder');
       if(ph) ph.hidden=true;
