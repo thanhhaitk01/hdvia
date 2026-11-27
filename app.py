@@ -892,17 +892,23 @@ def weather_api():
 @app.get("/api/v1/place-image")
 def place_image_api():
     name=request.args.get("name","").strip()
-    if not name:return jsonify({"error":"missing name"}),400
+    if not name:return jsonify({"ok":False,"error":"missing name"}),400
     try:
-        q=urllib.parse.urlencode({"action":"query","format":"json","generator":"search","gsrsearch":name+" Vietnam","gsrnamespace":6,"gsrlimit":1,"prop":"imageinfo","iiprop":"url|extmetadata","iiurlwidth":1000})
-        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":"HDVIA/1.9.0-beta-commercial Travel Intelligence"})
-        with urllib.request.urlopen(req,timeout=8) as r: data=json.loads(r.read().decode("utf-8"))
+        q=urllib.parse.urlencode({"action":"query","format":"json","generator":"search","gsrsearch":name+" Vietnam","gsrnamespace":6,"gsrlimit":3,"prop":"imageinfo","iiprop":"url|extmetadata","iiurlwidth":1000})
+        req=urllib.request.Request("https://commons.wikimedia.org/w/api.php?"+q,headers={"User-Agent":os.getenv("HDVIA_API_USER_AGENT","HDVIA/1.25.2 (travel AI; contact configured by deployment)"),"Accept":"application/json"})
+        with urllib.request.urlopen(req,timeout=8) as r:
+            data=json.loads(r.read().decode("utf-8"))
         pages=data.get("query",{}).get("pages",{})
         for page in pages.values():
-            info=page.get("imageinfo",[{}])[0]; return jsonify({"name":name,"image_url":info.get("thumburl") or info.get("url"),"title":page.get("title"),"source":"Wikimedia Commons"})
-    except Exception as e:
-        return jsonify({"name":name,"image_url":None,"source":"fallback","error":"image provider unavailable"})
-    return jsonify({"name":name,"image_url":None,"source":"none"})
+            info=(page.get("imageinfo") or [{}])[0]
+            image_url=info.get("thumburl") or info.get("url")
+            if image_url:
+                return jsonify({"ok":True,"name":name,"image_url":image_url,"title":page.get("title"),"source":"Wikimedia Commons","source_url":"https://commons.wikimedia.org/wiki/"+urllib.parse.quote(page.get("title","").replace(" ","_"))})
+        return jsonify({"ok":False,"name":name,"error":"no_image_result","source":"Wikimedia Commons"}),404
+    except urllib.error.HTTPError as exc:
+        return jsonify({"ok":False,"name":name,"error":"image_provider_http_error","http_status":exc.code,"source":"Wikimedia Commons"}),502
+    except Exception as exc:
+        return jsonify({"ok":False,"name":name,"error":"image_provider_unreachable","detail":str(exc)[:180],"source":"Wikimedia Commons"}),502
 
 @app.get("/api/v1/route")
 def route_api():
@@ -942,6 +948,14 @@ def _open_api_required(f):
 def public_api_health():
     return jsonify({"ok": True, "adapter": OPEN_API_ADAPTER.status(), "time": now()})
 
+@app.get("/api/v1/public-api/connectivity")
+@app.get("/api/v1/public-api/connectivity/")
+def public_api_connectivity():
+    place = request.args.get("place", "Chùa Cầu Hội An").strip() or "Chùa Cầu Hội An"
+    lat = request.args.get("lat", default=15.8777, type=float)
+    lon = request.args.get("lon", default=108.3268, type=float)
+    return jsonify(OPEN_API_ADAPTER.probe_connectivity(place, lat, lon))
+
 @app.get("/api/v1/public-api/catalog")
 def public_api_catalog():
     return jsonify({"ok": True, "version": API_LAYER_VERSION, "providers": [
@@ -969,11 +983,11 @@ def public_api_geocode():
 
 @app.get("/api/v1/public-api/air-quality")
 def public_api_air_quality():
-    return jsonify(air_quality(float(request.args.get("lat")), float(request.args.get("lon"))))
+    return jsonify(OPEN_API_ADAPTER.air_quality(float(request.args.get("lat")), float(request.args.get("lon"))))
 
 @app.get("/api/v1/public-api/marine")
 def public_api_marine():
-    return jsonify(marine(float(request.args.get("lat")), float(request.args.get("lon"))))
+    return jsonify(OPEN_API_ADAPTER.marine(float(request.args.get("lat")), float(request.args.get("lon"))))
 
 @app.get("/api/v1/public-api/search-place")
 def public_api_search_place():
@@ -1140,11 +1154,11 @@ def self_update_run():
     return jsonify({"ok":True,"processed":processed,"count":len(processed)})
 
 @app.get("/health")
-def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.1-hdv-smart-reasoning-point-intelligence","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
+def health(): return jsonify({"status":"ok","service":"HDVIA","version":"1.25.2.1-api-connectivity-live-data-hardened","modules":["journey_intelligence","ai_copilot","ai_agent","external_connect","open_api","knowledge_learning","mobile_contract","weather_7_day","route_intelligence","knowledge_hub","admin_full_control"],"time":now()})
 
 @app.get("/__version")
 def build_info():
-    return jsonify({"service":"HDVIA","version":"1.25.1-hdv-smart-reasoning-point-intelligence","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
+    return jsonify({"service":"HDVIA","version":"1.25.2.1-api-connectivity-live-data-hardened","python_entrypoint":"app.py","deployment_mode":"vercel-zero-config","phases":{"A":"AI Copilot Foundation","B":"External Connect Foundation","C":"AI Agent Foundation","D":"Open API Foundation","E":"Mobile Native Contract"}})
 
 
 @app.post("/api/v1/journey/feedback")

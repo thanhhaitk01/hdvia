@@ -5,6 +5,7 @@ Live calls are bounded, cached, and exposed through a single orchestration surfa
 """
 from __future__ import annotations
 import os, time, json, hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, Optional
 from public_apis import (
     weather as open_meteo_weather, geocode as open_meteo_geocode,
@@ -14,7 +15,7 @@ from public_apis import (
     opentripmap_places, opentripmap_details,
 )
 
-API_LAYER_VERSION = "1.22.0-journey-data-fusion"
+API_LAYER_VERSION = "1.25.2.1-api-connectivity-live-data-hardened"
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -138,6 +139,62 @@ class OpenAPIAdapter:
         out["wikidata"] = self.wikidata(name, 5)
         out["wikipedia"] = self.wikipedia(name, "vi", 5)
         return out
+
+
+    def probe_connectivity(self, place: str = "Chùa Cầu Hội An", lat: float = 15.8777, lon: float = 108.3268) -> Dict[str, Any]:
+        """Live, read-only smoke test for public providers.
+
+        Unlike ``status()``, this probe intentionally bypasses HDVIA feature
+        enable flags so the endpoint answers the operational question: can the
+        deployed runtime reach the external provider right now?
+        """
+        import time as _time
+        checks = {
+            "weather": lambda: open_meteo_weather(lat, lon, 7),
+            "geocoding": lambda: open_meteo_geocode(place, 5, "vi"),
+            "routing": lambda: osrm_route(f"{lon},{lat};108.2068,16.0471", "driving"),
+            "air_quality": lambda: open_meteo_air_quality(lat, lon),
+            "marine": lambda: open_meteo_marine(lat, lon),
+            "osm": lambda: osm_search_place(place, 3),
+            "wikipedia": lambda: wikipedia_search(place, "vi", 3),
+            "wikidata": lambda: wikidata_search(place, 3),
+            "sun": lambda: sun_times(lat, lon),
+        }
+        out: Dict[str, Any] = {}
+        with ThreadPoolExecutor(max_workers=len(checks)) as ex:
+            futures = {ex.submit(fn): name for name, fn in checks.items()}
+            for future in as_completed(futures):
+                name = futures[future]
+                started = _time.perf_counter()
+                try:
+                    r = future.result()
+                    elapsed_ms = round((_time.perf_counter() - started) * 1000, 1)
+                    ok = bool(isinstance(r, dict) and r.get("ok"))
+                    out[name] = {
+                        "status": "LIVE" if ok else "ERROR",
+                        "ok": ok,
+                        "provider": r.get("provider", name) if isinstance(r, dict) else name,
+                        "status_code": r.get("status_code") if isinstance(r, dict) else None,
+                        "response_ms": elapsed_ms,
+                        "cache": r.get("cache") if isinstance(r, dict) else None,
+                        "error": r.get("error") if isinstance(r, dict) else None,
+                    }
+                except Exception as exc:
+                    out[name] = {
+                        "status": "ERROR", "ok": False, "provider": name,
+                        "status_code": None, "response_ms": round((_time.perf_counter() - started) * 1000, 1),
+                        "error": str(exc)[:300],
+                    }
+        live = sum(1 for v in out.values() if v.get("ok"))
+        total = len(out)
+        return {
+            "ok": live == total,
+            "summary": {"live": live, "error": total - live, "total": total},
+            "place": place,
+            "coordinates": {"lat": lat, "lon": lon},
+            "checks": out,
+            "checked_at": time.time(),
+        }
 
     def status(self) -> Dict[str, Any]:
         return {"version": API_LAYER_VERSION, "providers": {
