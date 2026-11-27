@@ -59,3 +59,24 @@ def test_fusion_respects_place_budget(monkeypatch):
     f = JourneyDataFusion(adapter=FakeAdapter())
     result = f.enrich_result({"places": [{"name": str(i), "lat": 16, "lon": 108} for i in range(5)], "weather": {}})
     assert len(result["live_data_fusion"]["destinations"]) == 2
+
+
+def test_entity_resolution_bridges_vietnamese_landmark_to_wikidata():
+    class AliasAdapter(FakeAdapter):
+        def wikipedia(self, q, lang="vi", limit=5):
+            if lang == "en":
+                return {"ok": True, "provider": "fake-wiki-en", "data": {"results": [{"title": "Japanese Bridge", "snippet": "Japanese Bridge in Hoi An, Vietnam"}]}}
+            return {"ok": True, "provider": "fake-wiki", "data": {"results": [{"title": "Chùa Cầu", "snippet": "Di tích ở Hội An"}]}}
+
+        def wikidata(self, q, limit=5):
+            if q in ("Japanese Bridge", "Hoi An Japanese Bridge"):
+                return {"ok": True, "provider": "fake-wikidata", "data": {"search": [{"id": "Q1091054", "label": "Japanese Bridge", "description": "bridge in Hoi An, Vietnam"}]}}
+            return {"ok": True, "provider": "fake-wikidata", "data": {"search": []}}
+
+    f = JourneyDataFusion(adapter=AliasAdapter())
+    result = f.enrich_result({"places": [{"name": "Chùa Cầu Hội An", "lat": 15.8771541, "lon": 108.3260034}], "weather": {}})
+    d = result["live_data_fusion"]["destinations"]["Chùa Cầu Hội An"]
+    assert d["entity_resolution"]["wikidata"]["id"] == "Q1091054"
+    assert d["entity_resolution"]["wikidata"]["label"] == "Japanese Bridge"
+    assert d["entity_resolution"]["confidence"] in ("HIGH", "MEDIUM")
+    assert d["wikidata"]["resolved"]["id"] == "Q1091054"
