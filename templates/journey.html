@@ -27,6 +27,97 @@
 
 {% if journey_error %}<div class="alert danger">{{journey_error}}</div>{% endif %}
 {% if result %}
+
+{# Desktop presentation: one adaptive result surface. Mobile keeps the existing release UI below. #}
+<section class="journey-desktop-result" aria-label="Kết quả Hành Trình AI trên máy tính">
+  {% if result.get('answer') %}
+  <article class="desktop-ai-answer">
+    <div class="eyebrow cyan">✦ HDVIA TRẢ LỜI</div>
+    <h3>{{result.get('answer')}}</h3>
+    {% if result.get('sources') %}<div class="desktop-ai-sources">Nguồn: {{result.get('sources')|join(' · ')}}</div>{% endif %}
+  </article>
+  {% endif %}
+
+  {% if result.get('days')|length > 1 %}
+  <section class="desktop-journey-days">
+    <div class="desktop-section-heading">
+      <div><div class="eyebrow cyan">🗺 LỊCH TRÌNH THEO NGÀY</div><h2>{{result.get('title','Hành Trình AI')}}</h2></div>
+      <span>{{result.get('days')|length}} ngày</span>
+    </div>
+    <p class="desktop-section-sub">Thông tin điểm đến được sắp xếp theo đúng từng ngày trong lịch trình.</p>
+
+    {% set destination_context = result.get('destination_context',[]) %}
+    {% set weather_map = result.weather if result.weather is mapping else {} %}
+    {% for day in result.get('days',[]) %}
+      <article class="desktop-day-card">
+        <div class="desktop-day-head">
+          <div class="desktop-day-number">Ngày {{day.get('day','—')}}</div>
+          <div class="desktop-day-route">
+            <strong>{{day.get('text') or (day.get('places',[])|join(' → '))}}</strong>
+            {% if day.get('estimated_drive_minutes') is not none %}<span>{{day.get('estimated_drive_minutes')}} phút di chuyển{% if day.get('recommended_buffer_minutes') %} · +{{day.get('recommended_buffer_minutes')}} phút dự phòng{% endif %}</span>{% endif %}
+          </div>
+        </div>
+        {% for place_name in day.get('places',[]) %}
+          {% set ns = namespace(place_info=none) %}
+          {% for d in destination_context %}{% if d.get('name') == place_name %}{% set ns.place_info = d %}{% endif %}{% endfor %}
+          <div class="desktop-place-card">
+            <div class="desktop-place-title">
+              <div><span class="desktop-place-pin">📍</span><strong>{{place_name}}</strong></div>
+              {% if ns.place_info %}<span>{{ns.place_info.get('region','')}}</span>{% endif %}
+            </div>
+            {% if ns.place_info %}
+            <p>{{ns.place_info.get('overview','')}}</p>
+            <div class="desktop-place-facts">
+              {% if ns.place_info.get('highlights') %}<div><b>Điểm nổi bật</b><span>{{ns.place_info.get('highlights')|join(' · ')}}</span></div>{% endif %}
+              {% if ns.place_info.get('culture') %}<div><b>Văn hóa</b><span>{{ns.place_info.get('culture')}}</span></div>{% endif %}
+              {% if ns.place_info.get('history') %}<div><b>Lịch sử</b><span>{{ns.place_info.get('history')}}</span></div>{% endif %}
+              {% if ns.place_info.get('food') %}<div><b>Ẩm thực</b><span>{{ns.place_info.get('food')}}</span></div>{% endif %}
+              {% if ns.place_info.get('best_for') %}<div><b>Kinh nghiệm HDV</b><span>{{ns.place_info.get('best_for')}}</span></div>{% endif %}
+            </div>
+            {% endif %}
+            {% if weather_map.get(place_name) %}
+            <div class="desktop-weather-mini">
+              <b>☁ Thời tiết 7 ngày</b>
+              <div class="desktop-weather-days">
+                {% for wd in weather_map.get(place_name,[])[:7] %}
+                <span>{{wd.get('date','—')}} · {{wd.get('condition','')}} · {{wd.get('tmax','—')}}° / {{wd.get('tmin','—')}}° · mưa {{wd.get('rain','—')}}%</span>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </article>
+    {% endfor %}
+  </section>
+
+  {% elif result.get('destination_context') %}
+  <section class="desktop-single-destination">
+    <div class="eyebrow cyan">📍 ĐIỂM ĐẾN</div>
+    {% for d in result.get('destination_context',[]) %}
+    <article class="desktop-destination-card">
+      <div class="desktop-destination-head"><div><h2>{{d.get('name')}}</h2><span>{{d.get('region','')}}</span></div></div>
+      <p class="desktop-destination-overview">{{d.get('overview','')}}</p>
+      <div class="desktop-place-facts">
+        {% if d.get('highlights') %}<div><b>Điểm nổi bật</b><span>{{d.get('highlights')|join(' · ')}}</span></div>{% endif %}
+        {% if d.get('culture') %}<div><b>Văn hóa</b><span>{{d.get('culture')}}</span></div>{% endif %}
+        {% if d.get('history') %}<div><b>Lịch sử</b><span>{{d.get('history')}}</span></div>{% endif %}
+        {% if d.get('food') %}<div><b>Ẩm thực</b><span>{{d.get('food')}}</span></div>{% endif %}
+        {% if d.get('best_for') %}<div><b>Kinh nghiệm HDV</b><span>{{d.get('best_for')}}</span></div>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  {% else %}
+  <section class="desktop-direct-answer">
+    <div class="eyebrow cyan">✦ TRẢ LỜI CÂU HỎI</div>
+    <p>HDVIA đã phân tích câu hỏi và trả lời trực tiếp theo dữ liệu hiện có.</p>
+  </section>
+  {% endif %}
+</section>
+
+<div class="journey-mobile-legacy">
 <section class="analysis-result">
   {% if result.get('answer') %}
   <article class="result-card ai-answer-card">
@@ -398,6 +489,7 @@
     <div class="feedback-row"><b>Đánh giá kết quả</b><a href="/api/v1/journey/feedback" aria-label="Đánh giá kết quả">Gửi đánh giá →</a></div>
   </div>
 </section>
+</div>
 {% endif %}
 </section>
 {% endblock %}
